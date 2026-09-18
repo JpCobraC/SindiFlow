@@ -57,7 +57,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1240px;
             margin: 0 auto;
             padding: 2.5rem 1.5rem;
         }
@@ -270,6 +270,234 @@
         .sla-card.high h4 { color: var(--danger); }
         .sla-card.medium h4 { color: var(--warning); }
         .sla-card.low h4 { color: var(--success); }
+
+        /* Estilos dos Mockups de Dispositivos Móveis */
+        .phone-showcase-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+            justify-items: center;
+        }
+
+        .phone-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .phone-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            text-align: center;
+        }
+
+        .phone-frame {
+            width: 310px;
+            height: 600px;
+            background: #090D16;
+            border: 4px solid #30363D;
+            border-radius: 36px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .phone-notch {
+            width: 110px;
+            height: 18px;
+            background: #161B22;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
+
+        .phone-status-bar {
+            height: 32px;
+            padding: 6px 16px 0 16px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: #8B949E;
+            z-index: 90;
+            background: rgba(13, 17, 23, 0.9);
+        }
+
+        .phone-screen-content {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            font-size: 0.82rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .phone-bottom-bar {
+            height: 52px;
+            background: #161B22;
+            border-top: 1px solid #30363D;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            font-size: 0.7rem;
+            color: #8B949E;
+        }
+
+        .phone-bottom-bar .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .phone-bottom-bar .tab-item.active {
+            color: #58A6FF;
+            font-weight: bold;
+        }
+
+        /* Componentes Internos da Tela */
+        .mock-app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #30363D;
+        }
+
+        .mock-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #1F6FEB;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .mock-stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mock-stat-card {
+            background: #161B22;
+            border: 1px solid #30363D;
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .mock-stat-card .val {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #58A6FF;
+        }
+
+        .mock-list-item {
+            background: #161B22;
+            border: 1px solid #30363D;
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mock-tag {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .mock-tag.draft { background: rgba(139, 148, 158, 0.2); color: #8B949E; }
+        .mock-tag.progress { background: rgba(88, 166, 255, 0.2); color: #58A6FF; }
+        .mock-tag.crit { background: rgba(248, 81, 73, 0.2); color: #F85149; }
+        .mock-tag.done { background: rgba(63, 185, 80, 0.2); color: #3FB950; }
+
+        .mock-btn {
+            background: #238636;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: auto;
+        }
+
+        .mock-btn.primary { background: #1F6FEB; }
+        .mock-btn.danger { background: #DA3633; }
+
+        .mock-progress-bar {
+            height: 6px;
+            background: #30363D;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 4px 0;
+        }
+
+        .mock-progress-fill {
+            height: 100%;
+            background: #3FB950;
+            width: 85%;
+        }
+
+        .mock-camera-view {
+            height: 160px;
+            background: #000;
+            border-radius: 8px;
+            border: 1px dashed #58A6FF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #8B949E;
+            position: relative;
+        }
+
+        .mock-camera-shutter {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            background: rgba(255, 255, 255, 0.3);
+            position: absolute;
+            bottom: 8px;
+        }
+
+        .mock-map-bg {
+            height: 200px;
+            background: #121D2F;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #30363D;
+        }
+
+        .mock-pin {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+
+        .mock-pin.red { background: #F85149; top: 30%; left: 40%; box-shadow: 0 0 10px #F85149; }
+        .mock-pin.yellow { background: #D29922; top: 60%; left: 70%; }
+        .mock-pin.green { background: #3FB950; top: 75%; left: 25%; }
 
         .footer {
             text-align: center;
@@ -682,9 +910,350 @@ flowchart TD
             </div>
         </div>
 
-        <!-- 9. Stack Tecnológico -->
+        <!-- 9. TELAS DO APLICATIVO FINALIZADO -->
         <div class="section">
-            <h2>9. Stack Tecnológico Nativo</h2>
+            <h2>9. Telas do Aplicativo Finalizado (UI Mockups)</h2>
+            <p>Visualização interativa das telas principais que compõem o aplicativo móvel nativo SindiFlow ao final do desenvolvimento.</p>
+
+            <div class="phone-showcase-container">
+                <!-- Tela 1: Home Dashboard -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">1. Dashboard Principal (/home)</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:41</span>
+                            <span>📶 4G 🔋 98%</span>
+                        </div>
+                        <div class="phone-screen-content">
+                            <div class="mock-app-header">
+                                <div>
+                                    <span style="font-size:0.75rem; color:#8B949E;">Eng. Roberto Carlos</span>
+                                    <div style="font-weight:bold; color:#F0F6FC;">SindiFlow Vistorias</div>
+                                </div>
+                                <div class="mock-avatar">RC</div>
+                            </div>
+
+                            <div style="background:rgba(88,166,255,0.1); border:1px solid #58A6FF; border-radius:6px; padding:6px; display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-size:0.75rem; color:#58A6FF;">⚡ 3 itens pendentes de sync</span>
+                                <span style="font-size:0.7rem; background:#1F6FEB; color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold;">Sync</span>
+                            </div>
+
+                            <div class="mock-stat-grid">
+                                <div class="mock-stat-card">
+                                    <div class="val">14</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Vistorias Mês</span>
+                                </div>
+                                <div class="mock-stat-card">
+                                    <div class="val" style="color:#F85149;">2</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Críticos Aberto</span>
+                                </div>
+                                <div class="mock-stat-card">
+                                    <div class="val" style="color:#D29922;">3</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Em Andamento</span>
+                                </div>
+                                <div class="mock-stat-card">
+                                    <div class="val" style="color:#3FB950;">9</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Concluídas</span>
+                                </div>
+                            </div>
+
+                            <div style="font-weight:bold; font-size:0.8rem; margin-top:4px;">Vistorias Recentes</div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold;">Edifício Horizon</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Inspetor: Roberto • Hoje</span>
+                                </div>
+                                <span class="mock-tag progress">EM ANDAMENTO</span>
+                            </div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold;">Condomínio Vila Sol</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Inspetor: Ana • Ontem</span>
+                                </div>
+                                <span class="mock-tag done">CONCLUÍDO</span>
+                            </div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold;">Torre Empresarial Alpha</div>
+                                    <span style="font-size:0.7rem; color:#8B949E;">Garagem & Subestação</span>
+                                </div>
+                                <span class="mock-tag draft">RASCUNHO</span>
+                            </div>
+
+                            <div class="mock-btn primary">+ Nova Vistoria Predial</div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item active"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela 2: Checklist de Vistoria -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">2. Checklist de Vistoria (/vistoria/[id])</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:42</span>
+                            <span>📶 GPS OK 🔋 97%</span>
+                        </div>
+                        <div class="phone-screen-content">
+                            <div class="mock-app-header">
+                                <span style="font-weight:bold;">Vistoria #VIST-8042</span>
+                                <span class="mock-tag progress">85% CONCLUÍDO</span>
+                            </div>
+
+                            <div style="font-size:0.75rem; color:#8B949E; background:#161B22; padding:6px; border-radius:6px; border:1px solid #30363D;">
+                                📍 <strong>GPS Obrigatório:</strong> -23.5505, -46.6333 (Precisão: 4m)
+                            </div>
+
+                            <div class="mock-progress-bar">
+                                <div class="mock-progress-fill"></div>
+                            </div>
+
+                            <div style="display:flex; gap:4px; font-size:0.7rem; margin-top:2px;">
+                                <span style="background:#1F6FEB; padding:2px 6px; border-radius:4px; color:#fff;">Elétrica</span>
+                                <span style="background:#21262D; padding:2px 6px; border-radius:4px; color:#8B949E;">Incêndio</span>
+                                <span style="background:#21262D; padding:2px 6px; border-radius:4px; color:#8B949E;">Hidráulica</span>
+                            </div>
+
+                            <div class="mock-list-item" style="border-left:3px solid #3FB950;">
+                                <div>
+                                    <div style="font-weight:bold;">Quadro Geral de Luz (QGL)</div>
+                                    <span style="font-size:0.7rem; color:#3FB950;">✓ Sem barramentos expostos</span>
+                                </div>
+                                <span style="font-size:1.1rem;">✅</span>
+                            </div>
+
+                            <div class="mock-list-item" style="border-left:3px solid #F85149; flex-direction:column; align-items:flex-start; gap:4px;">
+                                <div style="display:flex; justify-content:space-between; width:100%;">
+                                    <div style="font-weight:bold; color:#F85149;">Bombas de Pressão de Incêndio</div>
+                                    <span class="mock-tag crit">CRÍTICO</span>
+                                </div>
+                                <span style="font-size:0.72rem; color:#C9D1D9;">Manômetro indicando pressão zero. Válvula de retenção com vazamento.</span>
+                                <div style="background:rgba(248,81,73,0.15); border:1px solid #F85149; padding:4px 6px; border-radius:4px; font-size:0.68rem; color:#FF7B72; width:100%;">
+                                    ⚠️ Justificativa obrigatória para liberar finalização (RF-VIST-003)
+                                </div>
+                            </div>
+
+                            <div class="mock-list-item" style="border-left:3px solid #3FB950;">
+                                <div>
+                                    <div style="font-weight:bold;">Iluminação de Emergência</div>
+                                    <span style="font-size:0.7rem; color:#3FB950;">✓ Baterias testadas por 30min</span>
+                                </div>
+                                <span style="font-size:1.1rem;">✅</span>
+                            </div>
+
+                            <div class="mock-btn primary">Solicitar Finalização</div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item active"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela 3: Registro de Ocorrência & Câmera -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">3. Registrar Ocorrência & Câmera (/ocorrencia/nova)</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:44</span>
+                            <span>📷 CAM ACTIVE</span>
+                        </div>
+                        <div class="phone-screen-content">
+                            <div class="mock-app-header">
+                                <span style="font-weight:bold;">Nova Anomalia Crítica</span>
+                                <span class="mock-tag crit">ALTA (24h)</span>
+                            </div>
+
+                            <div class="mock-camera-view">
+                                <span>📷 Vizualizador da Câmera (expo-camera)</span>
+                                <span style="font-size:0.68rem; margin-top:4px;">1080p • Compressão JPG</span>
+                                <div class="mock-camera-shutter"></div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:#161B22; padding:6px; border-radius:6px;">
+                                <span style="font-size:0.75rem;">Gravidade:</span>
+                                <div style="display:flex; gap:4px;">
+                                    <span style="background:#DA3633; color:#fff; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:0.7rem;">ALTA</span>
+                                    <span style="background:#21262D; color:#8B949E; padding:2px 6px; border-radius:4px; font-size:0.7rem;">MÉDIA</span>
+                                    <span style="background:#21262D; color:#8B949E; padding:2px 6px; border-radius:4px; font-size:0.7rem;">BAIXA</span>
+                                </div>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:6px; padding:8px; font-size:0.75rem; color:#8B949E;">
+                                Descrição do Problema:
+                                <div style="color:#F0F6FC; margin-top:2px;">Rachadura com infiltração ativa na viga mestra da garagem G2.</div>
+                            </div>
+
+                            <div style="display:flex; gap:6px; font-size:0.7rem;">
+                                <span style="background:#161B22; border:1px solid #30363D; padding:4px 8px; border-radius:4px;">📁 Salvo em FileSystem</span>
+                                <span style="background:#161B22; border:1px solid #30363D; padding:4px 8px; border-radius:4px;">📍 GPS Vinculado</span>
+                            </div>
+
+                            <div class="mock-btn danger">Salvar na Outbox (Offline)</div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item active"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela 4: Mapa de Ocorrências -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">4. Mapa de Ocorrências (/explore)</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:45</span>
+                            <span>🗺️ MAP ACTIVE</span>
+                        </div>
+                        <div class="phone-screen-content" style="padding:8px; gap:8px;">
+                            <div class="mock-map-bg">
+                                <div style="position:absolute; top:8px; left:8px; background:rgba(13,17,23,0.8); padding:2px 6px; border-radius:4px; font-size:0.68rem;">
+                                    Condomínio Ed. Horizon
+                                </div>
+                                <div class="mock-pin red"></div>
+                                <div class="mock-pin yellow"></div>
+                                <div class="mock-pin green"></div>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:8px; padding:8px; display:flex; flex-direction:column; gap:4px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span style="font-weight:bold; color:#F85149;">Anomalia #882 - Subestação</span>
+                                    <span class="mock-tag crit">SLA: 18h restantes</span>
+                                </div>
+                                <span style="font-size:0.72rem; color:#8B949E;">Vazamento de óleo isolante no transformador T-02.</span>
+                                <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:#58A6FF; margin-top:2px;">
+                                    <span>Ver Foto Anexa (1)</span>
+                                    <span>Navegar até o Local ➔</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item active"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela 5: Outbox & Sync -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">5. Central Outbox & Sync (/settings)</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:46</span>
+                            <span>🌐 ONLINE (Wi-Fi)</span>
+                        </div>
+                        <div class="phone-screen-content">
+                            <div class="mock-app-header">
+                                <span style="font-weight:bold;">Central de Outbox</span>
+                                <span class="mock-tag done">expo-network: OK</span>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:6px; padding:8px;">
+                                <div style="font-size:0.75rem; color:#8B949E;">Status da Fila Local (SQLite)</div>
+                                <div style="font-size:1.1rem; font-weight:bold; color:#58A6FF;">3 Operações Pendentes</div>
+                                <div style="font-size:0.7rem; color:#8B949E;">Último Sync: há 12 minutos</div>
+                            </div>
+
+                            <div style="font-weight:bold; font-size:0.8rem;">Fila de Transmissão Outbox</div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold; font-size:0.78rem;">Vistoria #VIST-8042</div>
+                                    <span style="font-size:0.68rem; color:#8B949E;">POST /rest/v1/vistorias</span>
+                                </div>
+                                <span class="mock-tag done">SYNCED (200 OK)</span>
+                            </div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold; font-size:0.78rem;">Ocorrência #882</div>
+                                    <span style="font-size:0.68rem; color:#8B949E;">POST /rest/v1/ocorrencias</span>
+                                </div>
+                                <span class="mock-tag progress">SYNCING (Backoff 2s)</span>
+                            </div>
+
+                            <div class="mock-list-item">
+                                <div>
+                                    <div style="font-weight:bold; font-size:0.78rem;">Foto_882_transformador.jpg</div>
+                                    <span style="font-size:0.68rem; color:#8B949E;">Storage Bucket Upload</span>
+                                </div>
+                                <span class="mock-tag draft">PENDING</span>
+                            </div>
+
+                            <div class="mock-btn primary">Forçar Sincronização Agora</div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item active"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tela 6: Relatório & Assinatura -->
+                <div class="phone-wrapper">
+                    <div class="phone-title">6. Resumo & Assinatura (/vistoria/resumo)</div>
+                    <div class="phone-frame">
+                        <div class="phone-notch"></div>
+                        <div class="phone-status-bar">
+                            <span>09:48</span>
+                            <span>📄 REPORT READY</span>
+                        </div>
+                        <div class="phone-screen-content">
+                            <div class="mock-app-header">
+                                <span style="font-weight:bold;">Relatório Final de Vistoria</span>
+                                <span class="mock-tag done">PRONTO</span>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:6px; padding:8px; font-size:0.75rem;">
+                                <div><strong>Condomínio Edifício Horizon</strong></div>
+                                <span style="color:#8B949E;">Data: 18/09/2026 • 24 Itens Checados</span>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:6px; padding:8px; text-align:center;">
+                                <span style="font-size:0.72rem; color:#8B949E;">Assinatura Digital do Técnico</span>
+                                <div style="font-family:cursive; font-size:1.3rem; color:#58A6FF; margin:6px 0;">Roberto Carlos Silva</div>
+                                <span style="font-size:0.65rem; color:#3FB950;">✓ Autenticado via BioAuth Local</span>
+                            </div>
+
+                            <div style="background:#161B22; border:1px solid #30363D; border-radius:6px; padding:8px; text-align:center;">
+                                <span style="font-size:0.72rem; color:#8B949E;">Assinatura do Síndico / Responsável</span>
+                                <div style="font-family:cursive; font-size:1.3rem; color:#F0F6FC; margin:6px 0;">Marcos Andrade</div>
+                                <span style="font-size:0.65rem; color:#8B949E;">Assinado em Tela Tátil</span>
+                            </div>
+
+                            <div class="mock-btn primary">Exportar PDF & Finalizar</div>
+                        </div>
+                        <div class="phone-bottom-bar">
+                            <div class="tab-item active"><span>🏠</span><span>Início</span></div>
+                            <div class="tab-item"><span>🗺️</span><span>Mapa</span></div>
+                            <div class="tab-item"><span>⚙️</span><span>Outbox</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- 10. Stack Tecnológico -->
+        <div class="section">
+            <h2>10. Stack Tecnológico Nativo</h2>
             <div class="tech-stack">
                 <div class="stack-item">
                     <strong>Framework Nativo</strong>
@@ -713,25 +1282,6 @@ flowchart TD
                 <div class="stack-item">
                     <strong>Testes & Qualidade</strong>
                     <span>Jest + TDD (Domain Coverage >= 90%)</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- 10. Telas Principais -->
-        <div class="section">
-            <h2>10. Telas Principais do Aplicativo</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>Início (Home)</h3>
-                    <p>Painel principal com indicadores de sincronização pendente, filtros de busca por data/status e atalho para nova vistoria.</p>
-                </div>
-                <div class="card">
-                    <h3>Explorar (Explore)</h3>
-                    <p>Mapeamento de ocorrências geolocalizadas, visualização de pontos críticos do condomínio e histórico de manutenções.</p>
-                </div>
-                <div class="card">
-                    <h3>Configurações & Outbox</h3>
-                    <p>Monitor da fila de sincronização offline, status da conexão, gestão de permissões (RBAC) e acionamento de sync manual.</p>
                 </div>
             </div>
         </div>
