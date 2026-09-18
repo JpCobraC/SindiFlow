@@ -4,13 +4,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SindiFlow - Apresentação</title>
-    <script src="https://mermaid.live/embed.js" async></script>
+    <title>SindiFlow - Apresentação do Sistema</title>
+    <!-- Mermaid JS oficial para renderização de diagramas nativa -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            mermaid.initialize({
+                startOnLoad: true,
+                theme: 'dark',
+                securityLevel: 'loose',
+                themeVariables: {
+                    darkMode: true,
+                    background: '#161B22',
+                    primaryColor: '#1F6FEB',
+                    primaryTextColor: '#F0F6FC',
+                    primaryBorderColor: '#30363D',
+                    lineColor: '#58A6FF',
+                    secondaryColor: '#238636',
+                    tertiaryColor: '#DA3633'
+                }
+            });
+        });
+    </script>
     <style>
         :root {
             --primary: #58A6FF;
             --secondary: #38BDF8;
             --accent: #FF6B6B;
+            --success: #238636;
+            --warning: #D29922;
+            --danger: #F85149;
             --background: #0D1117;
             --surface: #161B22;
             --surface-card: #21262D;
@@ -36,66 +59,122 @@
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
         }
 
-        h1,
-        h2,
-        h3 {
-            color: var(--text-heading);
+        .header-banner {
+            text-align: center;
+            padding: 2.5rem 1.5rem;
+            background: linear-gradient(180deg, rgba(88, 166, 255, 0.1) 0%, rgba(13, 17, 23, 0) 100%);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            margin-bottom: 2.5rem;
         }
 
         h1 {
-            font-size: 2.5rem;
-            text-align: center;
+            font-size: 2.8rem;
+            color: var(--text-heading);
             margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        h1 span {
             color: var(--primary);
         }
 
         .subtitle {
-            text-align: center;
+            font-size: 1.15rem;
             color: #8B949E;
-            margin-bottom: 2rem;
+            max-width: 750px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            padding: 0.35rem 0.85rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .badge.accent {
+            color: var(--accent);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        .badge.success {
+            color: #3FB950;
+            border-color: rgba(63, 185, 80, 0.3);
         }
 
         h2 {
-            font-size: 2rem;
-            margin-top: 2rem;
-            border-left: 4px solid var(--accent);
+            font-size: 1.75rem;
+            margin-top: 3rem;
+            margin-bottom: 1.25rem;
+            border-left: 4px solid var(--primary);
             padding-left: 1rem;
+            color: var(--text-heading);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .section {
-            margin-bottom: 2rem;
+            margin-bottom: 3rem;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 1.5rem;
         }
 
         .card {
             background: var(--surface-card);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
         }
 
         .card h3 {
             color: var(--primary);
             margin-bottom: 0.5rem;
+            font-size: 1.2rem;
         }
 
-        .diagram {
-            background: var(--surface-card);
+        .diagram-box {
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
             margin: 1.5rem 0;
-            overflow: hidden;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #8B949E;
+            margin-bottom: 1rem;
+            font-weight: 600;
         }
 
         .feature-list {
@@ -103,30 +182,29 @@
             background: var(--surface);
             border-radius: 8px;
             border: 1px solid var(--border);
+            overflow: hidden;
         }
 
         .feature-list li {
-            padding: 0.75rem 1rem;
+            padding: 0.9rem 1.2rem;
             border-bottom: 1px solid var(--border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
+            gap: 0.75rem;
         }
 
         .feature-list li:last-child {
             border-bottom: none;
         }
 
-        .feature-list li::before {
-            content: '✓';
-            color: var(--accent);
+        .feature-list .icon {
+            color: #3FB950;
             font-weight: bold;
-            margin-right: 0.75rem;
         }
 
         .business-rule {
             background: var(--surface-card);
-            padding: 1rem;
+            padding: 1.2rem;
             border-left: 4px solid var(--accent);
             border-radius: 0 8px 8px 0;
             margin: 1rem 0;
@@ -135,250 +213,533 @@
             border-bottom: 1px solid var(--border);
         }
 
-        .rf-item {
-            font-weight: 600;
-            color: var(--primary);
+        .business-rule h3 {
+            color: var(--accent);
+            font-size: 1.05rem;
+            margin-bottom: 0.3rem;
         }
 
         .tech-stack {
-            display: flex;
-            gap: 1.5rem;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.25rem;
         }
 
         .stack-item {
             background: var(--surface-card);
             border: 1px solid var(--border);
-            padding: 1rem;
-            border-radius: 6px;
-            flex: 1;
-            min-width: 200px;
+            padding: 1.2rem;
+            border-radius: 8px;
         }
 
         .stack-item strong {
             display: block;
             color: var(--primary);
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.3rem;
+            font-size: 1.05rem;
         }
 
-        .arch-layer {
-            background: var(--surface);
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin: 1rem 0;
-        }
-
-        .arch-layer h3 {
-            color: var(--primary);
-            margin-bottom: 1rem;
-        }
-
-        .arch-layer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1rem;
-        }
-
-        .arch-item {
-            background: var(--surface-card);
-            padding: 1rem;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-        }
-
-        .arch-item strong {
-            color: var(--text-heading);
-            display: block;
-            margin-bottom: 0.25rem;
-        }
-
-        .arch-item span {
-            font-size: 0.85rem;
+        .stack-item span {
+            font-size: 0.9rem;
             color: #8B949E;
         }
+
+        .sla-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1rem;
+        }
+
+        .sla-card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.2rem;
+        }
+
+        .sla-card.high { border-top: 4px solid var(--danger); }
+        .sla-card.medium { border-top: 4px solid var(--warning); }
+        .sla-card.low { border-top: 4px solid var(--success); }
+
+        .sla-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .sla-card.high h4 { color: var(--danger); }
+        .sla-card.medium h4 { color: var(--warning); }
+        .sla-card.low h4 { color: var(--success); }
 
         .footer {
             text-align: center;
-            padding: 2rem;
+            padding: 2.5rem 1rem;
             color: #8B949E;
             font-size: 0.9rem;
             border-top: 1px solid var(--border);
-            margin-top: 3rem;
+            margin-top: 4rem;
         }
 
         code {
             background: rgba(110, 118, 129, 0.4);
-            padding: 0.2rem 0.4rem;
+            padding: 0.2rem 0.45rem;
             border-radius: 4px;
             color: #F0F6FC;
+            font-size: 0.88em;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            background: transparent;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>SindiFlow</h1>
-        <p class="subtitle">Apresentação – Aplicativo Móvel de Vistoria Predial</p>
+        <!-- Banner Principal -->
+        <div class="header-banner">
+            <h1>Sindi<span>Flow</span></h1>
+            <p class="subtitle">Aplicativo Móvel Nativo de Vistoria Predial Preventiva e Gestão Offline-First</p>
+            <div class="badges">
+                <span class="badge">Expo SDK 54</span>
+                <span class="badge accent">Clean Architecture</span>
+                <span class="badge success">Offline-First SQLite</span>
+                <span class="badge">Outbox Pattern</span>
+                <span class="badge accent">TDD Mandatory</span>
+                <span class="badge success">Supabase Sync</span>
+            </div>
+        </div>
 
-        <!-- Visão Geral -->
+        <!-- 1. Visão Geral -->
         <div class="section">
-            <h2>Sobre o SindiFlow</h2>
-            <p>O SindiFlow é um aplicativo móvel nativo desenvolvido com <strong>Expo SDK 54</strong> para gestão de
-                vistorias prediais preventivas. Ele permite que técnicos de campo capturem fotos, registrem
-                geolocalização e sincronizem dados offline com o backend em Supabase.</p>
+            <h2>1. Visão Geral do Sistema</h2>
+            <p>O <strong>SindiFlow</strong> foi projetado para técnicos de campo e auditores prediais realizarem vistorias em ambientes com conectividade nula ou intermitente (garagens subterrâneas, subestações, casas de máquinas). Todos os dados são persistidos primariamente em banco de dados local com sincronização resiliente em background.</p>
             <br>
             <ul class="feature-list">
-                <li><span><strong>Offline-First:</strong> Todas as operações são salvas localmente via SQLite antes da
-                        sincronização</span></li>
-                <li><span><strong>Rastreamento por Geolocalização:</strong> Coordenadas de GPS são obrigatórias para
-                        cada vistoria</span></li>
-                <li><span><strong>Gestão de Fotos:</strong> Imagens comprimidas armazenadas via
-                        <code>expo-file-system</code></span></li>
-                <li><span><strong>Resolução de Conflitos:</strong> Estratégia "última escrita vence" (last-write-wins)
-                        com comparação de timestamp</span></li>
-                <li><span><strong>Colaboração em Equipe:</strong> Acesso multiusuário com permissões baseadas em funções
-                        (RBAC)</span></li>
+                <li>
+                    <span class="icon">✓</span>
+                    <span><strong>Offline-First por Princípio:</strong> SQLite (<code>expo-sqlite</code>) como fonte da verdade local com fila de envio Outbox.</span>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <span><strong>Rastreamento Geográfico Mandatório:</strong> Captura obrigatória de geolocalização via GPS em cada sessão de vistoria.</span>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <span><strong>Gestão Otimizada de Mídia:</strong> Compressão de imagens e armazenamento em <code>expo-file-system</code>.</span>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <span><strong>Resolução de Conflitos:</strong> Algoritmo <em>Last-Write-Wins</em> com comparação precisa de timestamps e <code>sync_log</code> de auditoria.</span>
+                </li>
+                <li>
+                    <span class="icon">✓</span>
+                    <span><strong>Arquitetura Nativa Pura:</strong> Restrita exclusivamente ao ecossistema nativo Expo SDK 54 (iOS e Android).</span>
+                </li>
             </ul>
         </div>
 
-        <!-- Arquitetura -->
+        <!-- 2. Arquitetura Limpa -->
         <div class="section">
-            <h2>Arquitetura</h2>
-            <div class="arch-layer">
-                <h3>Camadas da Arquitetura Limpa (Clean Architecture)</h3>
-                <div class="arch-layer-grid">
-                    <div class="arch-item">
-                        <strong>Camada de Domínio</strong>
-                        <span>Regras de negócio, entidades e objetos de valor</span>
-                    </div>
-                    <div class="arch-item">
-                        <strong>Camada de Aplicação</strong>
-                        <span>Casos de uso (RegistrarOcorrencia, FilaDeSincronizacao)</span>
-                    </div>
-                    <div class="arch-item">
-                        <strong>Camada de Adaptadores</strong>
-                        <span>Controladores, repositórios e gateways</span>
-                    </div>
-                    <div class="arch-item">
-                        <strong>Camada de Infraestrutura</strong>
-                        <span>Clientes Expo, SQLite e Supabase</span>
-                    </div>
+            <h2>2. Arquitetura Limpa (Clean Architecture)</h2>
+            <p>A aplicação segue rigorosamente os princípios de isolamento de responsabilidades. A camada de Domínio não possui dependências de frameworks externos ou bibliotecas do React Native.</p>
+            
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 1: Camadas da Arquitetura e Fluxo de Dependências</div>
+                <pre class="mermaid">
+graph TD
+    subgraph Dominio["1. Camada de Domínio (Pure Core - Zero Deps)"]
+        D1[Entidade: Vistoria]
+        D2[Entidade: Ocorrencia]
+        D3[Value Objects: Geolocation, Status]
+        D4[Interfaces / Repositorios]
+    end
+
+    subgraph Aplicacao["2. Camada de Aplicação (Use Cases)"]
+        A1[UseCase: RegistrarOcorrencia]
+        A2[UseCase: ValidarFinalizacaoVistoria]
+        A3[UseCase: ProcessarFilaSync]
+    end
+
+    subgraph Adaptadores["3. Camada de Adaptadores (Adapters)"]
+        C1[Controllers & Presenters]
+        C2[VistoriaRepositorySqlite]
+        C3[SyncGatewaySupabase]
+        C4[CameraLocationAdapter]
+    end
+
+    subgraph Infraestrutura["4. Camada de Infraestrutura (Expo & External)"]
+        I1[Expo SDK 54 / React Native UI]
+        I2[SQLite Local - expo-sqlite]
+        I3[FileSystem - expo-file-system]
+        I4[Supabase Client & Auth]
+        I5[Expo Network Detector]
+    end
+
+    Infraestrutura --> Adaptadores
+    Adaptadores --> Aplicacao
+    Aplicacao --> Dominio
+                </pre>
+            </div>
+        </div>
+
+        <!-- 3. Modelo de Dados (ERD) -->
+        <div class="section">
+            <h2>3. Modelo de Dados (ERD)</h2>
+            <p>Esquema relacional projetado para garantir integridade referencial tanto no SQLite local quanto no Supabase remoto.</p>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 2: Diagrama Entidade-Relacionamento (ERD)</div>
+                <pre class="mermaid">
+erDiagram
+    USUARIO ||--o{ VISTORIA : "realiza"
+    EQUIPE ||--|{ USUARIO : "contém"
+    VISTORIA ||--|{ ITEM_VISTORIA : "possui"
+    ITEM_VISTORIA ||--o{ OCORRENCIA : "gera"
+    OCORRENCIA ||--o{ FOTO : "anexa"
+    VISTORIA ||--o{ OUTBOX_QUEUE : "enfileira sync"
+    
+    USUARIO {
+        string id PK
+        string nome
+        string email
+        string role "ADMIN | AUDITOR | INSPECTOR"
+    }
+
+    VISTORIA {
+        string id PK
+        string usuario_id FK
+        string status "RASCUNHO | EM_ANDAMENTO | VALIDACAO | CONCLUIDO"
+        float latitude
+        float longitude
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ITEM_VISTORIA {
+        string id PK
+        string vistoria_id FK
+        string nome
+        boolean verificado
+        boolean is_critico
+        string observacao
+    }
+
+    OCORRENCIA {
+        string id PK
+        string item_id FK
+        string descricao
+        string gravidade "ALTA | MEDIA | BAIXA"
+        timestamp data_registro
+    }
+
+    FOTO {
+        string id PK
+        string ocorrencia_id FK
+        string local_uri
+        string remote_url
+        timestamp captured_at
+    }
+
+    OUTBOX_QUEUE {
+        string id PK
+        string entity_type
+        string payload_json
+        string status "PENDING | SYNCING | SYNCED | FAILED"
+        int retry_count
+        timestamp updated_at
+    }
+                </pre>
+            </div>
+        </div>
+
+        <!-- 4. Motor de Sincronização Outbox -->
+        <div class="section">
+            <h2>4. Motor de Sincronização Offline-First</h2>
+            <p>Todas as mutações de dados passam primeiro pela fila local de Outbox antes da transmissão de rede. Em caso de oscilação de conectividade, utiliza-se <em>Exponential Backoff</em> com log de auditoria.</p>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 3: Fluxo da Fila Outbox e Resolução de Conflitos</div>
+                <pre class="mermaid">
+flowchart TD
+    Start([Ação do Usuário no App]) --> SaveLocal[1. Salvar no SQLite Local]
+    SaveLocal --> SaveMedia[2. Salvar Foto no expo-file-system]
+    SaveMedia --> EnqueueOutbox[3. Inserir na Fila Outbox: status=PENDING]
+    EnqueueOutbox --> NetworkCheck{4. expo-network: Há Conexão?}
+    
+    NetworkCheck -- Não --> WaitNetwork[Manter Pendente & Aguardar Evento de Rede]
+    WaitNetwork --> NetworkCheck
+    
+    NetworkCheck -- Sim --> WorkerSync[5. Worker de Sync Inicia]
+    WorkerSync --> SendSupabase[6. Enviar Payload para Supabase REST]
+    
+    SendSupabase --> ConflictCheck{7. Há Conflito de Versão?}
+    ConflictCheck -- Sim --> LastWriteWins[8. Estratégia Last-Write-Wins: Comparar updated_at]
+    ConflictCheck -- Não --> ProcessResult
+    LastWriteWins --> ProcessResult{9. Status da Resposta Supabase}
+    
+    ProcessResult -- Sucesso 200 OK --> MarkSynced[10. Atualizar Status no SQLite: SYNCED]
+    MarkSynced --> LogSuccess[Registrar Log em sync_log]
+    LogSuccess --> Finish([Sincronização Concluída])
+    
+    ProcessResult -- Erro / Timeout --> Backoff[11. Retry Exponencial: 1s, 2s, 4s, 8s...]
+    Backoff --> RetryLimit{Tentativas < Max?}
+    RetryLimit -- Sim --> WorkerSync
+    RetryLimit -- Não --> FlagOrphan[Alertar Dados Não Sincronizados]
+                </pre>
+            </div>
+        </div>
+
+        <!-- 5. Ciclo de Vida e Regras de Negócio -->
+        <div class="section">
+            <h2>5. Regras de Negócio & Ciclo de Vida da Vistoria</h2>
+            <p>Validações rigorosas impedem a finalização de vistorias incompletas ou sem dados essenciais de geolocalização e justificativas.</p>
+
+            <div class="business-rule">
+                <h3>RF-VIST-001 — Status Inicial Mandatório</h3>
+                <p>Uma nova vistoria deve sempre obrigatoriamente iniciar com o status <code>RASCUNHO</code>.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-002 — Cobertura Mínima de 80%</h3>
+                <p>A transição para <code>VALIDACAO</code> exige que ao menos 80% dos itens do checklist estejam checados.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-003 — Trava de Itens Críticos</h3>
+                <p>Itens sinalizados como <em>CRÍTICO</em> bloqueiam a finalização caso não possuam observação/justificativa cadastrada.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-004 — Geolocalização Obrigatória</h3>
+                <p>A presença de coordenadas válidas de GPS é pré-requisito indispensável para a validade técnica da vistoria.</p>
+            </div>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 4: Máquina de Estados do Ciclo de Vida da Vistoria</div>
+                <pre class="mermaid">
+stateDiagram-v2
+    [*] --> RASCUNHO: Criar Vistoria (RF-VIST-001)
+    
+    state RASCUNHO {
+        [*] --> Inicializado
+        Inicializado --> PreenchendoItens: Capturar Geolocalização (RF-VIST-04)
+    }
+    
+    RASCUNHO --> EM_ANDAMENTO: Iniciar Inspeção
+    
+    state EM_ANDAMENTO {
+        [*] --> Inspecionando
+        Inspecionando --> RegistrarFotos: Item com Anomalia
+        RegistrarFotos --> Inspecionando
+    }
+    
+    EM_ANDAMENTO --> VALIDACAO: Solicitar Finalização
+    
+    state VALIDACAO {
+        [*] --> ChecarProgresso
+        ChecarProgresso --> ValidarCriticos: Progresso >= 80% (RF-VIST-002)
+        ChecarProgresso --> Reprovado: Progresso < 80%
+        ValidarCriticos --> Aprovado: Todos os Críticos com Justificativa (RF-VIST-003)
+        ValidarCriticos --> Reprovado: Crítico sem Justificativa
+    }
+    
+    VALIDACAO --> EM_ANDAMENTO: Correção Necessária (Reprovado)
+    VALIDACAO --> CONCLUIDO: Validação Concluída (Aprovado)
+    
+    CONCLUIDO --> EnfileiradoSync: Enviar para Outbox Queue
+    EnfileiradoSync --> [*]
+                </pre>
+            </div>
+        </div>
+
+        <!-- 6. Diagrama de Sequência -->
+        <div class="section">
+            <h2>6. Diagrama de Sequência – Registrar Ocorrência</h2>
+            <p>Passo a passo completo da interação entre a interface do usuário, sensores nativos do Expo (Câmera e GPS), Use Case de Domínio, SQLite local e Supabase remoto.</p>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 5: Registro de Ocorrência com Captura de Mídia e Sync</div>
+                <pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor Tecnico as Técnico de Campo
+    participant UI as OcorrenciaFormScreen
+    participant GPS as LocationGateway (expo-location)
+    participant Cam as CameraGateway (expo-camera)
+    participant UC as RegistrarOcorrenciaUseCase
+    participant DB as SQLite Local (expo-sqlite)
+    participant Outbox as SyncOutboxQueue
+    participant Server as Supabase Backend
+
+    Tecnico ->> UI: Preenche dados da ocorrência
+    UI ->> Cam: Tirar Foto
+    Cam -->> UI: Retorna local URI (FileSystem)
+    UI ->> GPS: Capturar Geolocalização
+    GPS -->> UI: Lat: -23.5505, Lng: -46.6333
+    
+    Tecnico ->> UI: Clica em "Salvar Ocorrência"
+    UI ->> UC: executar(dados, fotoUri, coords)
+    
+    UC ->> DB: Salva Ocorrência & Foto localmente
+    UC ->> Outbox: Registrar evento PENDING na Outbox
+    Outbox -->> UI: Retorna Sucesso (Salvo Offline)
+    UI -->> Tecnico: Exibe mensagem "Salvo com Sucesso!"
+
+    opt Conexão Detectada (expo-network)
+        Outbox ->> Server: POST /rest/v1/ocorrencias (Payload + Foto)
+        alt Resposta 200 OK
+            Server -->> Outbox: Confirmado (ID remoto)
+            Outbox ->> DB: Atualizar status local = SYNCED
+        else Conexão instável ou falha
+            Outbox ->> Outbox: Agendar Retry (Exponential Backoff)
+        end
+    end
+                </pre>
+            </div>
+        </div>
+
+        <!-- 7. Ocorrências & SLAs -->
+        <div class="section">
+            <h2>7. Ocorrências, Gravidade e SLAs</h2>
+            <p>As ocorrências registradas são classificadas por nível de severidade para determinar requisitos de foto, regras de notificação e o tempo limite para resolução (SLA).</p>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 6: Workflow de Gravidade & Regras de SLA</div>
+                <pre class="mermaid">
+flowchart LR
+    Ocorrencia[Nova Ocorrência Registrada] --> CheckGravidade{Qual a Gravidade?}
+    
+    CheckGravidade -- ALTA --> AltaFlow[Gravidade ALTA]
+    AltaFlow --> AltaReq[Foto Obrigatória + GeoGPS]
+    AltaReq --> AltaNotif[Notificação Imediata ao Síndico via Push]
+    AltaNotif --> AltaSLA[SLA de Resolução: 24 Horas]
+    
+    CheckGravidade -- MÉDIA --> MedFlow[Gravidade MÉDIA]
+    MedFlow --> MedReq[Foto Recomendada]
+    MedFlow --> MedNotif[Digest Diário ao Final do Dia]
+    MedNotif --> MedSLA[SLA de Resolução: 72 Horas]
+    
+    CheckGravidade -- BAIXA --> BaixaFlow[Gravidade BAIXA]
+    BaixaFlow --> BaixaReq[Foto Opcional]
+    BaixaFlow --> BaixaNotif[Relatório Semanal Somente]
+    BaixaNotif --> BaixaSLA[SLA de Resolução: 7 Dias]
+                </pre>
+            </div>
+
+            <div class="sla-grid">
+                <div class="sla-card high">
+                    <h4>Gravidade ALTA</h4>
+                    <p><strong>Foto:</strong> Obrigatória</p>
+                    <p><strong>Notificação:</strong> Imediata (Push / Email)</p>
+                    <p><strong>SLA:</strong> 24 horas</p>
+                </div>
+                <div class="sla-card medium">
+                    <h4>Gravidade MÉDIA</h4>
+                    <p><strong>Foto:</strong> Recomendada</p>
+                    <p><strong>Notificação:</strong> Digest ao final do dia</p>
+                    <p><strong>SLA:</strong> 72 horas</p>
+                </div>
+                <div class="sla-card low">
+                    <h4>Gravidade BAIXA</h4>
+                    <p><strong>Foto:</strong> Opcional</p>
+                    <p><strong>Notificação:</strong> Relatório semanal</p>
+                    <p><strong>SLA:</strong> 7 dias</p>
                 </div>
             </div>
         </div>
 
-        <!-- Tecnologias -->
+        <!-- 8. Estrutura de Navegação Expo Router -->
         <div class="section">
-            <h2>Stack Tecnológico</h2>
+            <h2>8. Arquitetura de Navegação (Expo Router)</h2>
+            <p>Mapeamento de rotas baseadas em sistema de arquivos utilizando a estrutura de grupos do <strong>Expo Router</strong>.</p>
+
+            <div class="diagram-box">
+                <div class="diagram-title">Diagrama 7: Árvore de Navegação e Rotas do Aplicativo</div>
+                <pre class="mermaid">
+flowchart TD
+    Root[App Root Router] --> AuthGroup["(auth) Group"]
+    Root --> AppGroup["(app) Main App Group"]
+    
+    subgraph AuthRoute ["Rota de Autenticação"]
+        AuthGroup --> LoginScreen["/login (Login / BioAuth)"]
+    end
+    
+    subgraph AppTabs ["(tabs) Navegação por Abas"]
+        AppGroup --> Tabs["(tabs) Layout"]
+        Tabs --> HomeTab["/home (Lista de Vistorias & Status)"]
+        Tabs --> ExploreTab["/explore (Mapa de Ocorrências Geo)"]
+        Tabs --> SettingsTab["/settings (Sync & Permissões RBAC)"]
+    end
+
+    subgraph Stacks ["Rotas de Detalhes & Ações"]
+        HomeTab --> NovaVistoria["/vistoria/nova"]
+        HomeTab --> DetalheVistoria["/vistoria/[id]"]
+        DetalheVistoria --> NovaOcorrencia["/ocorrencia/nova"]
+        NovaOcorrencia --> CameraModal["/modal/camera"]
+        DetalheVistoria --> ResumoVistoria["/vistoria/[id]/resumo"]
+    end
+                </pre>
+            </div>
+        </div>
+
+        <!-- 9. Stack Tecnológico -->
+        <div class="section">
+            <h2>9. Stack Tecnológico Nativo</h2>
             <div class="tech-stack">
                 <div class="stack-item">
-                    <strong>Framework</strong> <span>Expo SDK 54</span>
+                    <strong>Framework Nativo</strong>
+                    <span>Expo SDK 54 (iOS / Android)</span>
                 </div>
                 <div class="stack-item">
-                    <strong>Interface (UI)</strong> <span>React Native + Expo Router</span>
+                    <strong>Roteamento & UI</strong>
+                    <span>Expo Router + React Native Native Components</span>
                 </div>
                 <div class="stack-item">
-                    <strong>Banco de Dados</strong> <span>SQLite (expo-sqlite) + Supabase</span>
+                    <strong>Banco de Dados Local</strong>
+                    <span><code>expo-sqlite</code> (ACID Transactional)</span>
                 </div>
                 <div class="stack-item">
-                    <strong>Rede</strong> <span>Expo Network (detecção de conectividade)</span>
+                    <strong>Backend & Nuvem</strong>
+                    <span>Supabase (Postgres + Auth + Storage)</span>
                 </div>
                 <div class="stack-item">
-                    <strong>Mídia</strong> <span>expo-camera, expo-image-picker</span>
+                    <strong>Sensores & Mídia</strong>
+                    <span><code>expo-camera</code>, <code>expo-location</code>, <code>expo-file-system</code></span>
                 </div>
                 <div class="stack-item">
-                    <strong>Testes</strong> <span>Jest + TDD</span>
+                    <strong>Conectividade</strong>
+                    <span><code>expo-network</code> (Event-driven connection status)</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Testes & Qualidade</strong>
+                    <span>Jest + TDD (Domain Coverage >= 90%)</span>
                 </div>
             </div>
         </div>
 
-        <!-- Regras de Negócio -->
+        <!-- 10. Telas Principais -->
         <div class="section">
-            <h2>Regras de Negócio (RF/VRF)</h2>
-            <div class="business-rule">
-                <h3>RF-VIST-001</h3>
-                <p>Uma vistoria só pode iniciar com o status <em>RASCUNHO</em>.</p>
-            </div>
-            <div class="business-rule">
-                <h3>RF-VIST-002</h3>
-                <p>Só é possível finalizar se no mínimo 80% dos itens estiverem marcados.</p>
-            </div>
-            <div class="business-rule">
-                <h3>RF-VIST-003</h3>
-                <p>Itens com status <em>CRÍTICO</em> bloqueiam a finalização caso não haja justificativa.</p>
-            </div>
-            <div class="business-rule">
-                <h3>RF-VIST-004</h3>
-                <p>A geolocalização é obrigatória para que a vistoria seja considerada válida.</p>
-            </div>
-        </div>
-
-        <!-- Diagrama de Sequência -->
-        <div class="section">
-            <h2>Diagrama de Sequência – Registrar Ocorrência</h2>
-            <div class="diagram">
-                <mermaid-embed src="https://mermaid.live/embed?theme=dark&look=classic&mode=dark" height="480">
-                    sequenceDiagram
-                    actor Usuario
-                    participant OcorrenciaFormScreen "OcorrenciaFormScreen"
-                    participant CameraGateway "CameraGateway"
-                    participant LocationGateway "LocationGateway"
-                    participant RegistrarOcorrenciaUseCase "RegistrarOcorrenciaUseCase"
-                    participant Ocorrencia "Ocorrencia"
-                    participant SyncQueue "SyncQueue"
-
-                    Usuario ->> OcorrenciaFormScreen: preencher e confirmar
-                    OcorrenciaFormScreen -->> CameraGateway: obterLocalizacaoAtual()
-                    CameraGateway -->> LocationGateway: captarLatitudeLongitude()
-                    LocationGateway -->> CameraGateway: latitude, longitude
-
-                    Usuario ->> RegistrarOcorrenciaUseCase: registrar(dados, lat, lng)
-                    RegistrarOcorrenciaUseCase -->> Ocorrencia: criar(dados) [status=pendente]
-                    Ocorrencia -->> SyncQueue: enfileirar(ocorrencia)
-                    SyncQueue -->> SyncGateway: enviar(ocorrencia)
-
-                    alt rede conectada
-                    SyncGateway -->> SyncGateway: 200 ok
-                    SyncGateway -->> SyncQueue: 200 ok
-                    else sem rede
-                    SyncGateway -->> SyncQueue: tentar novamente (backoff)
-                    loop até sucesso ou máximo de tentativas
-                    SyncGateway ->> SyncGateway: tentar envio
-                    alt sucesso
-                    SyncGateway -->> SyncQueue: 200 ok
-                    SyncQueue -->> Ocorrencia: marcarSincronizado()
-                    else falha
-                    SyncQueue -->> SyncQueue: tentar novamente
-                    end
-                    end
-                    end
-                </mermaid-embed>
-            </div>
-        </div>
-
-        <!-- Telas -->
-        <div class="section">
-            <h2>Telas Principais</h2>
+            <h2>10. Telas Principais do Aplicativo</h2>
             <div class="grid">
                 <div class="card">
                     <h3>Início (Home)</h3>
-                    <p>Painel principal contendo a lista de ocorrências e filtros de busca.</p>
+                    <p>Painel principal com indicadores de sincronização pendente, filtros de busca por data/status e atalho para nova vistoria.</p>
                 </div>
                 <div class="card">
                     <h3>Explorar (Explore)</h3>
-                    <p>Visualização das tarefas pendentes e mapeamento por geolocalização.</p>
+                    <p>Mapeamento de ocorrências geolocalizadas, visualização de pontos críticos do condomínio e histórico de manutenções.</p>
                 </div>
                 <div class="card">
-                    <h3>Configurações (Settings)</h3>
-                    <p>Gerenciamento de equipes, permissões de acesso e sincronização.</p>
+                    <h3>Configurações & Outbox</h3>
+                    <p>Monitor da fila de sincronização offline, status da conexão, gestão de permissões (RBAC) e acionamento de sync manual.</p>
                 </div>
             </div>
         </div>
 
         <!-- Rodapé -->
         <div class="footer">
-            <p>SindiFlow – App de Vistoria Predial<br>Desenvolvido com Expo SDK 54, Clean Architecture e TDD</p>
+            <p><strong>SindiFlow</strong> – Aplicativo Móvel de Vistoria Predial Preventiva<br>
+            Desenvolvido com Expo SDK 54 Nativo, Clean Architecture e TDD</p>
         </div>
     </div>
 </body>
