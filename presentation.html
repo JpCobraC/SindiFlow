@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SindiFlow - Apresentação</title>
+    <script src="https://mermaid.live/embed.js" async></script>
+    <style>
+        :root {
+            --primary: #58A6FF;
+            --secondary: #38BDF8;
+            --accent: #FF6B6B;
+            --background: #0D1117;
+            --surface: #161B22;
+            --surface-card: #21262D;
+            --text-main: #C9D1D9;
+            --text-heading: #F0F6FC;
+            --border: #30363D;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--text-main);
+            background: var(--background);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--text-heading);
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8B949E;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-top: 2rem;
+            border-left: 4px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        .section {
+            margin-bottom: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h3 {
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+
+        .feature-list {
+            list-style: none;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .feature-list li {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: '✓';
+            color: var(--accent);
+            font-weight: bold;
+            margin-right: 0.75rem;
+        }
+
+        .business-rule {
+            background: var(--surface-card);
+            padding: 1rem;
+            border-left: 4px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+            border-top: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rf-item {
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .tech-stack {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stack-item {
+            background: var(--surface-card);
+            border: 1px solid var(--border);
+            padding: 1rem;
+            border-radius: 6px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .stack-item strong {
+            display: block;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .arch-layer {
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 1rem 0;
+        }
+
+        .arch-layer h3 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .arch-layer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .arch-item {
+            background: var(--surface-card);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .arch-item strong {
+            color: var(--text-heading);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        .arch-item span {
+            font-size: 0.85rem;
+            color: #8B949E;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #8B949E;
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+
+        code {
+            background: rgba(110, 118, 129, 0.4);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            color: #F0F6FC;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>SindiFlow</h1>
+        <p class="subtitle">Apresentação – Aplicativo Móvel de Vistoria Predial</p>
+
+        <!-- Visão Geral -->
+        <div class="section">
+            <h2>Sobre o SindiFlow</h2>
+            <p>O SindiFlow é um aplicativo móvel nativo desenvolvido com <strong>Expo SDK 54</strong> para gestão de
+                vistorias prediais preventivas. Ele permite que técnicos de campo capturem fotos, registrem
+                geolocalização e sincronizem dados offline com o backend em Supabase.</p>
+            <br>
+            <ul class="feature-list">
+                <li><span><strong>Offline-First:</strong> Todas as operações são salvas localmente via SQLite antes da
+                        sincronização</span></li>
+                <li><span><strong>Rastreamento por Geolocalização:</strong> Coordenadas de GPS são obrigatórias para
+                        cada vistoria</span></li>
+                <li><span><strong>Gestão de Fotos:</strong> Imagens comprimidas armazenadas via
+                        <code>expo-file-system</code></span></li>
+                <li><span><strong>Resolução de Conflitos:</strong> Estratégia "última escrita vence" (last-write-wins)
+                        com comparação de timestamp</span></li>
+                <li><span><strong>Colaboração em Equipe:</strong> Acesso multiusuário com permissões baseadas em funções
+                        (RBAC)</span></li>
+            </ul>
+        </div>
+
+        <!-- Arquitetura -->
+        <div class="section">
+            <h2>Arquitetura</h2>
+            <div class="arch-layer">
+                <h3>Camadas da Arquitetura Limpa (Clean Architecture)</h3>
+                <div class="arch-layer-grid">
+                    <div class="arch-item">
+                        <strong>Camada de Domínio</strong>
+                        <span>Regras de negócio, entidades e objetos de valor</span>
+                    </div>
+                    <div class="arch-item">
+                        <strong>Camada de Aplicação</strong>
+                        <span>Casos de uso (RegistrarOcorrencia, FilaDeSincronizacao)</span>
+                    </div>
+                    <div class="arch-item">
+                        <strong>Camada de Adaptadores</strong>
+                        <span>Controladores, repositórios e gateways</span>
+                    </div>
+                    <div class="arch-item">
+                        <strong>Camada de Infraestrutura</strong>
+                        <span>Clientes Expo, SQLite e Supabase</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tecnologias -->
+        <div class="section">
+            <h2>Stack Tecnológico</h2>
+            <div class="tech-stack">
+                <div class="stack-item">
+                    <strong>Framework</strong> <span>Expo SDK 54</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Interface (UI)</strong> <span>React Native + Expo Router</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Banco de Dados</strong> <span>SQLite (expo-sqlite) + Supabase</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Rede</strong> <span>Expo Network (detecção de conectividade)</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Mídia</strong> <span>expo-camera, expo-image-picker</span>
+                </div>
+                <div class="stack-item">
+                    <strong>Testes</strong> <span>Jest + TDD</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regras de Negócio -->
+        <div class="section">
+            <h2>Regras de Negócio (RF/VRF)</h2>
+            <div class="business-rule">
+                <h3>RF-VIST-001</h3>
+                <p>Uma vistoria só pode iniciar com o status <em>RASCUNHO</em>.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-002</h3>
+                <p>Só é possível finalizar se no mínimo 80% dos itens estiverem marcados.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-003</h3>
+                <p>Itens com status <em>CRÍTICO</em> bloqueiam a finalização caso não haja justificativa.</p>
+            </div>
+            <div class="business-rule">
+                <h3>RF-VIST-004</h3>
+                <p>A geolocalização é obrigatória para que a vistoria seja considerada válida.</p>
+            </div>
+        </div>
+
+        <!-- Diagrama de Sequência -->
+        <div class="section">
+            <h2>Diagrama de Sequência – Registrar Ocorrência</h2>
+            <div class="diagram">
+                <mermaid-embed src="https://mermaid.live/embed?theme=dark&look=classic&mode=dark" height="480">
+                    sequenceDiagram
+                    actor Usuario
+                    participant OcorrenciaFormScreen "OcorrenciaFormScreen"
+                    participant CameraGateway "CameraGateway"
+                    participant LocationGateway "LocationGateway"
+                    participant RegistrarOcorrenciaUseCase "RegistrarOcorrenciaUseCase"
+                    participant Ocorrencia "Ocorrencia"
+                    participant SyncQueue "SyncQueue"
+
+                    Usuario ->> OcorrenciaFormScreen: preencher e confirmar
+                    OcorrenciaFormScreen -->> CameraGateway: obterLocalizacaoAtual()
+                    CameraGateway -->> LocationGateway: captarLatitudeLongitude()
+                    LocationGateway -->> CameraGateway: latitude, longitude
+
+                    Usuario ->> RegistrarOcorrenciaUseCase: registrar(dados, lat, lng)
+                    RegistrarOcorrenciaUseCase -->> Ocorrencia: criar(dados) [status=pendente]
+                    Ocorrencia -->> SyncQueue: enfileirar(ocorrencia)
+                    SyncQueue -->> SyncGateway: enviar(ocorrencia)
+
+                    alt rede conectada
+                    SyncGateway -->> SyncGateway: 200 ok
+                    SyncGateway -->> SyncQueue: 200 ok
+                    else sem rede
+                    SyncGateway -->> SyncQueue: tentar novamente (backoff)
+                    loop até sucesso ou máximo de tentativas
+                    SyncGateway ->> SyncGateway: tentar envio
+                    alt sucesso
+                    SyncGateway -->> SyncQueue: 200 ok
+                    SyncQueue -->> Ocorrencia: marcarSincronizado()
+                    else falha
+                    SyncQueue -->> SyncQueue: tentar novamente
+                    end
+                    end
+                    end
+                </mermaid-embed>
+            </div>
+        </div>
+
+        <!-- Telas -->
+        <div class="section">
+            <h2>Telas Principais</h2>
+            <div class="grid">
+                <div class="card">
+                    <h3>Início (Home)</h3>
+                    <p>Painel principal contendo a lista de ocorrências e filtros de busca.</p>
+                </div>
+                <div class="card">
+                    <h3>Explorar (Explore)</h3>
+                    <p>Visualização das tarefas pendentes e mapeamento por geolocalização.</p>
+                </div>
+                <div class="card">
+                    <h3>Configurações (Settings)</h3>
+                    <p>Gerenciamento de equipes, permissões de acesso e sincronização.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rodapé -->
+        <div class="footer">
+            <p>SindiFlow – App de Vistoria Predial<br>Desenvolvido com Expo SDK 54, Clean Architecture e TDD</p>
+        </div>
+    </div>
+</body>
+
+</html>
