@@ -8,6 +8,79 @@
 
 Este projeto segue **todas as obrigações inegociáveis** do `agent_tools/sindiflow-obrigacoes.md` — uma aplicação rigorosa de Clean Architecture extrema, regras de negócio dominadas e TDD obrigatório.
 
+---
+
+## Requisitos Funcionais (RFs)
+
+### Domínio Central — Vistoria (Implementado)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF-VIST-001 | Vistoria só pode iniciar em status `RASCUNHO` | Alta | ✅ Implementado |
+| RF-VIST-002 | Só pode finalizar se ≥80% dos itens estiverem marcados | Alta | ✅ Implementado |
+| RF-VIST-003 | Itens `CRITICO` bloqueiam finalização sem justificativa | Alta | ✅ Implementado |
+| RF-VIST-004 | Geolocalização é obrigatória para vistoria ser válida | Alta | ✅ Implementado |
+
+### Autenticação e Usuário (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF01 | Login/logout com Supabase Auth + sessão cacheada 7 dias | Alta | ❌ Pendente |
+| RF02 | Aceitar convite por e-mail (token expira 24h) | Alta | ❌ Pendente |
+| RF03 | Bloqueio total ao expirar sessão offline | Alta | ❌ Pendente |
+| RF04 | Cache seguro de dados do usuário (non-PII) em SQLite | Alta | ❌ Pendente |
+
+### Ocorrências e Evidências (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF05 | Registrar ocorrência com gravidade ALTA/MÉDIA/BAIXA | Alta | ❌ Pendente |
+| RF06 | Foto obrigatória para ALTA, recomendada MÉDIA, opcional BAIXA | Alta | ❌ Pendente |
+| RF07 | Compressão de imagem (máx 1080p) + storage em FileSystem | Alta | ❌ Pendente |
+| RF08 | SLA ALTA 24h / MÉDIA 72h / BAIXA 7 dias | Média | ❌ Pendente |
+| RF09 | Notificação imediata ao síndico para ALTA | Média | ❌ Pendente |
+| RF10 | Digest diário MÉDIA, sem notificação BAIXA | Baixa | ❌ Pendente |
+
+### Sincronização e Outbox (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF11 | Fila outbox persistente em SQLite | Alta | ❌ Pendente |
+| RF12 | Retry exponencial com limite máximo de tentativas (5) | Alta | ❌ Pendente |
+| RF13 | Detecção de rede via `expo-network` antes de sync | Alta | ❌ Pendente |
+| RF14 | Rejeitar sync de usuário revogado (notificar + log) | Alta | ❌ Pendente |
+
+### Consulta e Histórico (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF15 | Listar vistorias com filtro por status/data/condomínio | Média | ❌ Pendente |
+| RF16 | Consultar histórico de ocorrências de uma vistoria | Média | ❌ Pendente |
+
+### Checklist Template (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF17 | Checklist template: fixo ou configurável por condomínio | Média | ❌ Pendente |
+| RF18 | Categorias de itens: Elétrica, Incêndio, Hidráulica | Média | ❌ Pendente |
+
+---
+
+## Requisitos Não-Funcionais (RNFs)
+
+| ID | Categoria | Descrição + Critério Mensurável | Prioridade | Status |
+|----|-----------|--------------------------------|------------|--------|
+| RNF01 | Offline-first | Quais telas/ações funcionam sem rede; o que fica bloqueado | Alta | ❌ Não documentado |
+| RNF02 | Permissões de dispositivo | Momento de solicitar câmera/GPS (nunca cold start); comportamento se negada | Alta | ❌ Ausente |
+| RNF03 | Uso de bateria/dados | Frequência GPS, compressão de imagem antes de upload | Média | ❌ Ausente |
+| RNF04 | Armazenamento local | Limite de espaço em disco (mídia + SQLite), política de limpeza de dados sincronizados antigos | Média | ❌ Ausente |
+| RNF05 | Sincronização/consistência | Last-write-wins por `updated_at`, tolerância a duplicidade | Alta | ⚠️ Decisão, não codificada |
+| RNF06 | Segurança | Token em `expo-secure-store` (nunca AsyncStorage), RLS Supabase documentado | Alta | ⚠️ Parcial |
+| RNF07 | Compatibilidade | Versões mínimas iOS/Android suportadas | Média | ❌ Ausente |
+| RNF08 | Usabilidade | Feedback visual de estado de sync (pendente/sincronizado/erro) visível ao usuário | Alta | ⚠️ Mockup |
+
+---
+
 ## Restrições Técnicas Inegociáveis
 
 ### Plataforma
@@ -34,6 +107,8 @@ Este projeto segue **todas as obrigações inegociáveis** do `agent_tools/sindi
 - ✅ **Geolocalização:** Capturada por **sessão de vistoria** (não por item)
 - ❌ **Proibido:** Armazenar imagens em base64 na SQLite
 
+---
+
 ## Arquitetura — Clean Architecture Extrema
 
 ### Estrutura de Pastas
@@ -59,15 +134,7 @@ src/
 | **Adapters** | Tradução entre use cases e frameworks | Interfaces do Domain, SDKs |
 | **Infra** | Detalhes técnicos (conexões, drivers) | Bibliotecas externas |
 
-### Exemplo de Limpeza de Dependência
-```typescript
-// ❌ NUNCA faça isso em src/application/ ou src/domain/
-import { SQLite } from 'expo-sqlite'; // VIOLAÇÃO
-
-// ✅ CORRETO: src/adapters/repositories/vistoria.repository.sqlite.ts
-import { SQLite } from 'expo-sqlite';
-import { VistoriaRepository } from '@/domain/interfaces/vistoria.repository.interface';
-```
+---
 
 ## Regras de Negócio do Domínio
 
@@ -79,7 +146,7 @@ import { VistoriaRepository } from '@/domain/interfaces/vistoria.repository.inte
 | RF-VIST-003: Itens com status `CRITICO` bloqueiam finalização sem justificativa | Requer campo `observacao` preenchido |
 | RF-VIST-004: Geolocalização é obrigatória para vistoria ser válida | Sem coordenadas = vistoria incompleta |
 
-### Classificação de Ocorrencias
+### Classificação de Ocorrências
 | Gravidade | Foto | Notificação | SLA |
 |-----------|------|------------|-----|
 | **ALTA** | Obrigatória | Imediata ao síndico | 24h |
@@ -92,6 +159,8 @@ import { VistoriaRepository } from '@/domain/interfaces/vistoria.repository.inte
 | Conflito: último vence | Comparar timestamps, manter registro com `updated_at` maior |
 | Log de auditoria | Toda operação de sync registra em `sync_log` local |
 | Alerta de dados órfãos | Dados não sincronizados há 30 dias geram notificação |
+
+---
 
 ## Processo de Desenvolvimento
 
@@ -121,13 +190,15 @@ ANTES de escrever qualquer código, parar e declarar: *"Revisando obrigações �
 Revisado conforme obrigações.md §4.2
 ```
 
+---
+
 ## Auto-correção Obrigatória
 
 ### Loop de Self-correction
 ```
 AGENTE IDENTIFICA OPÇÃO/IMPLEMENTAÇÃO
-                    │
-                    ▼
+                     │
+                     ▼
 SELF-CORRECTION CHECK (Obrigatório)
 "Esta ação viola alguma obrigação?"
 "Estou na camada correta?"
@@ -138,15 +209,10 @@ SELF-CORRECTION CHECK (Obrigatório)
                "SIM"                      "NÃO"
                   │                         │
                   ▼                         ▼
-PARAR                  │
-Revisar obrigações     │
-Identificar violação   │
-Propor correção        │
-
-PROSSEGUIR                   │
-Implementar/Falar/Planejar   │
-Declarar camada no output     │
-Incluir contexto de revisão   │
+PARAR                  PROSSEGUIR
+Revisar obrigações     Implementar/Falar/Planejar
+Identificar violação   Declarar camada no output
+Propor correção        Incluir contexto de revisão
 ```
 
 ### Consequências de Violação
@@ -156,6 +222,8 @@ Incluir contexto de revisão   │
 | Ausência de teste unitário | Rejeitar PR até teste existir |
 | Uso de workaround | Abrir issue para correção técnica |
 | Violação de regra de negócio | Rollback + revisão arquitetural |
+
+---
 
 ## Constraint de Tempo
 
@@ -170,6 +238,8 @@ Incluir contexto de revisão   │
 | Fase 5 — Polish | Transições, haptics, testes em device real | ~7h |
 | **TOTAL** | | **60h** |
 
+---
+
 ## Stack Técnica
 - Expo SDK 54
 - Expo Router 6
@@ -182,5 +252,42 @@ Incluir contexto de revisão   │
 - Expo Network
 - Expo File System
 
+---
+
+## Rastreabilidade RF → Caso de Uso → Teste
+
+| RF | Caso de Uso | Camada | Teste |
+|----|------------|--------|-------|
+| RF-VIST-001..004 | UC01 Fazer Vistoria, UC02 Finalizar Vistoria | Application | ✅ |
+| RF01..RF04 | UC03 Autenticar Usuario | Application | ❌ |
+| RF05..RF07 | UC04 Registrar Ocorrência | Application | ❌ |
+| RF08..RF10 | UC05 SLA e Notificações | Application | ❌ |
+| RF11..RF14 | UC06 Sincronizar Fila Pendente | Application | ❌ |
+| RF15..RF16 | UC07 Consultar Histórico | Application | ❌ |
+| RF17..RF18 | UC08 Gerenciar Checklist Template | Application | ❌ |
+
+---
+
+## Documentos de Referência
+
+- **Skill base**: `@agent_tools/SKILL.md` — Software Design Document Framework para mobile
+- **Obrigações**: `agent_tools/sindiflow-obrigacoes.md` — Lei superior do projeto
+- **Histórico**: `chat_history/2026-09-04.md`, `2026-09-07.md`, `2026-09-11.md`, `2026-09-25.md`
+- **Apresentação**: `presentation.html` — Mockups e diagramas visuais
+- **Documento completo**: `docs/documento-software-mobile.md` (a ser gerado)
+
+---
+
 ## Próximos Passos
-O próximo desenvolvimento deve respeitar estritamente todas as obrigações do `agent_tools/sindiflow-obrigacoes.md` e seguir os limites de Clean Architecture durante todo o processo de implementação.
+
+1. **Completar RFs/RNFs** — Documentar regras pendentes antes de implementar
+2. **Definir schema Supabase** — Tabelas, RLS policies, mapeamento SQLite↔Supabase
+3. **Implementar infraestrutura** — Instalar dependências nativas, criar `src/infra/`
+4. **Implementar domínio** — Entidades Usuario, Ocorrencia, FotoEvidencia, VOs
+5. **Implementar use cases** — AutenticarUsuario, RegistrarOcorrencia, SincronizarFila
+6. **Implementar adapters** — Repositórios SQLite, Gateways nativos
+7. **Implementar UI** — Telas Expo Router integradas aos presenters
+
+---
+
+*Este documento é a fonte da verdade para requisitos do SindiFlow. Qualquer alteração deve seguir o loop de auto-correção (§4.2) e ser rastreada no `chat_history/`.*
