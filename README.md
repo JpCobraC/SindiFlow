@@ -64,6 +64,56 @@ Este projeto segue **todas as obrigações inegociáveis** do `agent_tools/sindi
 | RF17 | Checklist template: fixo ou configurável por condomínio | Média | ❌ Pendente |
 | RF18 | Categorias de itens: Elétrica, Incêndio, Hidráulica | Média | ❌ Pendente |
 
+### Perfis, Permissões e Armazenamento (Pendente)
+
+| ID | Descrição | Prioridade | Status |
+|----|-----------|------------|--------|
+| RF19 | Matriz de perfis e permissões (síndico/zelador/administrador) sobre criar, finalizar, aprovar, devolver e consultar vistorias | Alta | ❌ Pendente |
+| RF20 | Limite de espaço local e política de limpeza de dados (o que sai primeiro: mídia sincronizada, depois rascunhos) | Média | ❌ Pendente |
+
+> RF19 e RF20 foram acrescentados na Fase 0 (29/09/2026) para fechar as lacunas 3 e 11 apontadas em `chat_history/2026-09-25.md`. Definição completa em `docs/documento-software.md` §1.1.
+
+---
+
+## Regras de Negócio do Domínio (com código)
+
+O detalhamento completo está em `docs/documento-software.md` §1.2 — 27 regras, cada uma com obrigação de origem, Passo e prioridade P1/P2.
+
+### Gravidade, Evidência e SLA
+
+| ID | Regra | Origem | Status |
+|----|-------|--------|--------|
+| RF-GRV-001 | Gravidade ALTA 24h · MÉDIA 72h · BAIXA 168h | `obrigacoes.md` §3.2, RF08 | ⬜ |
+| RF-GRV-002 | Foto obrigatória ALTA, recomendada MÉDIA, opcional BAIXA | `obrigacoes.md` §3.2, RF06 | ⬜ |
+| RF-GRV-003 | ALTA notifica o síndico na hora; MÉDIA em digest diário; BAIXA não notifica | `obrigacoes.md` §3.2, RF09, RF10 | ⬜ |
+| RF-GRV-004 | SLA em dias corridos, contados da abertura do achado | — | ⬜ |
+| RF-GRV-005 | Violação de SLA escala ao síndico | — | ⬜ (P2) |
+| RF-GRV-006 | Gravidade pode ser reclassificada, com trilha e recálculo de SLA | — | ⬜ (P2) |
+| RF-EVI-001 | Evidência exige hash e arquivo local presente para exibir offline | `obrigacoes.md` §1.4 | ⬜ |
+| RF-EVI-002 | Mesmo hash ocupa um arquivo; há limite de fotos por vistoria | `obrigacoes.md` §1.2, RF20 | ⬜ (P2) |
+
+### Sincronização
+
+| ID | Regra | Origem | Status |
+|----|-------|--------|--------|
+| RF-SYNC-001 | Toda escrita passa pela fila de outbox | `obrigacoes.md` §1.3, RF11 | 🟡 |
+| RF-SYNC-002 | Retry exponencial 1s, 2s, 4s, 8s, 16s — máx. 5 tentativas | `obrigacoes.md` §1.3, RF12 | ⬜ |
+| RF-SYNC-003 | Rede verificada antes de qualquer tentativa | `obrigacoes.md` §1.3, RF13 | 🟡 |
+| RF-SYNC-004 | Sync de usuário revogado é rejeitado, com log | `obrigacoes.md` §1.3, RF14 | ⬜ |
+| RF-SYNC-005 | Conflito: vence o `updated_at` maior | `obrigacoes.md` §3.3 | ⬜ |
+| RF-SYNC-006 | Log de auditoria por sync; alerta de órfãos em 30 dias | `obrigacoes.md` §3.3 | ⬜ |
+| RF-SYNC-007 | Chave de deduplicação: reenvio nunca duplica registro | — | ⬜ |
+| RF-SYNC-008 | Envio FIFO respeitando FK usuário → vistoria → item → evidência | — | ⬜ |
+| RF-SYNC-009 | Status agregado por vistoria: PARCIAL / TOTAL / COM_ERRO | RNF08 | ⬜ |
+| RF-SYNC-010 | Relógio do dispositivo não altera o desempate | — | ⬜ |
+
+### Segurança
+
+| ID | Regra | Origem | Status |
+|----|-------|--------|--------|
+| RF-SEC-001 | Remover registro apaga mídia e itens pendentes da outbox | RNF14 | ⬜ |
+| RF-SEC-002 | Trilha de auditoria append-only | `obrigacoes.md` §3.3 | ⬜ (P2) |
+
 ---
 
 ## Requisitos Não-Funcionais (RNFs)
@@ -78,6 +128,18 @@ Este projeto segue **todas as obrigações inegociáveis** do `agent_tools/sindi
 | RNF06 | Segurança | Token em `expo-secure-store` (nunca AsyncStorage), RLS Supabase documentado | Alta | ⚠️ Parcial |
 | RNF07 | Compatibilidade | Versões mínimas iOS/Android suportadas | Média | ❌ Ausente |
 | RNF08 | Usabilidade | Feedback visual de estado de sync (pendente/sincronizado/erro) visível ao usuário | Alta | ⚠️ Mockup |
+
+### RNFs novos (Fase 0, 29/09/2026)
+
+| ID | Categoria | Descrição + Critério Mensurável | Prioridade | Status |
+|----|-----------|--------------------------------|------------|--------|
+| RNF15 | Eficiência energética | Sync automático apenas com Wi-Fi ou com o dispositivo carregando; caso contrário, apenas manual | Alta | ❌ Ausente |
+| RNF16 | Concorrência | Alteração concorrente do mesmo registro é detectada e o usuário é avisado; nada é sobrescrito em silêncio | Média | ❌ Ausente |
+| RNF17 | Acessibilidade | Alvo de toque ≥ 44pt, texto escalável, operação completa sem depender de cor | Média | ❌ Ausente |
+| RNF18 | Observabilidade | Log local com data/rota/erro e zero PII (e-mail, token, coordenada) | Média | ❌ Ausente |
+| RNF19 | Testabilidade | `src/domain/**` e `src/application/**` com zero import de React/Expo/SDK | Alta | ❌ Ausente |
+
+> RNF01-RNF14 acima usam a numeração do documento de software. A coluna "ID anterior" em `docs/documento-software.md` §1.3 preserva o vínculo com a numeração original, evitando requisito duplicado.
 
 ---
 
@@ -256,37 +318,59 @@ Propor correção        Incluir contexto de revisão
 
 ## Rastreabilidade RF → Caso de Uso → Teste
 
-| RF | Caso de Uso | Camada | Teste |
+A fonte completa e conferível manualmente — cada regra com artefato de código, arquivo de teste, Passo e prioridade — está em [`docs/rastreabilidade.md`](./docs/rastreabilidade.md).
+
+| ID | Caso de Uso | Camada | Teste |
 |----|------------|--------|-------|
-| RF-VIST-001..004 | UC01 Fazer Vistoria, UC02 Finalizar Vistoria | Application | ✅ |
-| RF01..RF04 | UC03 Autenticar Usuario | Application | ❌ |
-| RF05..RF07 | UC04 Registrar Ocorrência | Application | ❌ |
-| RF08..RF10 | UC05 SLA e Notificações | Application | ❌ |
-| RF11..RF14 | UC06 Sincronizar Fila Pendente | Application | ❌ |
-| RF15..RF16 | UC07 Consultar Histórico | Application | ❌ |
-| RF17..RF18 | UC08 Gerenciar Checklist Template | Application | ❌ |
+| RF-VIST-001..004 | `FinalizarVistoriaUseCase`, `AnotarVistoriaUseCase` | Application | ✅ |
+| RF-VIST-005..007 | `RegistrarVistoriaUseCase` | Application | ❌ |
+| RF-GRV-001..004 | `RegistrarVistoriaUseCase`, `AnexarFotoUseCase`, `GerarRelatorioUseCase` | Domain | ❌ |
+| RF-GRV-005..006 | `RegraGeracaoRelatorioService` | Domain | ❌ |
+| RF-SYNC-001 | todos os use cases de escrita | Application | 🟡 |
+| RF-SYNC-002..010 | `SincronizarFilaUseCase` | Application | ❌ |
+| RF-EVI-001..002 | `AnexarFotoUseCase` | Domain | ❌ |
+| RF-SEC-001..002 | `AutenticarUsuarioUseCase`, `SincronizarFilaUseCase` | Domain | ❌ |
+| RF01..RF04 | `AutenticarUsuarioUseCase` | Application | ❌ |
+| RF05..RF07 | `RegistrarVistoriaUseCase`, `AnexarFotoUseCase` | Application | ❌ |
+| RF08..RF10 | `GerarRelatorioUseCase`, `AvaliarDesempenhoUseCase` | Application | ❌ |
+| RF11..RF14 | `SincronizarFilaUseCase` | Application | ❌ |
+| RF15..RF16 | `ConsultarHistoricoUseCase`, `GerarRelatorioUseCase` | Application | ❌ |
+| RF17..RF18 | `RealizarAutoAvaliacaoUseCase` | Application | ❌ |
+| RF19 | `AprovarVistoriaUseCase` | Domain | ❌ |
+| RF20 | `RegistrarVistoriaUseCase` | Domain | ❌ |
+
+Legenda: `⬜ não iniciado · 🟡 parcial · ✅ implementado com teste · ⛔ bloqueado`
 
 ---
 
 ## Documentos de Referência
 
-- **Skill base**: `@agent_tools/SKILL.md` — Software Design Document Framework para mobile
+- **Skill base**: `agent_tools/SKILL.md` — Software Design Document Framework para mobile
 - **Obrigações**: `agent_tools/sindiflow-obrigacoes.md` — Lei superior do projeto
-- **Histórico**: `chat_history/2026-09-04.md`, `2026-09-07.md`, `2026-09-11.md`, `2026-09-25.md`
-- **Apresentação**: `presentation.html` — Mockups e diagramas visuais
-- **Documento completo**: `docs/documento-software-mobile.md` (a ser gerado)
+- **Documento de software**: `docs/documento-software.md` — 14 seções do SDD, decisões D-01 a D-11
+- **Rastreabilidade**: `docs/rastreabilidade.md` — fonte de conferência manual
+- **Histórico**: `chat_history/2026-09-04.md`, `2026-09-07.md`, `2026-09-11.md`, `2026-09-25.md`, `2026-09-29.md`
+- **Plano da fase**: `chat_history/presentation-06-10-26.md` (documento da sessão de 06/10)
+- **Apresentação visual**: `presentation.html` — Mockups e diagramas
 
 ---
 
 ## Próximos Passos
 
-1. **Completar RFs/RNFs** — Documentar regras pendentes antes de implementar
-2. **Definir schema Supabase** — Tabelas, RLS policies, mapeamento SQLite↔Supabase
-3. **Implementar infraestrutura** — Instalar dependências nativas, criar `src/infra/`
-4. **Implementar domínio** — Entidades Usuario, Ocorrencia, FotoEvidencia, VOs
-5. **Implementar use cases** — AutenticarUsuario, RegistrarOcorrencia, SincronizarFila
-6. **Implementar adapters** — Repositórios SQLite, Gateways nativos
-7. **Implementar UI** — Telas Expo Router integradas aos presenters
+Os Passos 1 a 8 de `chat_history/presentation-06-10-26.md` §7, nesta ordem:
+
+1. **Passo 1 — Value Objects** — `Gravidade`, `Coordenada`, `Assinatura`, `SLAData`, `StatusSincronizacao`, `StatusVistoria`
+2. **Passo 2 — Entities & Aggregates** — expandir `Vistoria` (Aggregate Root), criar `Usuario` e `FotoEvidencia`
+3. **Passo 3 — Domain Services** — `SincronizacaoService`, `RegraGeracaoRelatorioService`, `RegraDevolucaoService`
+4. **Passo 4 — Ports** — repositories e gateways (todos fake/in-memory nesta fase)
+5. **Passo 5 — Use Cases** — os 15 casos de uso com fakes in-memory
+6. **Passo 6 — Context API + Hooks** — `AuthContext`, `useAuth`, `useOcorrencias`
+7. **Passo 7 — Telas com RNTL** — Login, VistoriaForm, HistoricoRelatorios, Assinatura, Dashboard
+8. **Passo 8 — Sessão Segura** — `SessionStorageSecureStore` (mockado nos testes)
+
+Bloqueios conhecidos antes do Passo 1: **D-06** (onde a gravidade mora) e **T-01** (`jest.config.js` sem `jest-expo` nem `coverageThreshold`).
+
+Depois da fase: definir schema Supabase com RLS, criar `src/infra/`, instalar dependências nativas e substituir fakes por implementações reais.
 
 ---
 
