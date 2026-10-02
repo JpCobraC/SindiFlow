@@ -238,10 +238,26 @@ Antes de **implementar**, **falar** ou **cogitar planejar**, o agente DEVE se pe
 
 ---
 
-## 8. ÚLTIMA REVISÃO
+## 8. PLANOS DIÁRIOS E CHECK-IN
+
+Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
+
+1. **Verificar existência** do arquivo `chat_history/plano-do-dia.md`
+2. **Se existir** (de dia anterior ou mesmo dia):
+   - Checar se o plano foi **aplicado** (status `✅` em cada item)
+   - **Se aplicado:** arquivar e deletar o arquivo `plano-do-dia.md` (limpeza)
+   - **Se NÃO aplicado:** **NÃO deletar** — preservar para continuidade
+3. **Se não existir:** criar novo `plano-do-dia.md` com o plano do dia
+4. **Atualizar** o arquivo com status de cada item conforme progresse
+
+**Objetivo:** garantir continuidade de trabalho e evitar perda de planos incompletos.
+
+---
+
+## 9. ÚLTIMA REVISÃO
 
 - **Data**: 04/09/2026
-- **Versão**: 1.0.0
+- **Versão**: 1.1.0
 - **Próxima revisão**: Toda sexta-feira às 16h
 - **Proposta de alteração**: Issue marcada como `[OBRIGAÇÃO]`, requiere aprovação de 2 arquitetos
 
