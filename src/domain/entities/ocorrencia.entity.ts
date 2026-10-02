@@ -65,7 +65,7 @@ export class Ocorrencia {
     return this._status;
   }
 
-  public get fotos(): ReadonlyArray<string> {
+  public get fotos(): readonly string[] {
     return this._fotos;
   }
 

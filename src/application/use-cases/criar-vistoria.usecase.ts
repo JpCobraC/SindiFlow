@@ -6,11 +6,12 @@ export interface CriarVistoriaInput {
   id: string;
   condominioId: string;
   inspetorId: string;
-  itens: Array<{
+  itens: {
     id: string;
     titulo: string;
     categoria: string;
-  }>;
+  }[];
+
 }
 
 export class CriarVistoriaUseCase {

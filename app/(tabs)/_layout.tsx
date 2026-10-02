@@ -3,13 +3,8 @@ import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const theme = Colors[colorScheme ?? 'dark'];
-
   return (
     <Tabs
       screenOptions={{
@@ -37,14 +32,18 @@ export default function TabLayout() {
         name="ocorrencias"
         options={{
           title: 'Ocorrências',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="warning" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="exclamationmark.triangle.fill" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="sync"
         options={{
           title: 'Outbox Sync',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="sync" color={color} />,
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="arrow.triangle.2.circlepath" color={color} />
+          ),
         }}
       />
       <Tabs.Screen

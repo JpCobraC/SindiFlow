@@ -45,7 +45,7 @@ export class ItemChecklist {
     return this._observacao;
   }
 
-  public get evidencias(): ReadonlyArray<Evidencia> {
+  public get evidencias(): readonly Evidencia[] {
     return this._evidencias;
   }
 

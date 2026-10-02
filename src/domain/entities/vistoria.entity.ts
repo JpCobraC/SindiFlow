@@ -58,7 +58,7 @@ export class Vistoria {
     return this._geolocalizacao;
   }
 
-  public get itens(): ReadonlyArray<ItemChecklist> {
+  public get itens(): readonly ItemChecklist[] {
     return this._itens;
   }
 

@@ -7,11 +7,12 @@ export interface SincronizacaoResultado {
   totalItens: number;
   sucessos: number;
   falhas: number;
-  detalhes: Array<{
+  detalhes: {
     id: string;
     sucesso: boolean;
     erro?: string;
-  }>;
+  }[];
+
 }
 
 export class SincronizarOutboxUseCase {
