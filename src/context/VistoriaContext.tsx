@@ -103,121 +103,125 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const popularMockInicial = async () => {
     setIsCarregando(true);
-    // Limpar repositórios in-memory
-    vistoriaRepo.vistorias.clear();
-    ocorrenciaRepo.ocorrencias.clear();
-    outboxRepo.itens = [];
+    try {
+      // Limpar repositórios in-memory
+      vistoriaRepo.vistorias.clear();
+      ocorrenciaRepo.itens.clear();
+      outboxRepo.itens = [];
 
-    // 1. Criar Vistoria Inicial via Caso de Uso (RF-VIST-001)
-    const vistoria = await criarVistoriaUseCase.executar({
-      id: 'vist-solar-01',
-      condominioId: 'cond-solar-palmeiras',
-      inspetorId: 'inspetor-carlos-crea123',
-      itens: [
-        {
-          id: 'item-1',
-          titulo: 'Extintores de Incêndio - Carga e Lacre',
-          categoria: 'Segurança Contra Incêndio',
-        },
-        {
-          id: 'item-2',
-          titulo: 'Quadro Geral de Baixa Tensão (QGBT)',
-          categoria: 'Instalações Elétricas',
-        },
-        {
-          id: 'item-3',
-          titulo: 'Bombas de Recalque e Retentores',
-          categoria: 'Instalações Hidráulicas',
-        },
-        {
-          id: 'item-4',
-          titulo: 'Barrilete e Impermeabilização Superior',
-          categoria: 'Impermeabilização & Cobertura',
-        },
-        {
-          id: 'item-5',
-          titulo: 'Gerador a Diesel - Nível de Óleo e Bateria',
-          categoria: 'Emergência & Automação',
-        },
-        {
-          id: 'item-6',
-          titulo: 'Iluminação de Emergência das Escadarias',
-          categoria: 'Segurança Contra Incêndio',
-        },
-      ],
-    });
+      // 1. Criar Vistoria Inicial via Caso de Uso (RF-VIST-001)
+      const vistoria = await criarVistoriaUseCase.executar({
+        id: 'vist-solar-01',
+        condominioId: 'cond-solar-palmeiras',
+        inspetorId: 'inspetor-carlos-crea123',
+        itens: [
+          {
+            id: 'item-1',
+            titulo: 'Extintores de Incêndio - Carga e Lacre',
+            categoria: 'Segurança Contra Incêndio',
+          },
+          {
+            id: 'item-2',
+            titulo: 'Quadro Geral de Baixa Tensão (QGBT)',
+            categoria: 'Instalações Elétricas',
+          },
+          {
+            id: 'item-3',
+            titulo: 'Bombas de Recalque e Retentores',
+            categoria: 'Instalações Hidráulicas',
+          },
+          {
+            id: 'item-4',
+            titulo: 'Barrilete e Impermeabilização Superior',
+            categoria: 'Impermeabilização & Cobertura',
+          },
+          {
+            id: 'item-5',
+            titulo: 'Gerador a Diesel - Nível de Óleo e Bateria',
+            categoria: 'Emergência & Automação',
+          },
+          {
+            id: 'item-6',
+            titulo: 'Iluminação de Emergência das Escadarias',
+            categoria: 'Segurança Contra Incêndio',
+          },
+        ],
+      });
 
-    // 2. Pré-marcar 3 itens via Caso de Uso (50% respondido)
-    await classificarItemUseCase.executar({
-      vistoriaId: vistoria.id,
-      itemId: 'item-1',
-      status: StatusItemChecklist.OK,
-      usuarioId: 'inspetor-carlos',
-      deviceId: 'expo-device-01',
-    });
+      // 2. Pré-marcar 3 itens via Caso de Uso (50% respondido)
+      await classificarItemUseCase.executar({
+        vistoriaId: vistoria.id,
+        itemId: 'item-1',
+        status: StatusItemChecklist.OK,
+        usuarioId: 'inspetor-carlos',
+        deviceId: 'expo-device-01',
+      });
 
-    await classificarItemUseCase.executar({
-      vistoriaId: vistoria.id,
-      itemId: 'item-2',
-      status: StatusItemChecklist.OK,
-      usuarioId: 'inspetor-carlos',
-      deviceId: 'expo-device-01',
-    });
+      await classificarItemUseCase.executar({
+        vistoriaId: vistoria.id,
+        itemId: 'item-2',
+        status: StatusItemChecklist.OK,
+        usuarioId: 'inspetor-carlos',
+        deviceId: 'expo-device-01',
+      });
 
-    await classificarItemUseCase.executar({
-      vistoriaId: vistoria.id,
-      itemId: 'item-3',
-      status: StatusItemChecklist.AVISO,
-      observacao: 'Leve gotejamento no retentor da bomba secundária',
-      usuarioId: 'inspetor-carlos',
-      deviceId: 'expo-device-01',
-    });
+      await classificarItemUseCase.executar({
+        vistoriaId: vistoria.id,
+        itemId: 'item-3',
+        status: StatusItemChecklist.AVISO,
+        observacao: 'Leve gotejamento no retentor da bomba secundária',
+        usuarioId: 'inspetor-carlos',
+        deviceId: 'expo-device-01',
+      });
 
-    // 3. Pré-cadastrar ocorrências via Caso de Uso
-    await registrarOcorrenciaUseCase.executar({
-      id: 'oc-101',
-      vistoriaId: vistoria.id,
-      itemId: 'item-3',
-      titulo: 'Infiltração ativa no pilar central da Garagem G2',
-      descricao: 'Gotejamento contínuo com eflorescência e risco à armadura de aço.',
-      gravidade: GravidadeOcorrencia.ALTA,
-      fotos: ['file:///cache/infiltracao_g2_vaga45.jpg'],
-      usuarioId: 'inspetor-carlos',
-      deviceId: 'expo-device-01',
-    });
+      // 3. Pré-cadastrar ocorrências via Caso de Uso
+      await registrarOcorrenciaUseCase.executar({
+        id: 'oc-101',
+        vistoriaId: vistoria.id,
+        itemId: 'item-3',
+        titulo: 'Infiltração ativa no pilar central da Garagem G2',
+        descricao: 'Gotejamento contínuo com eflorescência e risco à armadura de aço.',
+        gravidade: GravidadeOcorrencia.ALTA,
+        fotos: ['file:///cache/infiltracao_g2_vaga45.jpg'],
+        usuarioId: 'inspetor-carlos',
+        deviceId: 'expo-device-01',
+      });
 
-    await registrarOcorrenciaUseCase.executar({
-      id: 'oc-102',
-      vistoriaId: vistoria.id,
-      itemId: 'item-3',
-      titulo: 'Gotejamento na válvula de retenção da bomba 2',
-      descricao: 'Desgaste mecânico necessita reaperto de junta e troca de gaxeta.',
-      gravidade: GravidadeOcorrencia.MEDIA,
-      fotos: ['file:///cache/valvula_bomba_2.jpg'],
-      usuarioId: 'inspetor-carlos',
-      deviceId: 'expo-device-01',
-    });
+      await registrarOcorrenciaUseCase.executar({
+        id: 'oc-102',
+        vistoriaId: vistoria.id,
+        itemId: 'item-3',
+        titulo: 'Gotejamento na válvula de retenção da bomba 2',
+        descricao: 'Desgaste mecânico necessita reaperto de junta e troca de gaxeta.',
+        gravidade: GravidadeOcorrencia.MEDIA,
+        fotos: ['file:///cache/valvula_bomba_2.jpg'],
+        usuarioId: 'inspetor-carlos',
+        deviceId: 'expo-device-01',
+      });
 
-    // Atualizar referências
-    const vistoriaAtualizada = await vistoriaRepo.buscarPorId(vistoria.id);
-    if (vistoriaAtualizada) {
-      setVistoriaAtiva(vistoriaAtualizada);
-      setItensChecklist([...vistoriaAtualizada.itens]);
+      // Atualizar referências
+      const vistoriaAtualizada = await vistoriaRepo.buscarPorId(vistoria.id);
+      if (vistoriaAtualizada) {
+        setVistoriaAtiva(vistoriaAtualizada);
+        setItensChecklist([...vistoriaAtualizada.itens]);
+      }
+
+      await atualizarEstadoOcorrencias(vistoria.id);
+      await atualizarEstadoOutbox();
+
+      networkService.setOnline(false);
+      setIsOnline(false);
+      syncGateway.setSimularErro503(false);
+      setIsSimulandoErro503(false);
+
+      addLog('INFO', 'SindiFlow 100% Mock inicializado em memória pura.');
+      addLog('INFO', 'Vistoria Edifício Solar carregada em RASCUNHO com 50% respondido.');
+      addLog('INFO', 'Dispositivo em modo OFFLINE simulando garagem G2 sem sinal.');
+    } catch (e: any) {
+      addLog('BLOQUEIO', `Erro na inicialização do mock: ${e?.message || e}`);
+    } finally {
+      setIsCarregando(false);
     }
-
-    await atualizarEstadoOcorrencias(vistoria.id);
-    await atualizarEstadoOutbox();
-
-    networkService.setOnline(false);
-    setIsOnline(false);
-    syncGateway.setSimularErro503(false);
-    setIsSimulandoErro503(false);
-
-    addLog('INFO', 'SindiFlow 100% Mock inicializado em memória pura.');
-    addLog('INFO', 'Vistoria Edifício Solar carregada em RASCUNHO com 50% respondido.');
-    addLog('INFO', 'Dispositivo em modo OFFLINE simulando garagem G2 sem sinal.');
-
-    setIsCarregando(false);
   };
 
   useEffect(() => {
