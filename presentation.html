@@ -71,7 +71,7 @@
         .progress-line-fill {
             height: 100%;
             background: linear-gradient(90deg, #38BDF8 0%, #818CF8 50%, #10B981 100%);
-            width: 8.33%;
+            width: 7.69%;
             box-shadow: 0 0 12px var(--primary-glow);
             transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -207,7 +207,7 @@
 
         .slide-container {
             width: 100%;
-            max-width: 1380px;
+            max-width: 1400px;
             height: 100%;
             max-height: 840px;
             display: flex;
@@ -551,6 +551,110 @@
         .erd-fk { color: #38BDF8; font-weight: 700; }
         .erd-type { color: #94A3B8; font-size: 0.7rem; }
 
+        /* UML Class Diagram Styles (Slide 5) */
+        .uml-deck-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .uml-class-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: var(--shadow-card);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.71rem;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .uml-class-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--primary);
+        }
+
+        .uml-class-header {
+            background: var(--bg-card);
+            padding: 0.45rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .uml-stereotype {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            font-style: italic;
+            display: block;
+            margin-bottom: 1px;
+        }
+
+        .uml-class-name {
+            font-size: 0.86rem;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+
+        .uml-section {
+            padding: 0.45rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5px;
+        }
+
+        .uml-section.attrs {
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 15, 29, 0.4);
+        }
+
+        .uml-line {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            line-height: 1.35;
+        }
+
+        .uml-vis {
+            font-weight: 700;
+            margin-right: 4px;
+            display: inline-block;
+            width: 9px;
+        }
+
+        .uml-vis.pub { color: #10B981; }
+        .uml-vis.priv { color: #EF4444; }
+
+        .uml-id { color: #F8FAFC; }
+        .uml-type { color: #38BDF8; font-size: 0.67rem; }
+
+        .uml-rel-bar {
+            margin-top: 1rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.65rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.74rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .uml-rel-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .uml-rel-symbol {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
         /* Bottom Floating Bar */
         .slide-deck-footer {
             position: fixed;
@@ -682,7 +786,7 @@
             line-height: 1.4;
         }
 
-        /* Phone Frames for UI Showcase (Slide 9) */
+        /* Phone Frames for UI Showcase (Slide 10) */
         .phone-showcase-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -743,7 +847,7 @@
             overflow: hidden;
         }
 
-        /* Simulator Styles (Slide 10) */
+        /* Simulator Styles (Slide 11) */
         .simulator-grid {
             display: grid;
             grid-template-columns: 1.2fr 1fr 1fr;
@@ -876,7 +980,7 @@
             <div class="timer-display" id="deck-timer" onclick="toggleTimer()" title="Clique para pausar/retomar cronômetro">
                 ⏱️ 00:00
             </div>
-            <span class="slide-counter-badge" id="slide-num-badge">01 / 12</span>
+            <span class="slide-counter-badge" id="slide-num-badge">01 / 13</span>
             <button class="deck-btn" onclick="prevSlide()" id="btn-prev-nav" title="Slide Anterior (←)">
                 ← Anterior
             </button>
@@ -1194,12 +1298,183 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 5: REGRAS DE NEGÓCIO DO WORKFLOW
+                 SLIDE 5: DIAGRAMA DE CLASSES UML
                  ========================================== -->
             <section class="slide-card" id="slide-5">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>04. As Regras de Negócio do Domínio</h2>
+                        <h2>04. Diagrama de Classes UML (Domínio Puro)</h2>
+                        <p>Modelagem orientada a objetos: Aggregate Root, Entidades, Value Objects e Contratos</p>
+                    </div>
+                    <span class="slide-category-tag" style="color: #38BDF8; border-color: #38BDF8;">UML Oficial</span>
+                </div>
+
+                <div class="slide-body">
+                    <div class="uml-deck-grid">
+                        <!-- Class 1: Vistoria (Aggregate Root) -->
+                        <div class="uml-class-card" style="border-top: 4px solid #38BDF8;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;AggregateRoot&raquo;</span>
+                                <span class="uml-class-name" style="color: #38BDF8;">Vistoria</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">id</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">condominioId</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">inspetorId</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_status</span></span><span class="uml-type">StatusVistoria</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">dataCriacao</span></span><span class="uml-type">Date</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_dataFinalizacao</span></span><span class="uml-type">Date?</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_geolocalizacao</span></span><span class="uml-type">Geolocalizacao?</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_itens</span></span><span class="uml-type">ItemChecklist[]</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">percentualRespondido()</span></span><span class="uml-type">number</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">finalizar(geo)</span></span><span class="uml-type">void</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">static criar(props)</span></span><span class="uml-type">Vistoria</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Class 2: ItemChecklist -->
+                        <div class="uml-class-card" style="border-top: 4px solid #818CF8;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;Entity&raquo;</span>
+                                <span class="uml-class-name" style="color: #818CF8;">ItemChecklist</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">id</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">vistoriaId</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">titulo</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">categoria</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_status</span></span><span class="uml-type">StatusItemChecklist</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_observacao</span></span><span class="uml-type">string?</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_evidencias</span></span><span class="uml-type">Evidencia[]</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">marcarStatus(novo, obs?)</span></span><span class="uml-type">void</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">adicionarEvidencia(ev)</span></span><span class="uml-type">void</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">static criar(props)</span></span><span class="uml-type">ItemChecklist</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Class 3: Ocorrencia -->
+                        <div class="uml-class-card" style="border-top: 4px solid #EF4444;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;Entity&raquo;</span>
+                                <span class="uml-class-name" style="color: #EF4444;">Ocorrencia</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">id</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">vistoriaId</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">itemId</span></span><span class="uml-type">string?</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">titulo</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">gravidade</span></span><span class="uml-type">GravidadeOcorrencia</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_status</span></span><span class="uml-type">StatusOcorrencia</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_fotos</span></span><span class="uml-type">string[]</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">dataCriacao</span></span><span class="uml-type">Date</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">get slaHoras</span></span><span class="uml-type">number (24/72/168)</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">estaAtrasada(ref?)</span></span><span class="uml-type">boolean</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">resolver(data?, sol?)</span></span><span class="uml-type">void</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">static criar(props)</span></span><span class="uml-type">Ocorrencia</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Class 4: OutboxEvent -->
+                        <div class="uml-class-card" style="border-top: 4px solid #10B981;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;Entity&raquo;</span>
+                                <span class="uml-class-name" style="color: #10B981;">OutboxEvent</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">id</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">tipo</span></span><span class="uml-type">string</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">payload</span></span><span class="uml-type">Record&lt;string,any&gt;</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_status</span></span><span class="uml-type">StatusOutbox</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_tentativas</span></span><span class="uml-type">number</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">maxTentativas</span></span><span class="uml-type">number = 5</span></div>
+                                <div class="uml-line"><span><span class="uml-vis priv">-</span><span class="uml-id">_ultimoErro</span></span><span class="uml-type">string?</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">dataCriacao</span></span><span class="uml-type">Date</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">get proximoRetryMs</span></span><span class="uml-type">number (2^n * 1s)</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">registrarFalha(erro)</span></span><span class="uml-type">void</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">marcarSincronizado(d?)</span></span><span class="uml-type">void</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Class 5: Value Objects -->
+                        <div class="uml-class-card" style="border-top: 4px solid #F59E0B;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;ValueObject&raquo;</span>
+                                <span class="uml-class-name" style="color: #F59E0B;">Geolocalizacao &bull; Evidencia</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div style="color: #F59E0B; font-weight: 700; margin-bottom: 2px;">Geolocalizacao (Imutável):</div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">latitude</span></span><span class="uml-type">number [-90,90]</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">longitude</span></span><span class="uml-type">number [-180,180]</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">precisao</span></span><span class="uml-type">number?</span></div>
+                                <div style="color: #F59E0B; font-weight: 700; margin-top: 4px; margin-bottom: 2px;">Evidencia (FileSystem):</div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">caminhoArquivoLocal</span></span><span class="uml-type">string (file://)</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">hash</span></span><span class="uml-type">string?</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">Geolocalizacao.criar(props)</span></span><span class="uml-type">Geolocalizacao</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">Evidencia.criar(props)</span></span><span class="uml-type">Evidencia</span></div>
+                            </div>
+                        </div>
+
+                        <!-- Class 6: Interfaces de Persistência -->
+                        <div class="uml-class-card" style="border-top: 4px solid #38BDF8;">
+                            <div class="uml-class-header">
+                                <span class="uml-stereotype">&laquo;interface&raquo;</span>
+                                <span class="uml-class-name" style="color: #38BDF8;">Contratos Repositório (DIP)</span>
+                            </div>
+                            <div class="uml-section attrs">
+                                <div style="color: #38BDF8; font-weight: 700; margin-bottom: 2px;">IVistoriaRepository:</div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">salvar(vistoria)</span></span><span class="uml-type">Promise&lt;void&gt;</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">buscarPorId(id)</span></span><span class="uml-type">Promise&lt;Vistoria?&gt;</span></div>
+                                <div style="color: #10B981; font-weight: 700; margin-top: 4px; margin-bottom: 2px;">IOutboxRepository:</div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">enfileirar(item)</span></span><span class="uml-type">Promise&lt;void&gt;</span></div>
+                                <div class="uml-line"><span><span class="uml-vis pub">+</span><span class="uml-id">obterPendentes(lim?)</span></span><span class="uml-type">Promise&lt;Item[]&gt;</span></div>
+                            </div>
+                            <div class="uml-section">
+                                <div style="font-size: 0.65rem; color: #94A3B8;">
+                                    Implementado 100% em memória por <code>VistoriaRepositoryInMemory</code> e <code>OutboxRepositoryInMemory</code> na Fase 1.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- UML Relational Legend Bar -->
+                    <div class="uml-rel-bar">
+                        <div class="uml-rel-item">
+                            <span class="uml-rel-symbol">&diams;&HorizontalLine;</span>
+                            <span><strong>Composição (1 : N):</strong> Vistoria &harr; ItemChecklist</span>
+                        </div>
+                        <div class="uml-rel-item">
+                            <span class="uml-rel-symbol">&HorizontalLine;</span>
+                            <span><strong>Associação (1 : N):</strong> Vistoria &harr; Ocorrencia</span>
+                        </div>
+                        <div class="uml-rel-item">
+                            <span class="uml-rel-symbol">&diamond;&HorizontalLine;</span>
+                            <span><strong>Agregação (1 : N):</strong> ItemChecklist &harr; Evidencia</span>
+                        </div>
+                        <div class="uml-rel-item">
+                            <span class="uml-rel-symbol">..&triangleright;</span>
+                            <span><strong>Implementação (DIP):</strong> In-Memory Fakes ..&triangleright; Interfaces</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==========================================
+                 SLIDE 6: REGRAS DE NEGÓCIO DO WORKFLOW
+                 ========================================== -->
+            <section class="slide-card" id="slide-6">
+                <div class="slide-header">
+                    <div class="slide-title-wrap">
+                        <h2>05. As Regras de Negócio do Domínio</h2>
                         <p>Invariantes protegidas no Aggregate Root Vistoria (RF-VIST-001 a 004)</p>
                     </div>
                     <span class="slide-category-tag">Regras Mandatórias</span>
@@ -1256,12 +1531,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 6: OCORRÊNCIAS, MÍDIA & SLAS
+                 SLIDE 7: OCORRÊNCIAS, MÍDIA & SLAS
                  ========================================== -->
-            <section class="slide-card" id="slide-6">
+            <section class="slide-card" id="slide-7">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>05. Ocorrências, Matriz de Gravidade e SLAs</h2>
+                        <h2>06. Ocorrências, Matriz de Gravidade e SLAs</h2>
                         <p>Classificação técnica de anomalias e regras de evidência (RF05 a RF10)</p>
                     </div>
                     <span class="slide-category-tag">Gestão de Anomalias</span>
@@ -1354,12 +1629,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 7: MOTOR OUTBOX & RESILIÊNCIA
+                 SLIDE 8: MOTOR OUTBOX & RESILIÊNCIA
                  ========================================== -->
-            <section class="slide-card" id="slide-7">
+            <section class="slide-card" id="slide-8">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>06. Motor Outbox & Resiliência Offline</h2>
+                        <h2>07. Motor Outbox & Resiliência Offline</h2>
                         <p>Garantia de entrega com retry exponencial e zero perda de dados em subsolos</p>
                     </div>
                     <span class="slide-category-tag">Offline-First Core</span>
@@ -1425,12 +1700,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 8: 100% EM MOCK NESTA FASE
+                 SLIDE 9: 100% EM MOCK NESTA FASE
                  ========================================== -->
-            <section class="slide-card" id="slide-8">
+            <section class="slide-card" id="slide-9">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>07. Isolamento Total: 100% Mock / Fakes</h2>
+                        <h2>08. Isolamento Total: 100% Mock / Fakes</h2>
                         <p>Comprovação para a banca: zero dependência de banco físico ou hardware nesta etapa</p>
                     </div>
                     <span class="slide-category-tag">Ambiente de Validação</span>
@@ -1486,12 +1761,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 9: TELAS DO APLICATIVO NATIVO
+                 SLIDE 10: TELAS DO APLICATIVO NATIVO
                  ========================================== -->
-            <section class="slide-card" id="slide-9">
+            <section class="slide-card" id="slide-10">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>08. Telas do Aplicativo Nativo (UI Showcase)</h2>
+                        <h2>09. Telas do Aplicativo Nativo (UI Showcase)</h2>
                         <p>Interface moderna desenvolvida para operação rápida em campo com Expo SDK 54</p>
                     </div>
                     <span class="slide-category-tag">Interface Mobile</span>
@@ -1612,12 +1887,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 10: SIMULADOR AO VIVO NO MOCK
+                 SLIDE 11: SIMULADOR AO VIVO NO MOCK
                  ========================================== -->
-            <section class="slide-card" id="slide-10">
+            <section class="slide-card" id="slide-11">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>09. Laboratório Interativo: Execução ao Vivo em Mock</h2>
+                        <h2>10. Laboratório Interativo: Execução ao Vivo em Mock</h2>
                         <p>Demonstração funcional das travas de domínio, fila outbox e cálculo de SLA</p>
                     </div>
                     <span class="slide-category-tag" style="color: #10B981; border-color: #10B981;">⚡ Live Demo</span>
@@ -1778,12 +2053,12 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 11: MATRIZ DE COBERTURA TDD
+                 SLIDE 12: MATRIZ DE COBERTURA TDD
                  ========================================== -->
-            <section class="slide-card" id="slide-11">
+            <section class="slide-card" id="slide-12">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>10. Matriz de Cobertura TDD Oficial</h2>
+                        <h2>11. Matriz de Cobertura TDD Oficial</h2>
                         <p>Meta &ge; 80% superada com 92.6% comprovada pelo Jest com 33/33 testes passando</p>
                     </div>
                     <span class="slide-category-tag" style="color: #10B981; border-color: #10B981;">33/33 PASS</span>
@@ -1873,13 +2148,13 @@
             </section>
 
             <!-- ==========================================
-                 SLIDE 12: CONCLUSÃO & STACK TECNOLÓGICO
+                 SLIDE 13: CONCLUSÃO & STACK TECNOLÓGICO
                  ========================================== -->
-            <section class="slide-card" id="slide-12">
+            <section class="slide-card" id="slide-13">
                 <div class="slide-header">
                     <div class="slide-title-wrap">
-                        <h2>11. Conclusão & Próximos Passos</h2>
-                        <p>Entrega exemplar dos 4 requisitos da Fase "Domínio e Interface Primeiro"</p>
+                        <h2>12. Conclusão & Próximos Passos</h2>
+                        <p>Entrega exemplar dos requisitos da Fase "Domínio e Interface Primeiro"</p>
                     </div>
                     <span class="slide-category-tag" style="color: #38BDF8; border-color: #38BDF8;">100% Concluído</span>
                 </div>
@@ -1909,11 +2184,11 @@
                             🎉 SindiFlow Pronto para Avaliação Oficial
                         </h3>
                         <p style="max-width: 800px; margin: 0 auto; color: #CBD5E1; font-size: 1rem; line-height: 1.5;">
-                            Os 4 quesitos solicitados por Pedro foram plenamente comprovados: <strong>100% Mock & In-Memory</strong> sem tocar em disco, <strong>regras de negócio blindadas</strong> no domínio, <strong>simulador interativo ao vivo</strong> e <strong>92.6% de cobertura de testes TDD</strong> com 33 testes aprovados.
+                            Os quesitos solicitados foram plenamente comprovados: <strong>100% Mock & In-Memory</strong> sem tocar em disco, <strong>diagramas de classes UML e ERD</strong> fiéis ao código, <strong>regras de negócio blindadas</strong> no domínio, <strong>simulador interativo ao vivo</strong> e <strong>92.6% de cobertura de testes TDD</strong> com 33 testes aprovados.
                         </p>
                         <div style="margin-top: 1.5rem; display: flex; justify-content: center; gap: 1rem;">
-                            <button class="deck-btn primary" onclick="goToSlide(10)">
-                                ▶ Ir para o Simulador Live (Slide 10)
+                            <button class="deck-btn primary" onclick="goToSlide(11)">
+                                ▶ Ir para o Simulador Live (Slide 11)
                             </button>
                             <button class="deck-btn" onclick="goToSlide(1)">
                                 ↺ Voltar ao Início (Capa)
@@ -1933,7 +2208,7 @@
         </button>
 
         <div class="dots-row" id="footer-dots">
-            <!-- 12 dots gerados via script -->
+            <!-- 13 dots gerados via script -->
         </div>
 
         <button class="deck-btn primary" onclick="nextSlide()" style="padding: 4px 10px; font-size: 0.75rem;">
@@ -1961,22 +2236,23 @@
 
     <!-- Scripts de Controle -->
     <script>
-        const totalSlides = 12;
+        const totalSlides = 13;
         let currentSlide = 1;
 
         const slideMeta = [
             { num: 1, title: "Capa Oficial", desc: "Apresentação SindiFlow, badges de conformidade e visão geral." },
             { num: 2, title: "O Desafio & Decisão", desc: "Vistorias em subsolo sem internet e razão do 100% Mock." },
             { num: 3, title: "Clean Architecture", desc: "4 camadas concêntricas e Princípio de Inversão de Dependências." },
-            { num: 4, title: "Modelo de Dados (ERD)", desc: "Entidades, chaves primárias e integridade relacional." },
-            { num: 5, title: "Regras de Negócio (RF-VIST)", desc: "Status Rascunho, trava de 80%, item crítico e GPS mandatório." },
-            { num: 6, title: "Severidades & SLAs", desc: "Prazos 24h, 72h, 7d e regra de armazenamento FileSystem." },
-            { num: 7, title: "Motor Outbox Resiliente", desc: "Fluxo passo a passo, backoff exponencial e idempotência." },
-            { num: 8, title: "Isolamento 100% Mock", desc: "Tabela comparativa dos Fakes e Gateways em memória." },
-            { num: 9, title: "Telas do App Nativo", desc: "Showcase em molduras de smartphone com Expo SDK 54." },
-            { num: 10, title: "Laboratório Interativo", desc: "Simulador ao vivo das travas de domínio, outbox e SLA." },
-            { num: 11, title: "Matriz de Cobertura TDD", desc: "Superação da meta de 80% com 92.6% e 33 testes Jest." },
-            { num: 12, title: "Conclusão & Próximos Passos", desc: "Stack final, consolidação da Fase 1 e abertura para banca." }
+            { num: 4, title: "Modelo de Dados (ERD)", desc: "Entidades relacionais, chaves estrangeiras e integridade referencial." },
+            { num: 5, title: "Diagrama de Classes UML", desc: "Modelagem OO do domínio: Aggregate Root, Entidades, VOs e Contratos." },
+            { num: 6, title: "Regras de Negócio (RF-VIST)", desc: "Status Rascunho, trava de 80%, item crítico e GPS mandatório." },
+            { num: 7, title: "Severidades & SLAs", desc: "Prazos 24h, 72h, 7d e regra de armazenamento FileSystem." },
+            { num: 8, title: "Motor Outbox Resiliente", desc: "Fluxo passo a passo, backoff exponencial e idempotência." },
+            { num: 9, title: "Isolamento 100% Mock", desc: "Tabela comparativa dos Fakes e Gateways em memória." },
+            { num: 10, title: "Telas do App Nativo", desc: "Showcase em molduras de smartphone com Expo SDK 54." },
+            { num: 11, title: "Laboratório Interativo", desc: "Simulador ao vivo das travas de domínio, outbox e SLA." },
+            { num: 12, title: "Matriz de Cobertura TDD", desc: "Superação da meta de 80% com 92.6% e 33 testes Jest." },
+            { num: 13, title: "Conclusão & Próximos Passos", desc: "Stack final, consolidação da Fase 1 e abertura para banca." }
         ];
 
         function updateSlideView() {
@@ -2149,7 +2425,7 @@
         });
 
         // ==========================================
-        // LÓGICA DO SIMULADOR AO VIVO (SLIDE 10)
+        // LÓGICA DO SIMULADOR AO VIVO (SLIDE 11)
         // ==========================================
         const itemStatus = { 1: 'OK', 2: 'AVISO', 3: 'PENDENTE', 4: 'PENDENTE' };
 
