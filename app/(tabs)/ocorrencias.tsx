@@ -11,249 +11,258 @@ import {
   View,
 } from 'react-native';
 
-interface OcorrenciaItem {
-  id: string;
-  titulo: string;
-  local: string;
-  gravidade: 'BAIXA' | 'MEDIA' | 'ALTA';
-  slaHoras: number;
-  dataCriacao: string;
-  temFoto: boolean;
-  status: 'ABERTA' | 'EM_ANDAMENTO' | 'RESOLVIDA';
-}
+import { useVistoria } from '@/src/context/VistoriaContext';
+import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 
 export default function OcorrenciasScreen() {
-  const [ocorrencias, setOcorrencias] = useState<OcorrenciaItem[]>([
-    {
-      id: 'oc-1',
-      titulo: 'Infiltração ativa no pilar central da Garagem G2',
-      local: 'Garagem G2 - Vaga 45',
-      gravidade: 'ALTA',
-      slaHoras: 24,
-      dataCriacao: 'Hoje, 09:30',
-      temFoto: true,
-      status: 'ABERTA',
-    },
-    {
-      id: 'oc-2',
-      titulo: 'Gotejamento na válvula de retenção da bomba 2',
-      local: 'Casa de Bombas - Subsolo',
-      gravidade: 'MEDIA',
-      slaHoras: 72,
-      dataCriacao: 'Ontem, 16:45',
-      temFoto: true,
-      status: 'EM_ANDAMENTO',
-    },
-    {
-      id: 'oc-3',
-      titulo: 'Pintura descascando no hall de entrada',
-      local: 'Hall Social - Térreo',
-      gravidade: 'BAIXA',
-      slaHoras: 168,
-      dataCriacao: '28/09/2026',
-      temFoto: false,
-      status: 'RESOLVIDA',
-    },
-  ]);
+  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
-  const [local, setLocal] = useState('');
-  const [gravidade, setGravidade] = useState<'BAIXA' | 'MEDIA' | 'ALTA'>('MEDIA');
+  const [descricao, setDescricao] = useState('');
+  const [gravidade, setGravidade] = useState<GravidadeOcorrencia>(GravidadeOcorrencia.ALTA);
   const [fotoCapturada, setFotoCapturada] = useState(false);
 
   const handleCapturarFoto = () => {
-    setFotoCapturada(true);
-    Alert.alert('Câmera Nativa', 'Evidência fotográfica capturada e salva no armazenamento local!');
+    setFotoCapturada(!fotoCapturada);
   };
 
-  const handleSalvarOcorrencia = () => {
-    if (!titulo.trim() || !local.trim()) {
-      Alert.alert('Dados Incompletos', 'Informe o título e o local da ocorrência.');
+  const handleSalvarOcorrencia = async () => {
+    if (!titulo.trim()) {
+      Alert.alert('Dados Incompletos', 'Informe o título ou resumo da ocorrência técnica.');
       return;
     }
 
-    // Regra §3.2 do Domínio: ALTA gravidade exige foto obrigatória
-    if (gravidade === 'ALTA' && !fotoCapturada) {
+    try {
+      const fotos = fotoCapturada
+        ? [`file:///cache/evidencia_${Date.now()}.jpg`]
+        : [];
+
+      const nova = await registrarOcorrencia({
+        titulo: titulo.trim(),
+        descricao: descricao.trim() || undefined,
+        gravidade,
+        fotos,
+      });
+
+      setModalVisible(false);
+      setTitulo('');
+      setDescricao('');
+      setFotoCapturada(false);
+
       Alert.alert(
-        'Regra de Domínio (§3.2)',
-        'Ocorrências de gravidade ALTA exigem obrigatoriamente pelo menos uma foto de evidência antes do salvamento.'
+        '✓ Ocorrência Registrada com Sucesso!',
+        `Severidade: ${nova.gravidade}\n⏱️ SLA Calculado: ${nova.slaHoras} horas\n⚡ Evento INSERT enfileirado na Outbox em memória!`
       );
-      return;
+    } catch (err: any) {
+      Alert.alert(
+        'Bloqueio de Domínio (§3.2)',
+        err?.message || 'Falha na validação de invariantes da ocorrência.'
+      );
     }
-
-    const sla = gravidade === 'ALTA' ? 24 : gravidade === 'MEDIA' ? 72 : 168;
-
-    const nova: OcorrenciaItem = {
-      id: `oc-${Date.now().toString().slice(-4)}`,
-      titulo: titulo.trim(),
-      local: local.trim(),
-      gravidade,
-      slaHoras: sla,
-      dataCriacao: 'Agora',
-      temFoto: fotoCapturada,
-      status: 'ABERTA',
-    };
-
-    setOcorrencias([nova, ...ocorrencias]);
-    setModalVisible(false);
-    setTitulo('');
-    setLocal('');
-    setFotoCapturada(false);
-
-    Alert.alert(
-      'Ocorrência Registrada na SQLite',
-      `Gravidade: ${gravidade} (SLA: ${sla}h)\nEvento inserido na Outbox para sincronização com Supabase.`
-    );
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Ocorrências & Chamados</Text>
-          <Text style={styles.subtitle}>Classificação por Gravidade e Controle de SLA</Text>
+        {/* Banner Mock */}
+        <View style={styles.mockBanner}>
+          <View style={styles.mockBannerLeft}>
+            <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
+            <Text style={styles.mockBannerText}>
+              ⚡ 100% Mock In-Memory ({isOnline ? 'Online Wi-Fi' : 'Offline Subsolo G2'})
+            </Text>
+          </View>
+          <View style={styles.outboxPill}>
+            <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+          </View>
         </View>
 
-        {/* Quadro Informativo de SLAs (§3.2) */}
-        <View style={styles.slaGrid}>
+        {/* Header da Tela */}
+        <View style={styles.headerRow}>
+          <div>
+            <Text style={styles.title}>Ocorrências & Anomalias</Text>
+            <Text style={styles.subtitle}>
+              Matriz de SLA (24h, 72h, 7d) e fotos salvas via FileSystem
+            </Text>
+          </div>
+          <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
+            <Text style={styles.addBtnText}>+ Nova</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Cards de Resumo SLA */}
+        <View style={styles.slaSummaryRow}>
           <View style={[styles.slaCard, styles.slaAlta]}>
-            <Text style={styles.slaBadgeAlta}>ALTA</Text>
-            <Text style={styles.slaTime}>24 horas</Text>
-            <Text style={styles.slaRule}>Foto Obrigatória</Text>
+            <Text style={styles.slaCardVal}>24h</Text>
+            <Text style={styles.slaCardLabel}>ALTA (Foto Obrigatória)</Text>
           </View>
           <View style={[styles.slaCard, styles.slaMedia]}>
-            <Text style={styles.slaBadgeMedia}>MÉDIA</Text>
-            <Text style={styles.slaTime}>72 horas</Text>
-            <Text style={styles.slaRule}>Foto Recomendada</Text>
+            <Text style={styles.slaCardVal}>72h</Text>
+            <Text style={styles.slaCardLabel}>MÉDIA (Recomendada)</Text>
           </View>
           <View style={[styles.slaCard, styles.slaBaixa]}>
-            <Text style={styles.slaBadgeBaixa}>BAIXA</Text>
-            <Text style={styles.slaTime}>7 dias</Text>
-            <Text style={styles.slaRule}>Foto Opcional</Text>
+            <Text style={styles.slaCardVal}>7 dias</Text>
+            <Text style={styles.slaCardLabel}>BAIXA (Opcional)</Text>
           </View>
         </View>
 
-        {/* Botão Nova Ocorrência */}
-        <TouchableOpacity style={styles.newBtn} onPress={() => setModalVisible(true)}>
-          <Text style={styles.newBtnText}>+ Nova Ocorrência Técnica</Text>
-        </TouchableOpacity>
+        {/* Lista de Ocorrências Cadastradas */}
+        <Text style={styles.sectionTitle}>
+          Ocorrências no Repositório ({ocorrencias.length})
+        </Text>
 
-        {/* Lista de Ocorrências */}
-        <Text style={styles.sectionTitle}>Chamados Ativos ({ocorrencias.length})</Text>
+        {ocorrencias.map((oc) => {
+          const isAlta = oc.gravidade === GravidadeOcorrencia.ALTA;
+          const isMedia = oc.gravidade === GravidadeOcorrencia.MEDIA;
 
-        {ocorrencias.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.tagRow}>
-                <Text
-                  style={[
-                    styles.gravidadeTag,
-                    item.gravidade === 'ALTA' && styles.tagAlta,
-                    item.gravidade === 'MEDIA' && styles.tagMedia,
-                    item.gravidade === 'BAIXA' && styles.tagBaixa,
-                  ]}>
-                  GRAVIDADE {item.gravidade} (SLA {item.slaHoras}h)
-                </Text>
-                {item.temFoto ? <Text style={styles.photoTag}>📷 Com Foto</Text> : null}
+          return (
+            <View
+              key={oc.id}
+              style={[
+                styles.itemCard,
+                isAlta && styles.cardBorderAlta,
+                isMedia && styles.cardBorderMedia,
+              ]}>
+              <View style={styles.cardHeader}>
+                <View style={styles.badgeRow}>
+                  <Text
+                    style={[
+                      styles.gravidadeBadge,
+                      isAlta && styles.badgeAlta,
+                      isMedia && styles.badgeMedia,
+                    ]}>
+                    GRAVIDADE {oc.gravidade}
+                  </Text>
+                  <Text style={styles.slaBadge}>SLA: {oc.slaHoras}h</Text>
+                </View>
+                <Text style={styles.statusBadge}>{oc.status}</Text>
               </View>
-              <Text style={styles.statusTag}>{item.status}</Text>
+
+              <Text style={styles.itemTitle}>{oc.titulo}</Text>
+              {oc.descricao ? (
+                <Text style={styles.itemDesc}>{oc.descricao}</Text>
+              ) : null}
+
+              <View style={styles.cardFooter}>
+                <View style={styles.photoIndicator}>
+                  <Text style={styles.photoIcon}>📷</Text>
+                  <Text style={styles.photoText}>
+                    {oc.fotos.length > 0
+                      ? `${oc.fotos.length} foto(s) no FileSystem`
+                      : 'Sem foto anexada'}
+                  </Text>
+                </View>
+                <Text style={styles.dateText}>
+                  {oc.dataCriacao ? new Date(oc.dataCriacao).toLocaleTimeString() : 'Agora'}
+                </Text>
+              </View>
             </View>
-
-            <Text style={styles.cardTitle}>{item.titulo}</Text>
-            <Text style={styles.cardLocal}>📍 {item.local}</Text>
-            <Text style={styles.cardTime}>Registrado: {item.dataCriacao}</Text>
-
-            {item.status !== 'RESOLVIDA' ? (
-              <TouchableOpacity
-                style={styles.resolveBtn}
-                onPress={() => {
-                  setOcorrencias((prev) =>
-                    prev.map((o) => (o.id === item.id ? { ...o, status: 'RESOLVIDA' } : o))
-                  );
-                }}>
-                <Text style={styles.resolveBtnText}>Marcar como Resolvido</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-        ))}
+          );
+        })}
       </ScrollView>
 
-      {/* Modal Nova Ocorrência */}
+      {/* Modal de Nova Ocorrência */}
       <Modal visible={modalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Registrar Ocorrência Técnica</Text>
+            <Text style={styles.modalSubtitle}>
+              Classifique a severidade e anexe evidências conforme a regra §3.2.
+            </Text>
 
-            <Text style={styles.inputLabel}>Título do Defeito</Text>
+            <Text style={styles.inputLabel}>Título / Problema Identificado:</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Ex: Trinca estrutural no pilar P12"
-              placeholderTextColor="#8B949E"
+              style={styles.modalInput}
+              placeholder="Ex: Fissura passante em viga mestra..."
+              placeholderTextColor="#64748B"
               value={titulo}
               onChangeText={setTitulo}
             />
 
-            <Text style={styles.inputLabel}>Local / Área Predial</Text>
+            <Text style={styles.inputLabel}>Detalhes Técnicos (Opcional):</Text>
             <TextInput
-              style={styles.input}
-              placeholder="Ex: Subestação ou Garagem G1"
-              placeholderTextColor="#8B949E"
-              value={local}
-              onChangeText={setLocal}
+              style={[styles.modalInput, { height: 60 }]}
+              placeholder="Observações complementares..."
+              placeholderTextColor="#64748B"
+              multiline
+              value={descricao}
+              onChangeText={setDescricao}
             />
 
-            <Text style={styles.inputLabel}>Classificação de Gravidade</Text>
-            <View style={styles.gravidadeSelector}>
-              {(['BAIXA', 'MEDIA', 'ALTA'] as const).map((g) => (
-                <TouchableOpacity
-                  key={g}
+            <Text style={styles.inputLabel}>Severidade da Anomalia:</Text>
+            <View style={styles.gravidadeRow}>
+              <TouchableOpacity
+                style={[
+                  styles.gravidadeBtn,
+                  gravidade === GravidadeOcorrencia.ALTA && styles.btnAltaActive,
+                ]}
+                onPress={() => setGravidade(GravidadeOcorrencia.ALTA)}>
+                <Text
                   style={[
-                    styles.gravidadeBtn,
-                    gravidade === g && styles.gravidadeBtnActive,
-                    g === 'ALTA' && styles.btnBorderAlta,
-                  ]}
-                  onPress={() => setGravidade(g)}>
-                  <Text
-                    style={[
-                      styles.gravidadeText,
-                      gravidade === g && styles.gravidadeTextActive,
-                    ]}>
-                    {g}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    styles.gravidadeBtnText,
+                    gravidade === GravidadeOcorrencia.ALTA && styles.textWhite,
+                  ]}>
+                  ALTA (24h)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.gravidadeBtn,
+                  gravidade === GravidadeOcorrencia.MEDIA && styles.btnMediaActive,
+                ]}
+                onPress={() => setGravidade(GravidadeOcorrencia.MEDIA)}>
+                <Text
+                  style={[
+                    styles.gravidadeBtnText,
+                    gravidade === GravidadeOcorrencia.MEDIA && styles.textWhite,
+                  ]}>
+                  MÉDIA (72h)
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.gravidadeBtn,
+                  gravidade === GravidadeOcorrencia.BAIXA && styles.btnBaixaActive,
+                ]}
+                onPress={() => setGravidade(GravidadeOcorrencia.BAIXA)}>
+                <Text
+                  style={[
+                    styles.gravidadeBtnText,
+                    gravidade === GravidadeOcorrencia.BAIXA && styles.textWhite,
+                  ]}>
+                  BAIXA (7d)
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {/* Aviso sobre foto se for ALTA */}
-            {gravidade === 'ALTA' ? (
-              <View style={styles.warnBox}>
-                <Text style={styles.warnText}>
-                  ⚠ ATENÇÃO: Gravidade ALTA exige foto obrigatória conforme a regra de domínio §3.2.
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Botão de Captura de Foto */}
+            {/* Simulação de Foto da Câmera */}
             <TouchableOpacity
-              style={[styles.cameraBtn, fotoCapturada && styles.cameraBtnDone]}
+              style={[
+                styles.cameraBtn,
+                fotoCapturada ? styles.cameraBtnOk : styles.cameraBtnPending,
+              ]}
               onPress={handleCapturarFoto}>
               <Text style={styles.cameraBtnText}>
-                {fotoCapturada ? '✓ Foto de Evidência Anexada' : '📷 Capturar Foto de Evidência'}
+                {fotoCapturada
+                  ? '✓ Foto Capturada via Mock FileSystem (Clique p/ remover)'
+                  : '📷 Simular Captura de Foto (Obrigatória se ALTA)'}
               </Text>
             </TouchableOpacity>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={styles.modalBtnCancel}
                 onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
+                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
-                style={styles.submitBtn}
+                style={styles.modalBtnSave}
                 onPress={handleSalvarOcorrencia}>
-                <Text style={styles.submitBtnText}>Salvar Chamado</Text>
+                <Text style={styles.modalBtnSaveText}>Salvar Ocorrência</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -264,152 +273,344 @@ export default function OcorrenciasScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0D1117' },
-  container: { padding: 16, paddingBottom: 40 },
-  header: { marginBottom: 16 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#F0F6FC' },
-  subtitle: { fontSize: 13, color: '#8B949E', marginTop: 2 },
-  slaGrid: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  slaCard: {
+  safeArea: {
     flex: 1,
-    backgroundColor: '#161B22',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    borderRadius: 8,
-    padding: 10,
-    alignItems: 'center',
+    backgroundColor: '#060911',
   },
-  slaAlta: { borderTopWidth: 3, borderTopColor: '#F85149' },
-  slaMedia: { borderTopWidth: 3, borderTopColor: '#D29922' },
-  slaBaixa: { borderTopWidth: 3, borderTopColor: '#3FB950' },
-  slaBadgeAlta: { color: '#F85149', fontWeight: 'bold', fontSize: 11 },
-  slaBadgeMedia: { color: '#D29922', fontWeight: 'bold', fontSize: 11 },
-  slaBadgeBaixa: { color: '#3FB950', fontWeight: 'bold', fontSize: 11 },
-  slaTime: { color: '#F0F6FC', fontWeight: 'bold', fontSize: 14, marginVertical: 2 },
-  slaRule: { color: '#8B949E', fontSize: 10 },
-  newBtn: {
-    backgroundColor: '#1F6FEB',
-    padding: 12,
-    borderRadius: 8,
+  container: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  mockBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#0E1322',
+    borderWidth: 1,
+    borderColor: '#232E48',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  mockBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  networkDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  dotOnline: {
+    backgroundColor: '#10B981',
+  },
+  dotOffline: {
+    backgroundColor: '#EF4444',
+  },
+  mockBannerText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#CBD5E1',
+  },
+  outboxPill: {
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  outboxPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  subtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  addBtn: {
+    backgroundColor: '#0284C7',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  addBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  slaSummaryRow: {
+    flexDirection: 'row',
+    gap: 8,
     marginBottom: 20,
   },
-  newBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#F0F6FC', marginBottom: 12 },
-  card: {
-    backgroundColor: '#161B22',
-    borderWidth: 1,
-    borderColor: '#30363D',
+  slaCard: {
+    flex: 1,
+    backgroundColor: '#151D30',
+    padding: 10,
     borderRadius: 10,
-    padding: 14,
+    borderWidth: 1,
+    borderColor: '#232E48',
+    alignItems: 'center',
+  },
+  slaAlta: {
+    borderTopWidth: 3,
+    borderTopColor: '#EF4444',
+  },
+  slaMedia: {
+    borderTopWidth: 3,
+    borderTopColor: '#F59E0B',
+  },
+  slaBaixa: {
+    borderTopWidth: 3,
+    borderTopColor: '#10B981',
+  },
+  slaCardVal: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  slaCardLabel: {
+    fontSize: 9,
+    color: '#94A3B8',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
     marginBottom: 12,
+  },
+  itemCard: {
+    backgroundColor: '#151D30',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#232E48',
+    marginBottom: 10,
+  },
+  cardBorderAlta: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#EF4444',
+  },
+  cardBorderMedia: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#F59E0B',
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  tagRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  gravidadeTag: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  tagAlta: { backgroundColor: 'rgba(248, 81, 73, 0.2)', color: '#F85149' },
-  tagMedia: { backgroundColor: 'rgba(210, 153, 34, 0.2)', color: '#D29922' },
-  tagBaixa: { backgroundColor: 'rgba(63, 185, 80, 0.2)', color: '#3FB950' },
-  photoTag: {
-    backgroundColor: 'rgba(88, 166, 255, 0.2)',
-    color: '#58A6FF',
-    fontSize: 10,
-    fontWeight: 'bold',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  statusTag: { color: '#8B949E', fontSize: 10, fontWeight: '600' },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: '#F0F6FC', marginBottom: 4 },
-  cardLocal: { color: '#8B949E', fontSize: 12, marginBottom: 2 },
-  cardTime: { color: '#6E7681', fontSize: 11, marginBottom: 8 },
-  resolveBtn: {
-    backgroundColor: '#21262D',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    paddingVertical: 6,
-    borderRadius: 6,
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 6,
     alignItems: 'center',
-    marginTop: 4,
   },
-  resolveBtnText: { color: '#3FB950', fontSize: 12, fontWeight: 'bold' },
+  gravidadeBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: '#0E1322',
+    color: '#10B981',
+  },
+  badgeAlta: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    color: '#EF4444',
+  },
+  badgeMedia: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    color: '#F59E0B',
+  },
+  slaBadge: {
+    fontSize: 10,
+    color: '#94A3B8',
+    fontWeight: '700',
+  },
+  statusBadge: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+  itemTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F8FAFC',
+    marginBottom: 4,
+  },
+  itemDesc: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(35, 46, 72, 0.5)',
+  },
+  photoIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  photoIcon: {
+    fontSize: 12,
+  },
+  photoText: {
+    fontSize: 11,
+    color: '#38BDF8',
+  },
+  dateText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#151D30',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#232E48',
     padding: 20,
   },
-  modalContent: {
-    backgroundColor: '#161B22',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    borderRadius: 12,
-    padding: 18,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginBottom: 4,
   },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#F0F6FC', marginBottom: 14 },
-  inputLabel: { color: '#8B949E', fontSize: 12, marginBottom: 4 },
-  input: {
-    backgroundColor: '#0D1117',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    borderRadius: 6,
-    padding: 10,
-    color: '#F0F6FC',
-    marginBottom: 12,
-  },
-  gravidadeSelector: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  gravidadeBtn: {
-    flex: 1,
-    backgroundColor: '#21262D',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    paddingVertical: 8,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  gravidadeBtnActive: { backgroundColor: '#1F6FEB', borderColor: '#58A6FF' },
-  btnBorderAlta: { borderColor: '#F85149' },
-  gravidadeText: { color: '#8B949E', fontWeight: 'bold', fontSize: 12 },
-  gravidadeTextActive: { color: '#FFFFFF' },
-  warnBox: {
-    backgroundColor: 'rgba(248, 81, 73, 0.15)',
-    borderLeftWidth: 3,
-    borderLeftColor: '#F85149',
-    padding: 8,
-    borderRadius: 4,
-    marginBottom: 12,
-  },
-  warnText: { color: '#F85149', fontSize: 11, lineHeight: 15 },
-  cameraBtn: {
-    backgroundColor: '#21262D',
-    borderWidth: 1,
-    borderColor: '#58A6FF',
-    paddingVertical: 10,
-    borderRadius: 6,
-    alignItems: 'center',
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
     marginBottom: 16,
   },
-  cameraBtnDone: { backgroundColor: '#238636', borderColor: '#3FB950' },
-  cameraBtnText: { color: '#F0F6FC', fontWeight: 'bold', fontSize: 13 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
-  cancelBtn: { paddingVertical: 8, paddingHorizontal: 12 },
-  cancelBtnText: { color: '#8B949E', fontWeight: 'bold' },
-  submitBtn: {
-    backgroundColor: '#238636',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#CBD5E1',
+    marginBottom: 6,
   },
-  submitBtnText: { color: '#FFFFFF', fontWeight: 'bold' },
+  modalInput: {
+    backgroundColor: '#0E1322',
+    borderWidth: 1,
+    borderColor: '#232E48',
+    borderRadius: 8,
+    padding: 10,
+    color: '#F8FAFC',
+    fontSize: 13,
+    marginBottom: 12,
+  },
+  gravidadeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  gravidadeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    backgroundColor: '#0E1322',
+    borderWidth: 1,
+    borderColor: '#232E48',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  gravidadeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  btnAltaActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#EF4444',
+  },
+  btnMediaActive: {
+    backgroundColor: '#D97706',
+    borderColor: '#F59E0B',
+  },
+  btnBaixaActive: {
+    backgroundColor: '#059669',
+    borderColor: '#10B981',
+  },
+  textWhite: {
+    color: '#FFFFFF',
+  },
+  cameraBtn: {
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  cameraBtnPending: {
+    backgroundColor: '#0E1322',
+    borderColor: '#38BDF8',
+  },
+  cameraBtnOk: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderColor: '#10B981',
+  },
+  cameraBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalBtnCancel: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#0E1322',
+    borderWidth: 1,
+    borderColor: '#3B4B70',
+    alignItems: 'center',
+  },
+  modalBtnCancelText: {
+    color: '#94A3B8',
+    fontWeight: '700',
+  },
+  modalBtnSave: {
+    flex: 1.5,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#0284C7',
+    alignItems: 'center',
+  },
+  modalBtnSaveText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
 });
