@@ -80,12 +80,12 @@ export default function OcorrenciasScreen() {
 
         {/* Header da Tela */}
         <View style={styles.headerRow}>
-          <div>
+          <View style={{ flex: 1 }}>
             <Text style={styles.title}>Ocorrências & Anomalias</Text>
             <Text style={styles.subtitle}>
               Matriz de SLA (24h, 72h, 7d) e fotos salvas via FileSystem
             </Text>
-          </div>
+          </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
             <Text style={styles.addBtnText}>+ Nova</Text>
           </TouchableOpacity>
