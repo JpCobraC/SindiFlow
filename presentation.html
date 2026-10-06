@@ -813,6 +813,8 @@
                 <span class="badge success">Offline-First SQLite</span>
                 <span class="badge">Outbox Pattern</span>
                 <span class="badge accent">TDD Mandatory (33/33)</span>
+                <span class="badge success" style="background: rgba(35, 134, 54, 0.2); border-color: #238636;">📊 92.6% Cobertura Jest</span>
+                <span class="badge" style="color: #38BDF8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);">⚡ 100% Mock In-Memory</span>
                 <span class="badge success">Supabase Sync</span>
             </div>
         </div>
@@ -843,6 +845,10 @@
                 <li>
                     <span class="icon">✓</span>
                     <span><strong>Arquitetura Nativa Pura:</strong> Restrita exclusivamente ao ecossistema nativo Expo SDK 54 (iOS e Android).</span>
+                </li>
+                <li>
+                    <span class="icon" style="color: #38BDF8;">⚡</span>
+                    <span><strong>100% Mock & Fakes In-Memory na Validação:</strong> Repositórios em memória (<code>VistoriaRepositoryInMemory</code>, <code>OutboxRepositoryInMemory</code>) e Gateways Fakes (Câmera, GPS e Network) comprovando o isolamento absoluto e execução das regras sem dependência de banco permanente.</span>
                 </li>
             </ul>
         </div>
@@ -1718,7 +1724,35 @@ flowchart TD
         <!-- 11. Matriz de Cobertura TDD & Testes Automatizados -->
         <div class="section" id="testes">
             <h2>11. Matriz de Cobertura TDD & Qualidade de Código</h2>
-            <p>O SindiFlow conta com <strong>33 testes automatizados</strong> executados pelo Jest com 100% de aprovação, garantindo total fidelidade às regras de negócio e limites de Clean Architecture.</p>
+            <p>O SindiFlow conta com <strong>33 testes automatizados</strong> em 11 suítes executados pelo Jest com 100% de aprovação, garantindo total fidelidade às regras de negócio e superando com folga a meta de 80% de cobertura.</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1.5rem 0 2rem 0;">
+                <div style="background: var(--surface-card); border: 1px solid #238636; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #3FB950;">92.6%</div>
+                    <div style="font-size: 0.8rem; color: #8B949E; text-transform: uppercase;">Declarações (Stmts)</div>
+                    <div style="font-size: 0.72rem; color: #3FB950; margin-top: 2px;">Meta: &ge; 80% (+12.6%)</div>
+                </div>
+                <div style="background: var(--surface-card); border: 1px solid #238636; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #3FB950;">93.9%</div>
+                    <div style="font-size: 0.8rem; color: #8B949E; text-transform: uppercase;">Linhas (Lines)</div>
+                    <div style="font-size: 0.72rem; color: #3FB950; margin-top: 2px;">Meta: &ge; 80% (+13.9%)</div>
+                </div>
+                <div style="background: var(--surface-card); border: 1px solid #238636; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #3FB950;">87.8%</div>
+                    <div style="font-size: 0.8rem; color: #8B949E; text-transform: uppercase;">Funções (Funcs)</div>
+                    <div style="font-size: 0.72rem; color: #3FB950; margin-top: 2px;">Meta: &ge; 80% (+7.8%)</div>
+                </div>
+                <div style="background: var(--surface-card); border: 1px solid #238636; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #3FB950;">83.6%</div>
+                    <div style="font-size: 0.8rem; color: #8B949E; text-transform: uppercase;">Ramos (Branches)</div>
+                    <div style="font-size: 0.72rem; color: #3FB950; margin-top: 2px;">Meta: &ge; 80% (+3.6%)</div>
+                </div>
+                <div style="background: var(--surface-card); border: 1px solid #1F6FEB; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                    <div style="font-size: 2.2rem; font-weight: bold; color: #58A6FF;">33/33</div>
+                    <div style="font-size: 0.8rem; color: #8B949E; text-transform: uppercase;">Testes Unitários</div>
+                    <div style="font-size: 0.72rem; color: #58A6FF; margin-top: 2px;">11 Suítes (100% PASS)</div>
+                </div>
+            </div>
 
             <table class="test-table">
                 <thead>
