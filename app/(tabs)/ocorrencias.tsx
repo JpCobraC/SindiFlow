@@ -15,16 +15,32 @@ import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 
 export default function OcorrenciasScreen() {
-  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes } = useVistoria();
+  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes, cameraGateway } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [gravidade, setGravidade] = useState<GravidadeOcorrencia>(GravidadeOcorrencia.ALTA);
-  const [fotoCapturada, setFotoCapturada] = useState(false);
+  const [fotoUri, setFotoUri] = useState<string | null>(null);
 
-  const handleCapturarFoto = () => {
-    setFotoCapturada(!fotoCapturada);
+  const handleCapturarFoto = async () => {
+    try {
+      if (fotoUri) {
+        setFotoUri(null);
+      } else {
+        const foto = await cameraGateway.capturarFoto({
+          larguraMaxima: 1080,
+          alturaMaxima: 1080,
+          qualidade: 0.8,
+        });
+        setFotoUri(foto.uri);
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Câmera Indisponível (RNF02)',
+        err?.message || 'Falha ao solicitar ou acessar a câmera.'
+      );
+    }
   };
 
   const handleSalvarOcorrencia = async () => {
@@ -34,9 +50,7 @@ export default function OcorrenciasScreen() {
     }
 
     try {
-      const fotos = fotoCapturada
-        ? [`file:///cache/evidencia_${Date.now()}.jpg`]
-        : [];
+      const fotos = fotoUri ? [fotoUri] : [];
 
       const nova = await registrarOcorrencia({
         titulo: titulo.trim(),
@@ -48,7 +62,7 @@ export default function OcorrenciasScreen() {
       setModalVisible(false);
       setTitulo('');
       setDescricao('');
-      setFotoCapturada(false);
+      setFotoUri(null);
 
       Alert.alert(
         '✓ Ocorrência Registrada com Sucesso!',
@@ -238,17 +252,17 @@ export default function OcorrenciasScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Simulação de Foto da Câmera */}
+            {/* Foto via CameraGateway */}
             <TouchableOpacity
               style={[
                 styles.cameraBtn,
-                fotoCapturada ? styles.cameraBtnOk : styles.cameraBtnPending,
+                fotoUri ? styles.cameraBtnOk : styles.cameraBtnPending,
               ]}
               onPress={handleCapturarFoto}>
               <Text style={styles.cameraBtnText}>
-                {fotoCapturada
-                  ? '✓ Foto Capturada via Mock FileSystem (Clique p/ remover)'
-                  : '📷 Simular Captura de Foto (Obrigatória se ALTA)'}
+                {fotoUri
+                  ? '✓ Foto Capturada via CameraGateway (Toque p/ remover)'
+                  : '📷 Capturar Foto via CameraGateway (Obrigatória se ALTA)'}
               </Text>
             </TouchableOpacity>
 

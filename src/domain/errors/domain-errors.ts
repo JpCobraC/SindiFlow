@@ -61,3 +61,10 @@ export class ItemChecklistNaoEncontradoError extends DomainError {
   }
 }
 
+export class PermissaoNegadaError extends DomainError {
+  constructor(recurso: string) {
+    super(`Permissão para acesso a ${recurso} foi negada pelo usuário (RNF02).`);
+    this.name = 'PermissaoNegadaError';
+  }
+}
+

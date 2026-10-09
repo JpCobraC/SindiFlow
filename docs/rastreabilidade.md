@@ -133,8 +133,8 @@ RNFs não têm teste unitário próprio: são verificados porconstraint de arqui
 | ID | Restrição | Como verificar | Passo | Prio | Status |
 |----|-----------|----------------|-------|------|--------|
 | RNF01 | Nenhuma escrita depende de rede | specs de use case com `NetworkGatewayFake` offline | 5 | P1 | ⬜ |
-| RNF02 | Permissão no primeiro uso; negada bloqueia sem crash | specs de `CapturarLocalizacaoUseCase` e `AnexarFotoUseCase` com permissão negada | 5 | P1 | ⬜ |
-| RNF03 | GPS por sessão, nunca por item | spec de `CapturarLocalizacaoUseCase` | 5 | P1 | ⬜ |
+| RNF02 | Permissão no primeiro uso; negada bloqueia sem crash | specs de `CapturarLocalizacaoUseCase` e `AnexarFotoUseCase` com permissão negada | 5 | P1 | ✅ |
+| RNF03 | GPS por sessão, nunca por item | spec de `CapturarLocalizacaoUseCase` | 5 | P1 | ✅ |
 | RNF04 | Limite de espaço e ordem de limpeza | spec de `RegistrarVistoriaUseCase` no limite | 5 | P2 | ⬜ |
 | RNF05 | Last-write-wins por `updated_at` do servidor | spec de `SincronizacaoService` | 3 | P1 | ⬜ |
 | RNF06 | Token em `expo-secure-store`, nunca `AsyncStorage` | `jest.mock('expo-secure-store')` + inspeção de import | 8 | P1 | ⬜ |
@@ -161,8 +161,8 @@ RNFs não têm teste unitário próprio: são verificados porconstraint de arqui
 | UC01 | `RegistrarVistoriaUseCase` | RF-VIST-001/005, RF-SYNC-001 | `src/application/use-cases/registrar-vistoria.usecase.ts` | `__tests__/application/registrar-vistoria.usecase.spec.ts` | P1 | ⬜ |
 | UC02 | `FinalizarVistoriaUseCase` | RF-VIST-002/003/004, RF-SYNC-001 | `src/application/use-cases/finalizar-vistoria.usecase.ts` | `__tests__/application/finalizar-vistoria.usecase.spec.ts` | P1 | ✅ |
 | UC03 | `AnotarVistoriaUseCase` | RF-VIST-003/007 | `src/application/use-cases/anotar-vistoria.usecase.ts` | `__tests__/application/anotar-vistoria.usecase.spec.ts` | P1 | ⬜ |
-| UC04 | `CapturarLocalizacaoUseCase` | RF-VIST-004, RF-SYNC-001 | `src/application/use-cases/capturar-localizacao.usecase.ts` | `__tests__/application/capturar-localizacao.usecase.spec.ts` | P1 | ⬜ |
-| UC05 | `AnexarFotoUseCase` | RF-EVI-001, RF-GRV-002 | `src/application/use-cases/anexar-foto.usecase.ts` | `__tests__/application/anexar-foto.usecase.spec.ts` | P1 | ⬜ |
+| UC04 | `CapturarLocalizacaoUseCase` | RF-VIST-004, RF-SYNC-001 | `src/application/use-cases/capturar-localizacao.usecase.ts` | `__tests__/application/capturar-localizacao.usecase.spec.ts` | P1 | ✅ |
+| UC05 | `AnexarFotoUseCase` | RF-EVI-001, RF-GRV-002 | `src/application/use-cases/anexar-foto.usecase.ts` | `__tests__/application/anexar-foto.usecase.spec.ts` | P1 | ✅ |
 | UC06 | `SincronizarFilaUseCase` | RF-SYNC-002..010 | `src/application/use-cases/sincronizar-fila.usecase.ts` | `__tests__/application/sincronizar-fila.usecase.spec.ts` | P1 | ⬜ |
 | UC07 | `GerarRelatorioUseCase` | RF-GRV-004, RF-SYNC-009 | `src/application/use-cases/gerar-relatorio.usecase.ts` | `__tests__/application/gerar-relatorio.usecase.spec.ts` | P1 | ⬜ |
 | UC08 | `AutenticarUsuarioUseCase` | RF-SYNC-004, RF-SEC-001 | `src/application/use-cases/autenticar-usuario.usecase.ts` | `__tests__/application/autenticar-usuario.usecase.spec.ts` | P1 | ⬜ |
@@ -191,8 +191,8 @@ RNFs não têm teste unitário próprio: são verificados porconstraint de arqui
 | `src/adapters/screens/assinatura.screen.tsx` | 7 | P2 | `__tests__/adapters/assinatura.screen.spec.tsx` | ⬜ |
 | `src/adapters/screens/dashboard.screen.tsx` | 7 | P1 (RNF08) | `__tests__/adapters/dashboard.screen.spec.tsx` | ⬜ |
 | `src/adapters/auth/session-storage.securestore.ts` | 8 | P1 | `__tests__/adapters/session-storage.securestore.spec.ts` (com `jest.mock`) | ⬜ |
-| `src/adapters/gateways/camera.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/camera.gateway.fake.spec.ts` | ⬜ |
-| `src/adapters/gateways/location.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/location.gateway.fake.spec.ts` | ⬜ |
+| `src/adapters/gateways/camera.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/camera.gateway.fake.spec.ts` | ✅ |
+| `src/adapters/gateways/location.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/location.gateway.fake.spec.ts` | ✅ |
 | `src/adapters/gateways/auth.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/auth.gateway.fake.spec.ts` | ⬜ |
 | `src/adapters/gateways/sync.gateway.fake.ts` | 4 | P1 | `__tests__/adapters/sync.gateway.fake.spec.ts` | ⬜ |
 | `src/adapters/repositories/*.inmemory.ts` | 4/5 | P1 (T-02) | `__tests__/adapters/*.inmemory.spec.ts` | ⬜ |

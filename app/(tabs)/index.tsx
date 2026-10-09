@@ -80,14 +80,14 @@ export default function VistoriaScreen() {
 
   const handleFinalizar = async () => {
     try {
-      await finalizarVistoria(-23.5612, -46.6537);
+      await finalizarVistoria();
       Alert.alert(
         '✓ Vistoria Finalizada com Sucesso!',
-        `📍 Assinatura digital com geolocalização pericial registrada [-23.5612, -46.6537]\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
+        `📍 Assinatura digital com geolocalização pericial capturada via LocationGateway\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
       );
     } catch (err: any) {
       Alert.alert(
-        'Vistoria Incompleta',
+        'Vistoria Incompleta ou Bloqueada',
         err?.message || 'É obrigatório inspecionar pelo menos 80% dos itens do checklist para concluir a vistoria.'
       );
     }

@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
+import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
 import { OcorrenciaRepositoryInMemory } from '../adapters/repositories/ocorrencia.repository.inmemory';
 import { OutboxRepositoryInMemory } from '../adapters/repositories/outbox.repository.inmemory';
 import { VistoriaRepositoryInMemory } from '../adapters/repositories/vistoria.repository.inmemory';
+import { AnexarFotoUseCase } from '../application/use-cases/anexar-foto.usecase';
+import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import {
   ClassificarItemChecklistUseCase,
 } from '../application/use-cases/classificar-item.usecase';
@@ -18,6 +22,8 @@ import { ItemChecklist, StatusItemChecklist } from '../domain/entities/item-chec
 import { GravidadeOcorrencia, Ocorrencia } from '../domain/entities/ocorrencia.entity';
 import { StatusVistoria, Vistoria } from '../domain/entities/vistoria.entity';
 import { ItemOutbox } from '../domain/interfaces/outbox.repository.interface';
+import { Evidencia } from '../domain/value-objects/evidencia.vo';
+import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
 
 export interface AuditLogItem {
   id: string;
@@ -38,6 +44,12 @@ export interface VistoriaContextData {
   isOnline: boolean;
   isSimulandoErro503: boolean;
   isCarregando: boolean;
+
+  // Gateways e Ações de Hardware (Fakes / Mocks)
+  locationGateway: LocationGatewayFake;
+  cameraGateway: CameraGatewayFake;
+  capturarLocalizacao: () => Promise<Geolocalizacao>;
+  anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia>;
 
   // Casos de Uso & Ações
   marcarItem: (itemId: string, status: StatusItemChecklist, observacao?: string) => Promise<void>;
@@ -63,6 +75,8 @@ const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
 const outboxRepo = new OutboxRepositoryInMemory();
 const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
 const syncGateway = new RemoteSyncGatewayFake();
+const locationGateway = new LocationGatewayFake();
+const cameraGateway = new CameraGatewayFake();
 
 // Instâncias dos Casos de Uso
 const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo);
@@ -70,6 +84,8 @@ const classificarItemUseCase = new ClassificarItemChecklistUseCase(vistoriaRepo,
 const finalizarVistoriaUseCase = new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const registrarOcorrenciaUseCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo);
 const sincronizarOutboxUseCase = new SincronizarOutboxUseCase(networkService, outboxRepo, syncGateway);
+const capturarLocalizacaoUseCase = new CapturarLocalizacaoUseCase(locationGateway, vistoriaRepo);
+const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo);
 
 export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [vistoriaAtiva, setVistoriaAtiva] = useState<Vistoria | null>(null);
@@ -259,18 +275,43 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const capturarLocalizacao = async (): Promise<Geolocalizacao> => {
+    try {
+      const geo = await capturarLocalizacaoUseCase.executar({
+        vistoriaId: vistoriaAtiva?.id,
+      });
+      addLog('INFO', `Geolocalização obtida via LocationGateway: [${geo.latitude}, ${geo.longitude}]`);
+      return geo;
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Falha ao obter localização (RNF02): ${err?.message || err}`);
+      throw err;
+    }
+  };
+
   const finalizarVistoria = async (
-    latitude: number = -23.5612,
-    longitude: number = -46.6537
+    latitude?: number,
+    longitude?: number
   ): Promise<void> => {
     if (!vistoriaAtiva) return;
 
     try {
+      let lat = latitude;
+      let lng = longitude;
+      let precisao = 4.5;
+
+      // Se não foram fornecidas coordenadas explicitamente, captura via LocationGateway
+      if (lat === undefined || lng === undefined) {
+        const geo = await capturarLocalizacao();
+        lat = geo.latitude;
+        lng = geo.longitude;
+        precisao = geo.precisao || 4.5;
+      }
+
       const vistoriaFinalizada = await finalizarVistoriaUseCase.executar({
         vistoriaId: vistoriaAtiva.id,
-        latitude,
-        longitude,
-        precisao: 4.5,
+        latitude: lat,
+        longitude: lng,
+        precisao,
         deviceId: 'expo-device-01',
       });
 
@@ -280,10 +321,40 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       addLog(
         'SUCESSO',
-        `Vistoria ${vistoriaFinalizada.id} FINALIZADA com GPS [${latitude}, ${longitude}] (RF-VIST-004)!`
+        `Vistoria ${vistoriaFinalizada.id} FINALIZADA com GPS [${lat}, ${lng}] (RF-VIST-004)!`
       );
     } catch (err: any) {
       addLog('BLOQUEIO', `Bloqueio de Domínio: ${err?.message || err}`);
+      throw err;
+    }
+  };
+
+  const anexarFoto = async (params: { itemId?: string; ocorrenciaId?: string }): Promise<Evidencia> => {
+    if (!vistoriaAtiva) throw new Error('Nenhuma vistoria ativa.');
+
+    try {
+      const evidencia = await anexarFotoUseCase.executar({
+        vistoriaId: vistoriaAtiva.id,
+        itemId: params.itemId,
+        ocorrenciaId: params.ocorrenciaId,
+      });
+
+      if (params.itemId) {
+        const vistoriaAtualizada = await vistoriaRepo.buscarPorId(vistoriaAtiva.id);
+        if (vistoriaAtualizada) {
+          setVistoriaAtiva(vistoriaAtualizada);
+          setItensChecklist([...vistoriaAtualizada.itens]);
+        }
+      }
+
+      if (params.ocorrenciaId) {
+        await atualizarEstadoOcorrencias(vistoriaAtiva.id);
+      }
+
+      addLog('SUCESSO', `Foto anexada via CameraGateway: ${evidencia.caminhoArquivoLocal}`);
+      return evidencia;
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Falha ao anexar foto (RNF02): ${err?.message || err}`);
       throw err;
     }
   };
@@ -385,6 +456,10 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isOnline,
         isSimulandoErro503,
         isCarregando,
+        locationGateway,
+        cameraGateway,
+        capturarLocalizacao,
+        anexarFoto,
         marcarItem,
         finalizarVistoria,
         registrarOcorrencia,
