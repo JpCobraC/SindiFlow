@@ -62,8 +62,8 @@ export default function VistoriaScreen() {
     if (!selectedItemId) return;
     if (!justificativa.trim()) {
       Alert.alert(
-        'Regra de Domínio (RF-VIST-003)',
-        'Itens marcados como CRÍTICO exigem justificativa/observação técnica obrigatória.'
+        'Justificativa Obrigatória',
+        'Itens classificados como CRÍTICO exigem descrição técnica detalhada da anomalia.'
       );
       return;
     }
@@ -74,7 +74,7 @@ export default function VistoriaScreen() {
       setSelectedItemId(null);
       setJustificativa('');
     } catch (err: any) {
-      Alert.alert('Bloqueio de Domínio (RF-VIST-003)', err?.message || 'Falha ao classificar');
+      Alert.alert('Inconformidade Técnica', err?.message || 'Falha ao classificar item.');
     }
   };
 
@@ -82,13 +82,13 @@ export default function VistoriaScreen() {
     try {
       await finalizarVistoria(-23.5612, -46.6537);
       Alert.alert(
-        '✓ Vistoria Finalizada com Sucesso! (RF-VIST-004)',
-        `📍 Coordenadas GPS validadas: [-23.5612, -46.6537]\n📊 Cobertura checklist: ${percentual}%\n⚡ Evento UPDATE gravado na Outbox em memória pura!`
+        '✓ Vistoria Finalizada com Sucesso!',
+        `📍 Assinatura digital com geolocalização pericial registrada [-23.5612, -46.6537]\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
       );
     } catch (err: any) {
       Alert.alert(
-        'Bloqueio Arquitetural de Domínio',
-        err?.message || 'A vistoria não atende às invariantes mínimas para finalização.'
+        'Vistoria Incompleta',
+        err?.message || 'É obrigatório inspecionar pelo menos 80% dos itens do checklist para concluir a vistoria.'
       );
     }
   };

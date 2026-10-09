@@ -40,7 +40,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sync"
         options={{
-          title: 'Outbox Sync',
+          title: 'Sincronização',
           tabBarIcon: ({ color }) => (
             <IconSymbol size={24} name="arrow.triangle.2.circlepath" color={color} />
           ),
@@ -49,7 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Métricas',
+          title: 'Indicadores',
           tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.bar.fill" color={color} />,
         }}
       />
