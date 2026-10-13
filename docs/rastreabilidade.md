@@ -203,32 +203,50 @@ RNFs não têm teste unitário próprio: são verificados porconstraint de arqui
 
 | Camada | Meta | Ferramenta | Como é medida |
 |--------|------|------------|---------------|
-| `src/domain/**` | **≥90%** | Jest | `coverageThreshold` no `jest.config.js` — pendência T-01 |
+| `src/domain/**` | **≥90%** | Jest | `coverageThreshold` no `jest.config.js` — **medido desde 13/10/2026** (T-01 resolvido) |
 | `src/application/**` | **≥80%** | Jest | idem |
-| `src/adapters/**` | cobertura de mapeamento | Jest | idem |
+| `src/adapters/**` | cobertura de mapeamento | Jest | **no gate desde 13/10/2026** (70/60) |
 | Telas e hooks | **≥80%** | `@testing-library/react-native` | idem |
 
-Nenhum teste toca câmera, GPS, autenticação ou Supabase reais: são sempre fakes (regra de ouro da apresentação §5).
+Estado apurado em 13/10/2026 com `npm run coverage` (**166 testes, 17 suítes**, após
+a Fase 0.5):
+
+| Camada | Statements | Branches | Funções | Linhas | Gate |
+|--------|-----------|----------|---------|--------|------|
+| `src/domain/**` | 99,20% | 91,41% | 100% | 99,30% | ✅ ≥90% |
+| `src/application/**` | 98,91% | 90,16% | 100% | 100% | ✅ ≥80% |
+| `src/adapters/**` | 95,83% | 85,0% | 97,73% | 98,08% | ✅ ≥70% |
+
+> O `coverageThreshold` precisa estar na **raiz** do `jest.config.js`. Dentro de um
+> entry de `projects` o Jest 29 o ignora silenciosamente — foi verificado empiricamente
+> que um limite de 99% ainda saía com `exit 0`.
+
+Nenhum teste toca câmera, GPS, autenticação ou Supabase reais: são sempre fakes.
+**Essa regra mudou em 13/10/2026** — a decisão D-11 ("100% mock") foi revogada e a
+implementação real (Fases 1 a 5) substitui os fakes. Ver `chat_history/2026-10-13.md`.
 
 ---
 
 ## 7. Pendências abertas
 
-| ID | Pendência | Bloqueia |
-|----|-----------|----------|
-| D-06 | Onde a gravidade mora: `ItemChecklist` ou `Vistoria` | Passo 2 |
-| C-01 | Desfecho da 5ª tentativa de sync | Passo 3 |
-| C-02 | Política de estouro da fila | Passo 3 |
-| C-03 | Sync com usuário revogado | Passo 5 |
-| C-04 | Sessão expirada com rascunho local | Passo 5/6 |
-| C-05 | Retry em erro 4xx versus 5xx | Passo 3 |
-| C-06 | Token de convite reusado ou expirado | Passo 5 |
-| C-07 | Arquivo de evidência removido pelo SO | Passo 2 |
-| C-08 | Relógio do dispositivo incorreto | Passo 3 |
-| C-09 | Logout com itens pendentes na fila | Passo 5 |
-| T-01 | `jest.config.js` sem `jest-expo` nem `coverageThreshold` | Passo 1 |
-| T-02 | Repositórios in-memory sem teste | Passo 5 |
-| T-03 | Artefatos web do template (violação de §1.1) | qualquer revisão da obrigação |
+| ID | Pendência | Bloqueia | Status |
+|----|-----------|----------|--------|
+| D-06 | Onde a gravidade mora: `ItemChecklist` ou `Vistoria` | Passo 2 | ✅ **Resolvido em 13/10/2026** — são dois conceitos: `ItemChecklist.status` (§3.1) e `Ocorrencia.gravidade` (§3.2). Ver `docs/documento-software.md` §0.1 |
+| C-01 | Desfecho da 5ª tentativa de sync | Passo 3 | ✅ **Resolvido em 13/10/2026** — `FALHA_MAXIMA` terminal + `resetar()` |
+| C-05 | Retry em erro 4xx versus 5xx | Passo 3 | ✅ **Resolvido em 13/10/2026** — `ErroSincronizacao.transitorio`; 4xx vai direto a dead-letter |
+| C-01 | Desfecho da 5ª tentativa de sync | Passo 3 | ⬜ |
+| C-02 | Política de estouro da fila | Passo 3 | ⬜ |
+| C-03 | Sync com usuário revogado | Passo 5 | ⬜ |
+| C-04 | Sessão expirada com rascunho local | Passo 5/6 | ⬜ |
+| C-05 | Retry em erro 4xx versus 5xx | Passo 3 | ⬜ |
+| C-06 | Token de convite reusado ou expirado | Passo 5 | ⬜ |
+| C-07 | Arquivo de evidência removido pelo SO | Passo 2 | ⬜ |
+| C-08 | Relógio do dispositivo incorreto | Passo 3 | ⬜ |
+| C-09 | Logout com itens pendentes na fila | Passo 5 | ⬜ |
+| T-01 | `jest.config.js` sem `jest-expo` nem `coverageThreshold` | Passo 1 | ✅ **Resolvido em 13/10/2026** |
+| T-02 | Repositórios in-memory sem teste | Passo 5 | ✅ **Resolvido em 13/10/2026** — `__tests__/adapters/outbox.repository.inmemory.spec.ts` + `__tests__/adapters/repositories.inmemory.spec.ts`; `src/adapters/` entrou no gate |
+| T-03 | Artefatos web do template (violação de §1.1) | qualquer revisão da obrigação | ✅ **Resolvido em 13/10/2026** |
+| K-05 | `sindiflow-obrigacoes.md` §1.1/§7 e `AGENTS.md` diziam Expo SDK 54 enquanto o código roda em `expo@^57.0.27` | qualquer trabalho com API Expo | ✅ **Resolvido em 13/10/2026** — lei na versão 1.2.0, alinhada ao SDK 57 |
 
 Detalhamento de cada cenário em `docs/documento-software.md` §1.6 e §0.2.
 

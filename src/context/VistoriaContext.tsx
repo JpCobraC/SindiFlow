@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
@@ -20,8 +20,8 @@ import {
 } from '../application/use-cases/sincronizar-outbox.usecase';
 import { ItemChecklist, StatusItemChecklist } from '../domain/entities/item-checklist.entity';
 import { GravidadeOcorrencia, Ocorrencia } from '../domain/entities/ocorrencia.entity';
-import { StatusVistoria, Vistoria } from '../domain/entities/vistoria.entity';
-import { ItemOutbox } from '../domain/interfaces/outbox.repository.interface';
+import { Vistoria } from '../domain/entities/vistoria.entity';
+import { OutboxEvent } from '../domain/entities/outbox-event.entity';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
 
@@ -37,7 +37,7 @@ export interface VistoriaContextData {
   vistoriaAtiva: Vistoria | null;
   itensChecklist: ItemChecklist[];
   ocorrencias: Ocorrencia[];
-  outboxPendentes: ItemOutbox[];
+  outboxPendentes: OutboxEvent[];
   auditLogs: AuditLogItem[];
   
   // Conectividade e Simulação
@@ -49,7 +49,7 @@ export interface VistoriaContextData {
   locationGateway: LocationGatewayFake;
   cameraGateway: CameraGatewayFake;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
-  anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia>;
+  anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia | null>;
 
   // Casos de Uso & Ações
   marcarItem: (itemId: string, status: StatusItemChecklist, observacao?: string) => Promise<void>;
@@ -79,25 +79,31 @@ const locationGateway = new LocationGatewayFake();
 const cameraGateway = new CameraGatewayFake();
 
 // Instâncias dos Casos de Uso
-const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo);
+const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const classificarItemUseCase = new ClassificarItemChecklistUseCase(vistoriaRepo, outboxRepo);
 const finalizarVistoriaUseCase = new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const registrarOcorrenciaUseCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo);
 const sincronizarOutboxUseCase = new SincronizarOutboxUseCase(networkService, outboxRepo, syncGateway);
 const capturarLocalizacaoUseCase = new CapturarLocalizacaoUseCase(locationGateway, vistoriaRepo);
-const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo);
+const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo, outboxRepo);
 
 export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [vistoriaAtiva, setVistoriaAtiva] = useState<Vistoria | null>(null);
   const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>([]);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
-  const [outboxPendentes, setOutboxPendentes] = useState<ItemOutbox[]>([]);
+  const [outboxPendentes, setOutboxPendentes] = useState<OutboxEvent[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [isSimulandoErro503, setIsSimulandoErro503] = useState<boolean>(false);
-  const [isCarregando, setIsCarregando] = useState<boolean>(false);
+  // Começa carregando: `popularMockInicial` roda no mount e só libera no `finally`.
+  // Antes isto era `false` e o seed fazia `setIsCarregando(true)` de forma síncrona dentro
+  // do efeito, o que disparava um render 0 -> 1 -> 0 e era erro de `react-hooks/set-state-in-effect`.
+  const [isCarregando, setIsCarregando] = useState<boolean>(true);
 
-  const addLog = (tipo: AuditLogItem['tipo'], mensagem: string) => {
+  // `useCallback` com dependências vazias: `setAuditLogs` é estável pelo React e
+  // referências a repositórios não entram aqui. Sem isso o efeito de mount
+  // não seria estável e o seed rodaria a cada render.
+  const addLog = useCallback((tipo: AuditLogItem['tipo'], mensagem: string) => {
     const novo: AuditLogItem = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       horario: new Date().toLocaleTimeString(),
@@ -105,25 +111,24 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       mensagem,
     };
     setAuditLogs((prev) => [novo, ...prev]);
-  };
+  }, []);
 
-  const atualizarEstadoOutbox = async () => {
+  const atualizarEstadoOutbox = useCallback(async () => {
     const pendentes = await outboxRepo.obterPendentes();
     setOutboxPendentes([...pendentes]);
-  };
+  }, []);
 
-  const atualizarEstadoOcorrencias = async (vistoriaId: string) => {
+  const atualizarEstadoOcorrencias = useCallback(async (vistoriaId: string) => {
     const lista = await ocorrenciaRepo.listarPorVistoria(vistoriaId);
     setOcorrencias([...lista]);
-  };
+  }, []);
 
-  const popularMockInicial = async () => {
-    setIsCarregando(true);
+  const popularMockInicial = useCallback(async () => {
     try {
       // Limpar repositórios in-memory
-      vistoriaRepo.vistorias.clear();
-      ocorrenciaRepo.itens.clear();
-      outboxRepo.itens = [];
+      vistoriaRepo.limpar();
+      ocorrenciaRepo.limpar();
+      outboxRepo.limpar();
 
       // 1. Criar Vistoria Inicial via Caso de Uso (RF-VIST-001)
       const vistoria = await criarVistoriaUseCase.executar({
@@ -238,11 +243,19 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setIsCarregando(false);
     }
-  };
+  }, [addLog, atualizarEstadoOcorrencias, atualizarEstadoOutbox]);
 
+  // O efeito não chama `popularMockInicial` direto: ele apenas agenda o seed para
+  // fora da fase síncrona do mount e devolve o cleanup. `popularMockInicial` é async
+  // e escreve em várias `useState`; invocá-la no corpo do efeito é setState
+  // síncrono dentro de efeito (erro de `react-hooks/set-state-in-effect`) e também
+  // deixava o seed rodando em componente já desmontado.
   useEffect(() => {
-    popularMockInicial();
-  }, []);
+    const timer = setTimeout(() => {
+      void popularMockInicial();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [popularMockInicial]);
 
   const marcarItem = async (
     itemId: string,
@@ -297,14 +310,18 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     try {
       let lat = latitude;
       let lng = longitude;
-      let precisao = 4.5;
+      // Antes era `let precisao = 4.5` e depois `geo.precisao || 4.5`: o laudo
+      // pericial afirmava 4,5 m de precisão mesmo quando o GPS não media nada.
+      // Agora a precisão ausente **fica ausente**; quem chamador quiser um piso
+      // define `PRECISAO_PADRAO_METROS` explicitamente.
+      let precisao: number | undefined;
 
       // Se não foram fornecidas coordenadas explicitamente, captura via LocationGateway
       if (lat === undefined || lng === undefined) {
         const geo = await capturarLocalizacao();
         lat = geo.latitude;
         lng = geo.longitude;
-        precisao = geo.precisao || 4.5;
+        precisao = geo.precisao;
       }
 
       const vistoriaFinalizada = await finalizarVistoriaUseCase.executar({
@@ -329,11 +346,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const anexarFoto = async (params: { itemId?: string; ocorrenciaId?: string }): Promise<Evidencia> => {
+  const anexarFoto = async (params: { itemId?: string; ocorrenciaId?: string }): Promise<Evidencia | null> => {
     if (!vistoriaAtiva) throw new Error('Nenhuma vistoria ativa.');
 
     try {
-      const evidencia = await anexarFotoUseCase.executar({
+      const resultado = await anexarFotoUseCase.executar({
         vistoriaId: vistoriaAtiva.id,
         itemId: params.itemId,
         ocorrenciaId: params.ocorrenciaId,
@@ -351,8 +368,17 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await atualizarEstadoOcorrencias(vistoriaAtiva.id);
       }
 
-      addLog('SUCESSO', `Foto anexada via CameraGateway: ${evidencia.caminhoArquivoLocal}`);
-      return evidencia;
+      if (resultado.status === 'cancelado') {
+        addLog('INFO', 'Captura de foto cancelada pelo inspetor.');
+        return null;
+      }
+      if (resultado.status === 'erro_captura') {
+        addLog('BLOQUEIO', `Falha de captura: ${resultado.mensagem}`);
+        return null;
+      }
+
+      addLog('SUCESSO', `Foto anexada via CameraGateway: ${resultado.evidencia.caminhoArquivoLocal}`);
+      return resultado.evidencia;
     } catch (err: any) {
       addLog('BLOQUEIO', `Falha ao anexar foto (RNF02): ${err?.message || err}`);
       throw err;
@@ -425,10 +451,10 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const resultado = await sincronizarOutboxUseCase.executar();
       await atualizarEstadoOutbox();
 
-      if (resultado.sucessos > 0) {
+      if (resultado.sincronizados > 0) {
         addLog(
           'SUCESSO',
-          `Sincronização concluída: ${resultado.sucessos} itens enviados com 200 OK.`
+          `Sincronização concluída: ${resultado.sincronizados} itens enviados com 200 OK.`
         );
       }
       if (resultado.falhas > 0) {

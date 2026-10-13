@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -10,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useVistoria } from '../../src/context/VistoriaContext';
+import { StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
 import { GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
 
 export default function MetricasScreen() {
@@ -24,21 +24,23 @@ export default function MetricasScreen() {
   } = useVistoria();
 
   const handleReset = () => {
-    const confirmMsg = 'Deseja restaurar o estado inicial da demonstração (50% checklist, 2 ocorrências, 3 outbox)?';
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMsg)) {
-        reiniciarMock();
-      }
-    } else {
-      Alert.alert('Reiniciar Mock', confirmMsg, [
+    Alert.alert(
+      'Reiniciar Mock',
+      'Deseja restaurar o estado inicial da demonstração (50% checklist, 2 ocorrências, 3 outbox)?',
+      [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Reiniciar', style: 'destructive', onPress: () => reiniciarMock() },
-      ]);
-    }
+      ]
+    );
   };
 
+  // Um item do checklist está "respondido" quando deixou de estar PENDENTE.
+  // `ItemChecklist` não expõe um getter `respondido` — usar essa propriedade
+  // fazia o dashboard inteiro calcular 0/undefined e quebrava o typecheck.
   const totalItens = itensChecklist.length;
-  const respondidos = itensChecklist.filter((i) => i.respondido).length;
+  const respondidos = itensChecklist.filter(
+    (i) => i.status !== StatusItemChecklist.PENDENTE
+  ).length;
   const percentual = totalItens > 0 ? Math.round((respondidos / totalItens) * 100) : 0;
 
   const ocorrenciasAltas = ocorrencias.filter(
@@ -51,9 +53,9 @@ export default function MetricasScreen() {
       acc[item.categoria] = { total: 0, respondidos: 0, ok: 0 };
     }
     acc[item.categoria].total += 1;
-    if (item.respondido) {
+    if (item.status !== StatusItemChecklist.PENDENTE) {
       acc[item.categoria].respondidos += 1;
-      if (item.status === 'OK') acc[item.categoria].ok += 1;
+      if (item.status === StatusItemChecklist.OK) acc[item.categoria].ok += 1;
     }
     return acc;
   }, {} as Record<string, { total: number; respondidos: number; ok: number }>);

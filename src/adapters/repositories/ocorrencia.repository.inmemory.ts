@@ -2,7 +2,7 @@ import { Ocorrencia } from '../../domain/entities/ocorrencia.entity';
 import { IOcorrenciaRepository } from '../../domain/interfaces/ocorrencia.repository.interface';
 
 export class OcorrenciaRepositoryInMemory implements IOcorrenciaRepository {
-  public itens: Map<string, Ocorrencia> = new Map();
+  private itens: Map<string, Ocorrencia> = new Map();
 
   async salvar(ocorrencia: Ocorrencia): Promise<void> {
     this.itens.set(ocorrencia.id, ocorrencia);
@@ -18,5 +18,10 @@ export class OcorrenciaRepositoryInMemory implements IOcorrenciaRepository {
 
   async listarTodas(): Promise<Ocorrencia[]> {
     return Array.from(this.itens.values());
+  }
+
+  /** Limpeza total. Usada pelo seed de demonstração. */
+  limpar(): void {
+    this.itens.clear();
   }
 }

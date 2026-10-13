@@ -2,7 +2,7 @@ import { RegistrarOcorrenciaUseCase } from '../../src/application/use-cases/regi
 import { GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
 import { OcorrenciaAltaSemFotoError } from '../../src/domain/errors/domain-errors';
 import { IOcorrenciaRepository } from '../../src/domain/interfaces/ocorrencia.repository.interface';
-import { IOutboxRepository, ItemOutbox } from '../../src/domain/interfaces/outbox.repository.interface';
+import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 
 class FakeOcorrenciaRepository implements IOcorrenciaRepository {
   private itens: any[] = [];
@@ -29,40 +29,14 @@ class FakeOcorrenciaRepository implements IOcorrenciaRepository {
   }
 }
 
-class FakeOutboxRepository implements IOutboxRepository {
-  public itens: ItemOutbox[] = [];
-
-  async enfileirar(item: Omit<ItemOutbox, 'id' | 'tentativas' | 'dataCriacao'>): Promise<void> {
-    this.itens.push({
-      ...item,
-      id: `out-${this.itens.length + 1}`,
-      tentativas: 0,
-      dataCriacao: new Date(),
-    });
-  }
-
-  async obterPendentes(): Promise<ItemOutbox[]> {
-    return this.itens.filter((i) => i.tentativas < 5);
-  }
-
-  async marcarSincronizado(id: string): Promise<void> {
-    this.itens = this.itens.filter((i) => i.id !== id);
-  }
-
-  async incrementarTentativa(id: string): Promise<void> {
-    const it = this.itens.find((i) => i.id === id);
-    if (it) it.tentativas++;
-  }
-}
-
 describe('RegistrarOcorrenciaUseCase (Application)', () => {
   let ocorrenciaRepo: FakeOcorrenciaRepository;
-  let outboxRepo: FakeOutboxRepository;
+  let outboxRepo: OutboxRepositoryInMemory;
   let useCase: RegistrarOcorrenciaUseCase;
 
   beforeEach(() => {
     ocorrenciaRepo = new FakeOcorrenciaRepository();
-    outboxRepo = new FakeOutboxRepository();
+    outboxRepo = new OutboxRepositoryInMemory();
     useCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo);
   });
 
@@ -84,9 +58,9 @@ describe('RegistrarOcorrenciaUseCase (Application)', () => {
     expect(salva).not.toBeNull();
 
     // Obrigação §1.3: Toda operação passa por fila de outbox na SQLite
-    expect(outboxRepo.itens.length).toBe(1);
-    expect(outboxRepo.itens[0].tabela).toBe('ocorrencias');
-    expect(outboxRepo.itens[0].operacao).toBe('INSERT');
+    expect((await outboxRepo.listarTodos()).length).toBe(1);
+    expect((await outboxRepo.listarTodos())[0].tabela).toBe('ocorrencias');
+    expect((await outboxRepo.listarTodos())[0].operacao).toBe('INSERT');
   });
 
   it('deve bloquear ocorrência ALTA sem fotos conforme regra de negócio §3.2', async () => {
@@ -102,7 +76,7 @@ describe('RegistrarOcorrenciaUseCase (Application)', () => {
       })
     ).rejects.toThrow(OcorrenciaAltaSemFotoError);
 
-    expect(outboxRepo.itens.length).toBe(0);
+    expect((await outboxRepo.listarTodos()).length).toBe(0);
   });
 
   it('deve registrar ocorrência ALTA com fotos e SLA de 24 horas', async () => {
@@ -119,6 +93,6 @@ describe('RegistrarOcorrenciaUseCase (Application)', () => {
     expect(output.gravidade).toBe(GravidadeOcorrencia.ALTA);
     expect(output.slaHoras).toBe(24);
     expect(output.fotos.length).toBe(1);
-    expect(outboxRepo.itens.length).toBe(1);
+    expect((await outboxRepo.listarTodos()).length).toBe(1);
   });
 });

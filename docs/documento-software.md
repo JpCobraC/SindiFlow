@@ -11,35 +11,54 @@ Camada tocada na Fase 0: **documentação** (`docs/`, `chat_history/`). Nenhuma 
 | D-03 | O Passo 5 cobre os **15 casos de uso** de §2, não apenas os 8 do checklist do Passo 5 | Escolha de completude de domínio |
 | D-04 | O catálogo canônico de RF/RNF é o do `README.md`; este documento migra para ele via §1.4 | `sindiflow-obrigacoes.md` §3 e `presentation-06-10-26.md` usam a mesma numeração |
 | D-05 | `RF-VIST-001..004` **preservados** | Citados em `sindiflow-obrigacoes.md` §3.1 e no código |
-| D-06 | **PENDENTE** — Onde a gravidade mora: `ItemChecklist` (o achado) ou `Vistoria`. Ver §0.1 | Bloqueia o Passo 2 |
+| D-06 | **RESOLVIDO em 13/10/2026** — `ItemChecklist.status` (classificação do item, §3.1) e `Ocorrencia.gravidade` (prioridade operacional com SLA, §3.2) são conceitos distintos, não uma escolha entre dois. Ver §0.1 | Destrava o Passo 2 |
 | D-07 | `chat_history/presentation-06-10-26.md` é o documento da sessão de 06/10 e **não é alterado** (inclusive a data 06/10/2026). As divergências ficam registradas aqui | `sindiflow-obrigacoes.md` §8/§9 |
 | D-08 | A fonte da rastreabilidade é `docs/rastreabilidade.md`, conferível **manualmente** | Legenda e checklist de conferência em §13 |
 | D-09 | Repositórios (inclusive o SQLite futuro) ficam em `src/adapters/repositories/`; clientes e configuração (Supabase, handle do SQLite, env) em `src/infra/` | Resolve a ambiguidade entre `sindiflow-obrigacoes.md` §2.1 (infra) e §2.3 (exemplo em adapters); segue o código existente |
 | D-10 | O hook de estado é `useOcorrencias` | Passo 6 pede `useAtividades`, resíduo do template "Atividades" |
 | D-11 | **Desvio temporário e consciente** de `sindiflow-obrigacoes.md` §1.2: nesta fase todo dado é `Map` in-memory, conforme `presentation-06-10-26.md` §5 (regra de ouro "100% mock"). Revertido no primeiro uso de `expo-sqlite` (Fase 2) | Exigência da apresentação prevalece no recorte; condição de reversão registrada |
+| D-12 | **D-11 REVOGADA em 13/10/2026.** O "100% mock" deixou de ser o destino do projeto: a apresentação era a razão de tudo estar em mock, e essa razão foi removida. As Fases 1 a 5 substituem os `*.fake.ts` e `*.inmemory.ts` por implementações reais (`expo-sqlite`, `expo-image-picker`, `expo-location`, `expo-network`, `expo-file-system`, `expo-secure-store`, Supabase). §1.2 volta a valer integralmente | Decisão do responsável do projeto em 13/10/2026 |
 
-### 0.1 D-06 — decisão pendente (bloqueia o Passo 2)
+### 0.1 D-06 — resolvido em 13/10/2026
 
-Com D-01, a gravidade fica órfã: RF05/RF06 e `sindiflow-obrigacoes.md` §3.2 são "por ocorrência", mas só existem `Vistoria` e `ItemChecklist`.
+Com D-01, a gravidade ficou órfã: RF05/RF06 e `sindiflow-obrigacoes.md` §3.2 são "por ocorrência", mas só existem `Vistoria` e `ItemChecklist`.
 
 | Alternativa | O que ganha | O que perde |
 |---|---|---|
 | (a) Gravidade no `ItemChecklist` (o achado) + gravidade máxima e SLA na `Vistoria` | Fiel a RF05/RF06 (foto obrigatória ALTA por achado) e ao SLA por achado | Exige cálculo de gravidade máxima na `Vistoria` |
 | (b) Gravidade na `Vistoria` | Uma vistoria, um SLA | Perde o caso "1 achado crítico em vistoria com 30 itens OK" |
 
-**Nenhuma alternativa foi escolhida nesta fase.** O Passo 2 não inicia sem essa decisão.
+**Decisão: as duas coisas existem, e são conceitos diferentes.** A pergunta Original estava mal formulada — tratava "gravidade" como uma coisa só quando são duas:
+
+| Conceito | Onde mora | Valores | Regra | Obrigação |
+|----------|-----------|---------|-------|-----------|
+| **Status do item** | `ItemChecklist.status` | `PENDENTE` · `OK` · `AVISO` · `CRITICO` | `CRITICO` exige justificativa e **bloqueia a finalização** sem ela | §3.1 · RF-VIST-003 |
+| **Gravidade da ocorrência** | `Ocorrencia.gravidade` | `BAIXA` · `MEDIA` · `ALTA` | `ALTA` exige **foto** e tem **SLA de 24h**; `MEDIA` 72h; `BAIXA` 7 dias | §3.2 · RF-GRV-* |
+
+ADst，两者之间是 **`CRITICO → gera uma `Ocorrencia` de gravidade `ALTA`**，不是同一个字段的两个名字**：
+
+```
+ItemChecklist.status = CRITICO
+        │
+        └─(inspetor registra)─▶ Ocorrencia { gravidade: ALTA, slaHoras: 24, fotos: [≥1] }
+```
+
+Por que as duas: `CRITICO` é uma **classificação de checklist** (o item está ruim?) e responde "posso finalizar a vistoria?". `ALTA` é uma **prioridade operacional** (o que o síndico tem 24h para resolver) e responde "quanto custa não resolver agora?". Uma vistoria com 30 itens OK e 1 item `CRITICO` gera SLA de 24h por causa daquele achado — o caso que a alternativa (b) perderia.
+
+O código já estava correto; faltava a decisão escrita. `Ocorrencia` ganhou `dataLimiteSla` e `estaAtrasada()` e **não** calcula gravidade máxima na `Vistoria`.
 
 ### 0.2 Pendências técnicas e de conformidade abertas
 
 | ID | Pendência | Obrigação afetada | Quando resolver |
 |----|-----------|-------------------|-----------------|
-| T-01 | `jest.config.js` usa `ts-jest` + `testEnvironment: node` + `testMatch` só `.ts`, sem `coverageThreshold`: não mede Domain ≥90% / Application ≥80% e não roda RNTL | §4.1 + `presentation-06-10-26.md` §6 | Início do Passo 1 |
-| T-02 | `VistoriaRepositoryInMemory` e `OutboxRepositoryInMemory` têm **zero** teste | §4.1 (Adapters: cobertura de mapeamento) | Passo 5 |
-| T-03 | Artefatos web do template: dependências `react-dom`, `react-native-web`, `expo-web-browser`; script `"web": "expo start --web"`; `components/external-link.tsx`; `hooks/use-color-scheme.web.ts` | §1.1 (proibido web/PWA/browser) | Adiada para a próxima sessão de código |
+| T-01 | ~~`jest.config.js` usa `ts-jest` sem `coverageThreshold` e não roda RNTL~~ **Resolvido em 13/10/2026** | §4.1 | ✅ |
+| T-02 | `VistoriaRepositoryInMemory`, `OcorrenciaRepositoryInMemory` e `OutboxRepositoryInMemory` têm **zero** teste (54% de cobertura na pasta) | §4.1 (Adapters: cobertura de mapeamento) | Passo 5 — **aberta** |
+| T-03 | ~~Artefatos web do template~~ **Resolvido em 13/10/2026**: `react-dom`, `react-native-web`, `expo-web-browser`, script `web`, bloco `web` do `app.json`, `external-link.tsx`, `use-color-scheme.web.ts` e a cadeia morta `themed-text`/`themed-view`/`theme`/`use-theme-color` | §1.1 | ✅ |
 | V-02 | §8 (Planos Diários) e a versão 1.1.0 de `sindiflow-obrigacoes.md` estão **não commitados** | §8 | No commit da Fase 0 |
 | K-01 | `sindiflow-obrigacoes.md` §6 lista RF01="Fazer Vistoria"…RF07="Classificar Checklist" (numeração obsoleta), contradizendo §3.1 e o README | §6 | Issue `[OBRIGAÇÃO]`, aprovação de 2 arquitetos (§9) |
-| K-02 | §1.2 proíbe dado crítico apenas em memória; a apresentação §5 exige `Map` in-memory | §1.2 vs apresentação §5 | Registrado como D-11; formalizar como exceção temporária |
+| K-02 | §1.2 proíbe dado crítico apenas em memória; a apresentação §5 exige `Map` in-memory | §1.2 vs apresentação §5 | **Revogado em 13/10/2026** — ver D-11 |
 | K-03 | §2.1 põe SQLite em `infra/`; §2.3 põe o repositório SQLite em `adapters/` | §2.1 vs §2.3 | Resolvido por D-09 |
+| K-05 | `sindiflow-obrigacoes.md` §1.1/§7 e `AGENTS.md` declaravam Expo SDK 54 enquanto o código roda em `expo@^57.0.27` | §1.1 + §7 | **Resolvido em 13/10/2026** — lei na versão 1.2.0 |
 | K-04 | §7 referencia `@skill_lazaro/SKILL.md` (inexistente; o real é `agent_tools/SKILL.md`); o README referencia `docs/documento-software-mobile.md` (inexistente) | §7 | Higiene documental |
 
 ### 0.3 Legenda de status
@@ -83,14 +102,16 @@ Com D-01, a gravidade fica órfã: RF05/RF06 e `sindiflow-obrigacoes.md` §3.2 s
 | RNF02 | Segurança | Todas as operações de sincronização devem ser criptografadas em trânsito (HTTPS/TLS) | Certificado SSL válido |
 | RNF03 | Usabilidade | Interface deve ser navegável com 1 toque entre telas (sem menus complexos) | Taxa de erro de navegação < 5% |
 | RNF04 | Disponibilidade | App deve funcionar offline com persistência de dados por pelo menos 30 dias | Teste de durabilidade |
-| RNF05 | Portabilidade | App nativo puro em Expo SDK 54 para iOS e Android sem dependências web | Build Expo para ambos OS |
+| RNF05 | Portabilidade | App nativo puro em Expo SDK 57 para iOS e Android sem dependências web | Build Expo para ambos OS |
 | RNF06 | Conformidade | Dados pessoais devem seguir LGPD — mínimo coleta, direito ao apagamento | Política de privacidade aplicada |
 | RNF07 | Resiliência | SQLite local com integridade transacional garantindo zero perda de dados em queda | Teste de integridade ACID |
 | RNF08 | Armazenamento | Compressão local de imagens (máx 1080p, sem base64 na SQLite) via FileSystem | Tamanho máx 1.5MB por foto |
 
 ### 1.3 Regras de Negócio do Domínio
 
-Regras de codificação testável, cada uma ligada à obrigação que a origina. **P1** entra no código desta fase; **P2** fica documentada e adiada. Total: **27 regras** (RF-VIST 7 · RF-GRV 6 · RF-SYNC 10 · RF-EVI 2 · RF-SEC 2), das quais todas as regras P1 estão testadas e implementadas.
+Regras de codificação testável, cada uma ligada à obrigação que a origina. **P1** entra no código desta fase; **P2** fica documentada e adiada. Total: **27 regras** (RF-VIST 7 · RF-GRV 6 · RF-SYNC 10 · RF-EVI 2 · RF-SEC 2).
+
+> **Correção de 13/10/2026.** Este trecho afirmava que *"todas as regras P1 estão testadas e implementadas"*. A auditoria do Bloco A mediu o estado real: **4 regras P1 totalmente implementadas** (RF-VIST-002, RF-GRV-001 e, com o Bloco A, RF-SYNC-002 e RF-VIST-007), **3 parciais** (RF-VIST-001, RF-VIST-004, RF-GRV-002) e as demais sem implementação. As 27 regras continuam **documentadas e rastreáveis** em `docs/rastreabilidade.md`, mas a afirmação de implementação total não se sustenta.
 
 
 | ID | Regra | Obrigação | Passo | Prio | Status |
@@ -898,7 +919,7 @@ Fontes consultadas:
 - Template original: `agent_tools/SKILL.md` — guia completo de SDD com 14 seções
 - Obrigações do projeto: `agent_tools/sindiflow-obrigacoes.md` — lei superior (§1 a §9)
 - Planejamento da fase: `chat_history/presentation-06-10-26.md` (documento da sessão de 06/10, mantido intacto por D-07)
-- Contexto do projeto: briefing do usuário sobre app de vistoria predial, offline-first, Expo SDK 54, SQLite, Supabase sync, câmera, geolocalização
+- Contexto do projeto: briefing do usuário sobre app de vistoria predial, offline-first, Expo SDK 57, SQLite, Supabase sync, câmera, geolocalização
 - Restrições técnicas: App 100% nativo (sem web), budget de 60h, mobile-first, SQLite como fonte da verdade, fila de outbox para sync Supabase
 - Padrões de arquitetura: Clean Architecture (camadas domain/application/adapters/infra), DDD (aggregate roots, entities, value objects, repositories), TDD (red→green→refatoração, pirâmide de testes)
 - Rastreabilidade: `docs/rastreabilidade.md`

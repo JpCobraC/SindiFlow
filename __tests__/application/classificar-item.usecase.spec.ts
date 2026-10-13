@@ -1,8 +1,8 @@
 import { ClassificarItemChecklistUseCase } from '../../src/application/use-cases/classificar-item.usecase';
 import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
 import { StatusVistoria, Vistoria } from '../../src/domain/entities/vistoria.entity';
-import { ItemCriticoSemObservacaoError } from '../../src/domain/errors/domain-errors';
-import { IOutboxRepository, ItemOutbox } from '../../src/domain/interfaces/outbox.repository.interface';
+import { ItemChecklistNaoEncontradoError, ItemCriticoSemObservacaoError } from '../../src/domain/errors/domain-errors';
+import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 import { IVistoriaRepository } from '../../src/domain/interfaces/vistoria.repository.interface';
 
 class FakeVistoriaRepository implements IVistoriaRepository {
@@ -23,34 +23,14 @@ class FakeVistoriaRepository implements IVistoriaRepository {
   }
 }
 
-class FakeOutboxRepository implements IOutboxRepository {
-  public itens: ItemOutbox[] = [];
-
-  async enfileirar(item: Omit<ItemOutbox, 'id' | 'tentativas' | 'dataCriacao'>): Promise<void> {
-    this.itens.push({
-      ...item,
-      id: `out-${this.itens.length + 1}`,
-      tentativas: 0,
-      dataCriacao: new Date(),
-    });
-  }
-
-  async obterPendentes(): Promise<ItemOutbox[]> {
-    return this.itens;
-  }
-
-  async marcarSincronizado(): Promise<void> {}
-  async incrementarTentativa(): Promise<void> {}
-}
-
 describe('ClassificarItemChecklistUseCase (Application)', () => {
   let vistoriaRepo: FakeVistoriaRepository;
-  let outboxRepo: FakeOutboxRepository;
+  let outboxRepo: OutboxRepositoryInMemory;
   let useCase: ClassificarItemChecklistUseCase;
 
   beforeEach(async () => {
     vistoriaRepo = new FakeVistoriaRepository();
-    outboxRepo = new FakeOutboxRepository();
+    outboxRepo = new OutboxRepositoryInMemory();
     useCase = new ClassificarItemChecklistUseCase(vistoriaRepo, outboxRepo);
 
     const item1 = ItemChecklist.criar({
@@ -89,8 +69,8 @@ describe('ClassificarItemChecklistUseCase (Application)', () => {
 
     const itemAtualizado = vistoria.itens.find((i) => i.id === 'item-1');
     expect(itemAtualizado?.status).toBe(StatusItemChecklist.OK);
-    expect(outboxRepo.itens.length).toBe(1);
-    expect(outboxRepo.itens[0].tabela).toBe('item_checklist');
+    expect((await outboxRepo.listarTodos()).length).toBe(1);
+    expect((await outboxRepo.listarTodos())[0].tabela).toBe('item_checklist');
   });
 
   it('deve bloquear status CRITICO se não for fornecida observação/justificativa (RF-VIST-003)', async () => {
@@ -104,7 +84,7 @@ describe('ClassificarItemChecklistUseCase (Application)', () => {
       })
     ).rejects.toThrow(ItemCriticoSemObservacaoError);
 
-    expect(outboxRepo.itens.length).toBe(0);
+    expect((await outboxRepo.listarTodos()).length).toBe(0);
   });
 
   it('deve marcar status CRITICO com sucesso quando observação for fornecida', async () => {
@@ -120,6 +100,34 @@ describe('ClassificarItemChecklistUseCase (Application)', () => {
     const itemAtualizado = vistoria.itens.find((i) => i.id === 'item-2');
     expect(itemAtualizado?.status).toBe(StatusItemChecklist.CRITICO);
     expect(itemAtualizado?.observacao).toContain('ruído excessivo');
-    expect(outboxRepo.itens.length).toBe(1);
+    expect((await outboxRepo.listarTodos()).length).toBe(1);
+  });
+
+  it('deve rejeitar quando a vistoria não existe', async () => {
+    await expect(
+      useCase.executar({
+        vistoriaId: 'vist-inexistente',
+        itemId: 'item-1',
+        status: StatusItemChecklist.OK,
+        usuarioId: 'user-1',
+        deviceId: 'dev-1',
+      })
+    ).rejects.toThrow('Vistoria com id vist-inexistente não encontrada.');
+
+    expect((await outboxRepo.listarTodos()).length).toBe(0);
+  });
+
+  it('deve rejeitar quando o item não pertence à vistoria', async () => {
+    await expect(
+      useCase.executar({
+        vistoriaId: 'vist-1',
+        itemId: 'item-que-nao-existe',
+        status: StatusItemChecklist.OK,
+        usuarioId: 'user-1',
+        deviceId: 'dev-1',
+      })
+    ).rejects.toThrow(ItemChecklistNaoEncontradoError);
+
+    expect((await outboxRepo.listarTodos()).length).toBe(0);
   });
 });

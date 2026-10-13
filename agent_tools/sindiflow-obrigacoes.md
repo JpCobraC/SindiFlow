@@ -1,8 +1,8 @@
 ---
 name: sindiflow-obrigacoes
 description: Skill obrigatória para o projeto SindiFlow — aplica todas as obrigações técnicas, regras de Clean Architecture extrema, domínios, regras de negócio, TDD, e o mecanismo de auto-correção obrigatório. Use esta skill em TODA interação relacionada ao projeto SindiFlow.
-version: 1.0.0
-date: 2026-09-04
+version: 1.2.0
+date: 2026-10-13
 ---
 
 # OBRIGAÇÕES DE DESENVOLVIMENTO — SINDFLOW v1.0
@@ -14,7 +14,7 @@ Esta skill contém todas as obrigações inegociáveis do projeto SindiFlow. **O
 ## 1. PRINCÍPIOS TÉCNICOS INEGOCIÁVEIS
 
 ### 1.1 PLATAFORMA
-- ✅ O aplicativo **DEVE** ser 100% nativo usando **Expo SDK 54**
+- ✅ O aplicativo **DEVE** ser 100% nativo usando **Expo SDK 57**
 - ❌ **PROIBIDO**: qualquer menção a implementação web, PWA ou browser
 - ✅ **PERMITIDO**: apenas `expo start --android`, `expo start --ios`, `expo start --device`
 - ✅ **VALIDAÇÃO**: verificar `package.json` para ausência de dependências web
@@ -234,7 +234,7 @@ Antes de **implementar**, **falar** ou **cogitar planejar**, o agente DEVE se pe
 - **Skill base**: `@skill_lazaro/SKILL.md` — Software Design Document Framework
 - **Documento de arquitetura**: `docs/documento-software.md`
 - **Histórico de planejamento**: `chat_history/2026-09-04.md`
-- **Stack técnica**: Expo SDK 54, expo-router 6, React Native 0.81, SQLite, Supabase
+- **Stack técnica**: Expo SDK 57, expo-router, React Native 0.86, SQLite, Supabase
 
 ---
 
@@ -256,10 +256,17 @@ Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
 
 ## 9. ÚLTIMA REVISÃO
 
-- **Data**: 04/09/2026
-- **Versão**: 1.1.0
+- **Data**: 13/10/2026
+- **Versão**: 1.2.0
 - **Próxima revisão**: Toda sexta-feira às 16h
 - **Proposta de alteração**: Issue marcada como `[OBRIGAÇÃO]`, requiere aprovação de 2 arquitetos
+
+### Histórico de revisões
+
+| Versão | Data | Alteração | Aprovação |
+|--------|------|-----------|-----------|
+| 1.1.0 | 04/09/2026 | §8 (Planos Diários) adicionado | — |
+| 1.2.0 | 13/10/2026 | §1.1 e §7: **Expo SDK 54 → Expo SDK 57**. O `package.json` estava em `expo@^57.0.27` / `react-native@0.86.3` desde antes desta sessão, enquanto a lei e o `AGENTS.md` apontavam para a v54. Rebaixar o código para a 54 seria trabalho destrutivo contra o código já escrito e testado; a lei foi alinhada ao código. Issue **K-05** em `docs/rastreabilidade.md` §7 | Aprovada pelo responsável do projeto em 13/10/2026 |
 
 ---
 

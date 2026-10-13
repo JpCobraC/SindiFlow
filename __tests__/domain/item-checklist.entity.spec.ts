@@ -62,4 +62,17 @@ describe('ItemChecklist Entity', () => {
     expect(item.evidencias).toHaveLength(1);
     expect(item.evidencias[0].id).toBe('ev-1');
   });
+
+  it('deve expor se a vistoria dona já está finalizada', () => {
+    const item = ItemChecklist.criar({
+      id: 'item-1',
+      vistoriaId: 'vist-1',
+      titulo: 'Extintor',
+      categoria: 'Segurança',
+    });
+    expect(item.vistoriaFinalizada).toBe(false);
+
+    item.bloquearEdicao();
+    expect(item.vistoriaFinalizada).toBe(true);
+  });
 });

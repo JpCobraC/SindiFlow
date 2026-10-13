@@ -37,7 +37,7 @@ npm test
 | Fase 1 — Fundação | SQLite schema, câmera, geolocalização | ~10h | ✅ CONCLUÍDO | DDL SQLite completo, Value Objects de GPS, Entities |
 | Fase 2 — Fluxo Core | Checklist execution + ocorrências | ~18h | ✅ CONCLUÍDO | Casos de uso de vistoria, itens com trava 80% e justificativa crítica |
 | Fase 3 — Sync com Supabase | Outbox + retry + detecção de rede | ~15h | ✅ CONCLUÍDO | Fila Outbox resiliente, backoff exponencial (1s, 2s, 4s, 8s...) |
-| Fase 4 — Robustez & UX | Indicadores de status, telas mobile | ~10h | ✅ CONCLUÍDO | 4 abas nativas Expo SDK 54 no `app/(tabs)` com validação em tempo real |
+| Fase 4 — Robustez & UX | Indicadores de status, telas mobile | ~10h | ✅ CONCLUÍDO | 4 abas nativas Expo SDK 57 no `app/(tabs)` com validação em tempo real |
 | Fase 5 — Polish & TDD | Testes de domínio, aplicação e auditoria | ~7h | ✅ CONCLUÍDO | 11 suítes de teste Jest, 33 testes unitários com 100% de aprovação |
 | **TOTAL** | | **60h** | **100% IMPLEMENTADO** | |
 
@@ -97,7 +97,7 @@ npm test
 ## Restrições Técnicas Inegociáveis
 
 ### Plataforma
-- ✅ **Nativo puro:** Expo SDK 54 apenas
+- ✅ **Nativo puro:** Expo SDK 57 apenas
 - ✅ **Sem web/PWA/browser:** Nenhuma menção permitida
 - ✅ **Comandos permitidos:** `expo start --android`, `expo start --ios`, `expo start --device`
 - ✅ **Validação:** Package.json sem dependências web

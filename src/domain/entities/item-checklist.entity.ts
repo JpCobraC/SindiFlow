@@ -1,4 +1,4 @@
-import { ItemCriticoSemObservacaoError } from '../errors/domain-errors';
+import { ItemChecklistNaoEditavelError, ItemCriticoSemObservacaoError } from '../errors/domain-errors';
 import { Evidencia } from '../value-objects/evidencia.vo';
 
 export enum StatusItemChecklist {
@@ -16,6 +16,12 @@ export interface ItemChecklistProps {
   status?: StatusItemChecklist;
   observacao?: string;
   evidencias?: Evidencia[];
+  /**
+   * Vistoria dona já finalizada? Preenchido por `Vistoria` na construção.
+   * `ItemChecklist` não sabe o status da vistoria sozinho — é o agregado que
+   * impõe RF-VIST-007 aos filhos.
+   */
+  vistoriaFinalizada?: boolean;
 }
 
 export class ItemChecklist {
@@ -26,6 +32,7 @@ export class ItemChecklist {
   private _status: StatusItemChecklist;
   private _observacao?: string;
   private _evidencias: Evidencia[];
+  private _vistoriaFinalizada: boolean;
 
   private constructor(props: ItemChecklistProps) {
     this.id = props.id;
@@ -35,6 +42,7 @@ export class ItemChecklist {
     this._status = props.status || StatusItemChecklist.PENDENTE;
     this._observacao = props.observacao;
     this._evidencias = props.evidencias || [];
+    this._vistoriaFinalizada = props.vistoriaFinalizada ?? false;
   }
 
   public get status(): StatusItemChecklist {
@@ -49,7 +57,12 @@ export class ItemChecklist {
     return this._evidencias;
   }
 
+  public get vistoriaFinalizada(): boolean {
+    return this._vistoriaFinalizada;
+  }
+
   public marcarStatus(novoStatus: StatusItemChecklist, observacao?: string): void {
+    this.garantirEditavel();
     if (novoStatus === StatusItemChecklist.CRITICO && (!observacao || observacao.trim().length === 0)) {
       throw new ItemCriticoSemObservacaoError();
     }
@@ -60,7 +73,22 @@ export class ItemChecklist {
   }
 
   public adicionarEvidencia(evidencia: Evidencia): void {
+    this.garantirEditavel();
     this._evidencias.push(evidencia);
+  }
+
+  /**
+   * RF-VIST-007 — a vistoria dona é imutável depois de assinada. Chamado pelo
+   * agregado, que é quem conhece o status da vistoria.
+   */
+  public bloquearEdicao(): void {
+    this._vistoriaFinalizada = true;
+  }
+
+  private garantirEditavel(): void {
+    if (this._vistoriaFinalizada) {
+      throw new ItemChecklistNaoEditavelError(this.id);
+    }
   }
 
   public static criar(props: ItemChecklistProps): ItemChecklist {

@@ -1,6 +1,9 @@
 import {
   GeolocalizacaoObrigatoriaError,
   ItemCriticoSemObservacaoError,
+  VistoriaJaFinalizadaError,
+  ItemChecklistDeOutraVistoriaError,
+  VistoriaNaoFinalizavelError,
   VistoriaPercentualIncompletoError,
 } from '../errors/domain-errors';
 import { Geolocalizacao } from '../value-objects/geolocalizacao.vo';
@@ -40,10 +43,32 @@ export class Vistoria {
     this.inspetorId = props.inspetorId;
     // RF-VIST-001: Uma vistoria só pode iniciar em status RASCUNHO
     this._status = props.status || StatusVistoria.RASCUNHO;
-    this.dataCriacao = props.dataCriacao || new Date();
-    this._dataFinalizacao = props.dataFinalizacao;
+    // Cópias defensivas: `readonly` num `Date` não protege — `dataCriacao
+    // .setFullYear(1999)` reescreveria a data real do laudo — e devolver o array
+    // interno no getter permitiria `(v.itens as ItemChecklist[]).push(...)`.
+    this.dataCriacao = new Date((props.dataCriacao ?? new Date()).getTime());
+    this._dataFinalizacao = props.dataFinalizacao
+      ? new Date(props.dataFinalizacao.getTime())
+      : undefined;
     this._geolocalizacao = props.geolocalizacao;
-    this._itens = props.itens || [];
+    this._itens = props.itens ? [...props.itens] : [];
+
+    // Um item de outra vistoria faria `percentualRespondido()` contar o progresso
+    // alheio e `finalizar()` travar itens que não são seus.
+    for (const item of this._itens) {
+      if (item.vistoriaId !== this.id) {
+        throw new ItemChecklistDeOutraVistoriaError(item.id, item.vistoriaId, this.id);
+      }
+    }
+
+    // RF-VIST-007 na reidratação: o adapter SQLite monta a vistoria a partir da
+    // linha, sem passar por `finalizar()`. Sem isto, todo cold start devolveria
+    // uma vistoria FINALIZADA cujos itens ainda aceitam edição.
+    if (this._status === StatusVistoria.FINALIZADA) {
+      for (const item of this._itens) {
+        item.bloquearEdicao();
+      }
+    }
   }
 
   public get status(): StatusVistoria {
@@ -51,7 +76,7 @@ export class Vistoria {
   }
 
   public get dataFinalizacao(): Date | undefined {
-    return this._dataFinalizacao;
+    return this._dataFinalizacao ? new Date(this._dataFinalizacao.getTime()) : undefined;
   }
 
   public get geolocalizacao(): Geolocalizacao | undefined {
@@ -59,7 +84,7 @@ export class Vistoria {
   }
 
   public get itens(): readonly ItemChecklist[] {
-    return this._itens;
+    return [...this._itens];
   }
 
   public percentualRespondido(): number {
@@ -68,7 +93,21 @@ export class Vistoria {
     return (respondidos / this._itens.length) * 100;
   }
 
-  public finalizar(geolocalizacao: Geolocalizacao): void {
+  /**
+   * @param agora instante da assinatura. Injetado para que o teste possa provar
+   *             que a data original não é sobrescrita por uma re-finalização.
+   */
+  public finalizar(geolocalizacao: Geolocalizacao, agora: Date = new Date()): void {
+    // RF-VIST-007: vistoria já assinada é imutável. Antes desta guarda, chamar
+    // `finalizar` duas vezes sobrescrevia `_dataFinalizacao` e a geolocalização
+    // pericial, destruindo a evidência sem trilha de auditoria.
+    if (this._status === StatusVistoria.FINALIZADA) {
+      throw new VistoriaJaFinalizadaError(this.id);
+    }
+    if (this._status === StatusVistoria.CANCELADA) {
+      throw new VistoriaNaoFinalizavelError(this.id, this._status);
+    }
+
     // RF-VIST-004: Geolocalização é obrigatória para vistoria ser válida
     if (!geolocalizacao) {
       throw new GeolocalizacaoObrigatoriaError();
@@ -88,7 +127,12 @@ export class Vistoria {
 
     this._geolocalizacao = geolocalizacao;
     this._status = StatusVistoria.FINALIZADA;
-    this._dataFinalizacao = new Date();
+    this._dataFinalizacao = agora;
+
+    // RF-VIST-007: a partir daqui o checklist da vistoria também é imutável.
+    for (const item of this._itens) {
+      item.bloquearEdicao();
+    }
   }
 
   public static criar(props: VistoriaProps): Vistoria {

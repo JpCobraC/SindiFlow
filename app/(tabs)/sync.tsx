@@ -28,7 +28,7 @@ export default function SyncScreen() {
       const res = await sincronizarOutbox();
       Alert.alert(
         '✓ Sincronização Executada!',
-        `Total de itens processados: ${res.totalItens}\nSucessos (200 OK): ${res.sucessos}\nFalhas: ${res.falhas}`
+        `Total de itens processados: ${res.total}\nSucessos (200 OK): ${res.sincronizados}\nFalhas: ${res.falhas} (${res.permanentes} permanentes)`
       );
     } catch (err: any) {
       Alert.alert(
@@ -106,7 +106,8 @@ export default function SyncScreen() {
             </Text>
           </View>
           <Text style={styles.backoffFormula}>
-            Fórmula de Retry: T = 2^(tentativas) × 1000ms (1s → 2s → 4s → 8s → 16s)
+            Retry exponencial §1.3: T = 2^(tentativas - 1) × 1000ms (1s → 2s → 4s → 8s → 16s),
+            limitado a 60s. Após 5 falhas o evento entra em FALHA_MAXIMA e sai da fila.
           </Text>
 
           <TouchableOpacity
@@ -136,10 +137,11 @@ export default function SyncScreen() {
               <Text style={styles.outboxPayloadId}>ID Evento: {item.id}</Text>
               <View style={styles.outboxItemFooter}>
                 <Text style={styles.outboxRetryText}>
-                  Tentativas: {item.tentativas} • Backoff: {Math.pow(2, item.tentativas)}s
+                  Tentativas: {item.tentativas}/{item.maxTentativas} • Backoff:{' '}
+                  {Math.round(item.proximoRetryMs / 1000)}s
                 </Text>
                 <Text style={styles.outboxTimeText}>
-                  {new Date(item.dataCriacao).toLocaleTimeString()}
+                  {item.dataCriacao.toLocaleTimeString()}
                 </Text>
               </View>
             </View>

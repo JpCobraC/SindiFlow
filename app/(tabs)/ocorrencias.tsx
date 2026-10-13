@@ -28,12 +28,21 @@ export default function OcorrenciasScreen() {
       if (fotoUri) {
         setFotoUri(null);
       } else {
-        const foto = await cameraGateway.capturarFoto({
+        const resultado = await cameraGateway.capturarFoto({
           larguraMaxima: 1080,
           alturaMaxima: 1080,
           qualidade: 0.8,
         });
-        setFotoUri(foto.uri);
+
+        if (resultado.status === 'cancelado') {
+          // Cancelar é o caminho mais comum e não é erro (RNF02).
+          return;
+        }
+        if (resultado.status === 'erro') {
+          Alert.alert('Câmera Indisponível (RNF02)', resultado.mensagem);
+          return;
+        }
+        setFotoUri(resultado.foto.uri);
       }
     } catch (err: any) {
       Alert.alert(
