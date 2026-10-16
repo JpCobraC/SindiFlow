@@ -41,7 +41,7 @@ export class ItemChecklist {
     this.categoria = props.categoria;
     this._status = props.status || StatusItemChecklist.PENDENTE;
     this._observacao = props.observacao;
-    this._evidencias = props.evidencias || [];
+    this._evidencias = props.evidencias ? [...props.evidencias] : [];
     this._vistoriaFinalizada = props.vistoriaFinalizada ?? false;
   }
 
@@ -54,7 +54,10 @@ export class ItemChecklist {
   }
 
   public get evidencias(): readonly Evidencia[] {
-    return this._evidencias;
+    // Cópia defensiva: `readonly Evidencia[]` só impede `.push()` no TypeScript.
+    // Quem usa `as Evidencia[]` — ou qualquer chamador em JS — escreveria direto
+    // no agregado. Mesma defesa de `Vistoria.itens` e `Ocorrencia.fotos`.
+    return [...this._evidencias];
   }
 
   public get vistoriaFinalizada(): boolean {

@@ -35,7 +35,7 @@ Com D-01, a gravidade ficou órfã: RF05/RF06 e `sindiflow-obrigacoes.md` §3.2 
 | **Status do item** | `ItemChecklist.status` | `PENDENTE` · `OK` · `AVISO` · `CRITICO` | `CRITICO` exige justificativa e **bloqueia a finalização** sem ela | §3.1 · RF-VIST-003 |
 | **Gravidade da ocorrência** | `Ocorrencia.gravidade` | `BAIXA` · `MEDIA` · `ALTA` | `ALTA` exige **foto** e tem **SLA de 24h**; `MEDIA` 72h; `BAIXA` 7 dias | §3.2 · RF-GRV-* |
 
-ADst，两者之间是 **`CRITICO → gera uma `Ocorrencia` de gravidade `ALTA`**，不是同一个字段的两个名字**：
+As duas não são o mesmo campo com dois nomes. A ligação é **`CRITICO → gera uma `Ocorrencia` de gravidade `ALTA`**:
 
 ```
 ItemChecklist.status = CRITICO
@@ -56,7 +56,7 @@ O código já estava correto; faltava a decisão escrita. `Ocorrencia` ganhou `d
 | T-03 | ~~Artefatos web do template~~ **Resolvido em 13/10/2026**: `react-dom`, `react-native-web`, `expo-web-browser`, script `web`, bloco `web` do `app.json`, `external-link.tsx`, `use-color-scheme.web.ts` e a cadeia morta `themed-text`/`themed-view`/`theme`/`use-theme-color` | §1.1 | ✅ |
 | V-02 | §8 (Planos Diários) e a versão 1.1.0 de `sindiflow-obrigacoes.md` estão **não commitados** | §8 | No commit da Fase 0 |
 | K-01 | `sindiflow-obrigacoes.md` §6 lista RF01="Fazer Vistoria"…RF07="Classificar Checklist" (numeração obsoleta), contradizendo §3.1 e o README | §6 | Issue `[OBRIGAÇÃO]`, aprovação de 2 arquitetos (§9) |
-| K-02 | §1.2 proíbe dado crítico apenas em memória; a apresentação §5 exige `Map` in-memory | §1.2 vs apresentação §5 | **Revogado em 13/10/2026** — ver D-11 |
+| K-02 | §1.2 proíbe dado crítico apenas em memória; a apresentação §5 exige `Map` in-memory | §1.2 vs apresentação §5 | **Revogado em 13/10/2026** — ver **D-12**, que revoga a D-11. O "100% mock" deixou de ser o destino do projeto |
 | K-03 | §2.1 põe SQLite em `infra/`; §2.3 põe o repositório SQLite em `adapters/` | §2.1 vs §2.3 | Resolvido por D-09 |
 | K-05 | `sindiflow-obrigacoes.md` §1.1/§7 e `AGENTS.md` declaravam Expo SDK 54 enquanto o código roda em `expo@^57.0.27` | §1.1 + §7 | **Resolvido em 13/10/2026** — lei na versão 1.2.0 |
 | K-04 | §7 referencia `@skill_lazaro/SKILL.md` (inexistente; o real é `agent_tools/SKILL.md`); o README referencia `docs/documento-software-mobile.md` (inexistente) | §7 | Higiene documental |
@@ -111,38 +111,50 @@ O código já estava correto; faltava a decisão escrita. `Ocorrencia` ganhou `d
 
 Regras de codificação testável, cada uma ligada à obrigação que a origina. **P1** entra no código desta fase; **P2** fica documentada e adiada. Total: **27 regras** (RF-VIST 7 · RF-GRV 6 · RF-SYNC 10 · RF-EVI 2 · RF-SEC 2).
 
-> **Correção de 13/10/2026.** Este trecho afirmava que *"todas as regras P1 estão testadas e implementadas"*. A auditoria do Bloco A mediu o estado real: **4 regras P1 totalmente implementadas** (RF-VIST-002, RF-GRV-001 e, com o Bloco A, RF-SYNC-002 e RF-VIST-007), **3 parciais** (RF-VIST-001, RF-VIST-004, RF-GRV-002) e as demais sem implementação. As 27 regras continuam **documentadas e rastreáveis** em `docs/rastreabilidade.md`, mas a afirmação de implementação total não se sustenta.
+> **O status de implementação NÃO é mantido nesta tabela.** Ela define a regra; quem
+> diz se ela está implementada é **`docs/rastreabilidade.md` §1**, fonte única desde
+> 16/10/2026. Havia duas tabelas de status para as mesmas 27 regras e elas
+> discordavam entre si.
+>
+> Estado medido em 16/10/2026 (`npm test` e `npm run coverage`, **178 testes,
+> 18 suítes**): **8 regras `✅`** · **3 `🟡`, cada uma com o que falta nomeado**
+> (RF-GRV-004, RF-SYNC-003, RF-EVI-001) · as demais `⬜`.
+>
+> Uma versão anterior deste trecho afirmava que *"todas as regras P1 estão testadas
+> e implementadas"* e outra citava *"4 implementadas, 3 parciais"* — nenhuma das
+> duas batia com o código. A afirmação de implementação total foi removida em
+> 13/10/2026; a contagem, nesta data, é medida e reproduzível.
 
 
-| ID | Regra | Obrigação | Passo | Prio | Status |
-|----|-------|-----------|-------|------|--------|
-| RF-VIST-001 | Uma vistoria só pode iniciar em status `RASCUNHO` | §3.1 | 2 | P1 | ✅ `vistoria.entity.spec.ts` |
-| RF-VIST-002 | Só pode finalizar se ≥80% dos itens estiverem marcados | §3.1 | 2 | P1 | ✅ `vistoria.entity.spec.ts` |
-| RF-VIST-003 | Itens `CRITICO` bloqueiam finalização sem justificativa | §3.1 | 2 | P1 | ✅ `item-checklist.entity.spec.ts` |
-| RF-VIST-004 | Geolocalização é obrigatória para a vistoria ser válida | §3.1 | 2 | P1 | ✅ `vistoria.entity.spec.ts` |
-| RF-VIST-005 | Uma vistoria ativa por condomínio: para abrir outra, a anterior precisa estar FINALIZADA ou BLOQUEADA | — | 2 | P1 | ⬜ |
-| RF-VIST-006 | Trocar de perfil no mesmo dispositivo nunca expõe rascunhos do usuário anterior | §2.2 | 2/6 | P1 | ⬜ |
-| RF-VIST-007 | O checklist é imutável após o início da vistoria (itens novos só em `RASCUNHO`) | — | 2 | P2 | ⬜ |
-| RF-GRV-001 | Gravidade ALTA → SLA 24h · MÉDIA → 72h · BAIXA → 7 dias | §3.2, RF08 | 1 | P1 | ⬜ |
-| RF-GRV-002 | Foto obrigatória para ALTA, recomendada para MÉDIA, opcional para BAIXA | §3.2, RF06 | 2 | P1 | ⬜ |
-| RF-GRV-003 | ALTA notifica o síndico imediatamente; MÉDIA entra em digest diário; BAIXA não notifica | §3.2, RF09, RF10 | 3 | P1 | ⬜ |
-| RF-GRV-004 | SLA contado em dias corridos, a partir da abertura do achado | — | 1 | P1 | ⬜ |
-| RF-GRV-005 | Violação do SLA gera escalonamento ao síndico | — | 3 | P2 | ⬜ |
-| RF-GRV-006 | Gravidade pode ser reclassificada, com trilha de auditoria e recálculo de SLA | — | 2/3 | P2 | ⬜ |
-| RF-SYNC-001 | Toda escrita passa pela fila de outbox | §1.3, RF11 | 1/4/5 | P1 | 🟡 `finalizar-vistoria.usecase.spec.ts` |
-| RF-SYNC-002 | Retry exponencial 1s, 2s, 4s, 8s, 16s com máximo de 5 tentativas | §1.3, RF12 | 3 | P1 | ⬜ |
-| RF-SYNC-003 | Detecção de rede é obrigatória antes de qualquer tentativa de sync | §1.3, RF13 | 3 | P1 | ⬜ |
-| RF-SYNC-004 | Sincronização de usuário revogado é rejeitada, com notificação e registro em log | §1.3, RF14 | 2/5 | P1 | ⬜ |
-| RF-SYNC-005 | Conflito resolvido por last-write-wins: vence o registro com `updated_at` maior | §3.3 | 3 | P1 | ⬜ |
-| RF-SYNC-006 | Toda operação de sync é registrada em log de auditoria local; dados não sincronizados há 30 dias geram alerta | §3.3 | 3 | P1 | ⬜ |
-| RF-SYNC-007 | Todo item da outbox carrega chave de deduplicação: reenvio nunca duplica registro | — | 1/4/5 | P1 | ⬜ |
-| RF-SYNC-008 | Envio ordenado (FIFO) respeitando a FK: usuário → vistoria → item → evidência | — | 3/5 | P1 | ⬜ |
-| RF-SYNC-009 | Status agregado de sincronização por vistoria: PARCIAL, TOTAL ou COM_ERRO | RNF08 | 1/3 | P1 | ⬜ |
-| RF-SYNC-010 | O desvio de relógio do dispositivo não altera o resultado do conflito: a referência é o `updated_at` do servidor | — | 3 | P1 | ⬜ |
-| RF-EVI-001 | Evidência exige hash obrigatório e arquivo local presente para ser exibida offline | §1.4 | 2 | P1 | ⬜ |
-| RF-EVI-002 | Evidências com o mesmo hash ocupam um único arquivo; há limite de fotos por vistoria | §1.2, RF20 | 2 | P2 | ⬜ |
-| RF-SEC-001 | Remover um registro apaga também o arquivo de mídia e os itens pendentes na outbox | RNF14 | 2/3 | P1 | ⬜ |
-| RF-SEC-002 | Trilha de auditoria append-only: autor, instante, entidade e operação | §3.3 | 3 | P2 | ⬜ |
+| ID | Regra | Obrigação | Passo | Prio |
+|----|-------|-----------|-------|------|
+| RF-VIST-001 | Uma vistoria só pode iniciar em status `RASCUNHO` | §3.1 | 2 | P1 |
+| RF-VIST-002 | Só pode finalizar se ≥80% dos itens estiverem marcados | §3.1 | 2 | P1 |
+| RF-VIST-003 | Itens `CRITICO` bloqueiam finalização sem justificativa | §3.1 | 2 | P1 |
+| RF-VIST-004 | Geolocalização é obrigatória para a vistoria ser válida | §3.1 | 2 | P1 |
+| RF-VIST-005 | Uma vistoria ativa por condomínio: para abrir outra, a anterior precisa estar FINALIZADA ou BLOQUEADA | — | 2 | P1 |
+| RF-VIST-006 | Trocar de perfil no mesmo dispositivo nunca expõe rascunhos do usuário anterior | §2.2 | 2/6 | P1 |
+| RF-VIST-007 | A vistoria `FINALIZADA` é imutável, inclusive quando reidratada do banco | — | 2 | P2 |
+| RF-GRV-001 | Gravidade ALTA → SLA 24h · MÉDIA → 72h · BAIXA → 7 dias | §3.2, RF08 | 1 | P1 |
+| RF-GRV-002 | Foto obrigatória para ALTA, recomendada para MÉDIA, opcional para BAIXA | §3.2, RF06 | 2 | P1 |
+| RF-GRV-003 | ALTA notifica o síndico imediatamente; MÉDIA entra em digest diário; BAIXA não notifica | §3.2, RF09, RF10 | 3 | P1 |
+| RF-GRV-004 | SLA contado em dias corridos, a partir da abertura do achado | — | 1 | P1 |
+| RF-GRV-005 | Violação do SLA gera escalonamento ao síndico | — | 3 | P2 |
+| RF-GRV-006 | Gravidade pode ser reclassificada, com trilha de auditoria e recálculo de SLA | — | 2/3 | P2 |
+| RF-SYNC-001 | Toda escrita passa pela fila de outbox | §1.3, RF11 | 1/4/5 | P1 |
+| RF-SYNC-002 | Retry exponencial 1s, 2s, 4s, 8s, 16s com máximo de 5 tentativas | §1.3, RF12 | 3 | P1 |
+| RF-SYNC-003 | Detecção de rede é obrigatória antes de qualquer tentativa de sync | §1.3, RF13 | 3 | P1 |
+| RF-SYNC-004 | Sincronização de usuário revogado é rejeitada, com notificação e registro em log | §1.3, RF14 | 2/5 | P1 |
+| RF-SYNC-005 | Conflito resolvido por last-write-wins: vence o registro com `updated_at` maior | §3.3 | 3 | P1 |
+| RF-SYNC-006 | Toda operação de sync é registrada em log de auditoria local; dados não sincronizados há 30 dias geram alerta | §3.3 | 3 | P1 |
+| RF-SYNC-007 | Todo item da outbox carrega chave de deduplicação: reenvio nunca duplica registro | — | 1/4/5 | P1 |
+| RF-SYNC-008 | Envio ordenado (FIFO) respeitando a FK: usuário → vistoria → item → evidência | — | 3/5 | P1 |
+| RF-SYNC-009 | Status agregado de sincronização por vistoria: PARCIAL, TOTAL ou COM_ERRO | RNF08 | 1/3 | P1 |
+| RF-SYNC-010 | O desvio de relógio do dispositivo não altera o resultado do conflito: a referência é o `updated_at` do servidor | — | 3 | P1 |
+| RF-EVI-001 | Evidência exige hash obrigatório e arquivo local presente para ser exibida offline | §1.4 | 2 | P1 |
+| RF-EVI-002 | Evidências com o mesmo hash ocupam um único arquivo; há limite de fotos por vistoria | §1.2, RF20 | 2 | P2 |
+| RF-SEC-001 | Remover um registro apaga também o arquivo de mídia e os itens pendentes na outbox | RNF14 | 2/3 | P1 |
+| RF-SEC-002 | Trilha de auditoria append-only: autor, instante, entidade e operação | §3.3 | 3 | P2 |
 
 ### 1.3 Requisitos Não Funcionais (RNF)
 
@@ -372,7 +384,7 @@ Cada caso de uso relevante deve ter descrição textual: ator, pré-condição, 
 | FotoEvidencia | Sim | Tabela `foto_evidencia` | PK: id, item_id, caminho_local, url_remota, hash, status_upload; sem coordenada própria (§1.4) |
 | OutboxItem | Sim | Tabela `outbox` | PK: id, tabela, operacao, payload, chave_dedup, tentativas, usuario_id, device_id (RF-SYNC-007) |
 
-Nesta Fase 0 **nenhuma tabela é criada**: os repositórios são `Map` in-memory (ver D-11).
+Nesta data **nenhuma tabela é criada**: os repositórios são `Map` in-memory. A justificativa por trás disso era a decisão D-11 ("100% mock", exigida pela apresentação), **revogada pela D-12 em 13/10/2026**. A persistência real chega na Fase 1 (`expo-sqlite`); o texto abaixo descreve a situação até lá, não uma escolha de arquitetura.
 
 ### Relações
 
@@ -492,7 +504,7 @@ classDiagram
 As entidades `Chamado` e `Produto`, e o campo `FotoEvidencia.geolocalizacao`, foram removidos: são resíduos do template e o segundo contraria `sindiflow-obrigacoes.md` §1.4 (geolocalização por sessão de vistoria, nunca por item). Ver §1.4.
 
 ### Persistência
-Classes marcadas `Persistente? = Sim` serão mapeadas em SQLite na Fase 2. Nesta fase todos os repositórios são estruturas `Map` em memória (D-11). Os Value Objects são embutidos na tabela da entidade dona — não têm identidade própria nem tabela.
+Classes marcadas `Persistente? = Sim` serão mapeadas em SQLite na Fase 1 (ver `chat_history/plano-do-dia.md`). Até lá todos os repositórios são estruturas `Map` em memória — estado **transitório**, herdado do "100% mock" da D-11, que a D-12 revogou. Os Value Objects são embutidos na tabela da entidade dona — não têm identidade própria nem tabela.
 
 ---
 
@@ -832,15 +844,16 @@ src/
 
 ## 13. Plano de Testes TDD (Execução & Cobertura Total)
 
-O projeto conta com **11 suítes de teste** e **33 testes automatizados** passando com 100% de sucesso via Jest:
+O projeto contava com **11 suítes e 33 testes** quando esta seção foi escrita; o estado medido em **16/10/2026** é **18 suítes e 178 testes** (`npm test`), com o detalhamento em `docs/rastreabilidade.md` §6.
 
 | Camada | Arquivo de Teste | Itens Testados / Casos | Status |
 |--------|------------------|------------------------|--------|
-| **Domain** | `vistoria.entity.spec.ts` | Regras RF-VIST-001 (Rascunho), RF-VIST-002 (80%), RF-VIST-003 (Crítico sem nota), RF-VIST-004 (GPS obrigatório) | PASS |
-| **Domain** | `item-checklist.entity.spec.ts` | Transições de status OK/AVISO/CRÍTICO, validação de justificativa, agregação de evidências | PASS |
-| **Domain** | `geolocalizacao.vo.spec.ts` | Value Object imutável, validação de latitude [-90, 90] e longitude [-180, 180] | PASS |
+| **Domain** | `vistoria.entity.spec.ts` | Regras RF-VIST-002 (80%), RF-VIST-003 (Crítico sem nota), RF-VIST-004 (GPS obrigatório), RF-VIST-007 (imutabilidade na reidratação) | PASS |
+| **Domain** | `item-checklist.entity.spec.ts` | Transições de status OK/AVISO/CRÍTICO, validação de justificativa, agregação de evidências, cópia defensiva em construção e leitura | PASS |
+| **Domain** | `geolocalizacao.vo.spec.ts` | Value Object imutável, `Number.isFinite` em latitude/longitude/precisão, precisão configurável | PASS |
 | **Domain** | `ocorrencia.entity.spec.ts` | SLAs automáticos (24h/72h/168h), obrigatoriedade de fotos para ALTA gravidade, cálculo de atraso | PASS |
-| **Domain** | `outbox-event.entity.spec.ts` | Backoff exponencial (1s, 2s, 4s, 8s...), controle de tentativas e status FALHA_MAXIMA | PASS |
+| **Domain** | `outbox-event.entity.spec.ts` | Backoff exponencial (1s, 2s, 4s, 8s, 16s), `FALHA_MAXIMA` terminal, `resetar()` | PASS |
+| **Domain** | `evidencia.vo.spec.ts` | RF-EVI-001: hash obrigatório (ausente, vazio, espaços, nulo) e clonagem do `timestamp` | PASS |
 | **Application** | `criar-vistoria.usecase.spec.ts` | Orquestração de criação com itens iniciais e persistência em repositório | PASS |
 | **Application** | `finalizar-vistoria.usecase.spec.ts` | Bloqueio abaixo de 80%, validação de itens críticos e GPS de encerramento | PASS |
 | **Application** | `registrar-ocorrencia.usecase.spec.ts` | Validação de foto obrigatória, gravação e enfileiramento obrigatório na outbox SQLite | PASS |
@@ -902,7 +915,7 @@ O checklist acima mede a forma do documento. A cobertura de requisitos é medida
 | Requisitos funcionais documentados | 7 (numeração descartada por conflito com o README) | 20 (RF01-RF20) |
 | Regras de negócio de domínio nomeadas | 4 (RF-VIST-001..004) | 27 (RF-VIST, RF-GRV, RF-SYNC, RF-EVI, RF-SEC) |
 | Requisitos não funcionais | 6 (numeração conflitante) | 19 (RNF01-RNF19) |
-| Regras com teste automatizado | 4 | 4 (nenhuma regra nova foi implementada nesta fase) |
+| Regras com teste automatizado | 4 | 4 (nenhuma regra nova foi implementada nesta fase) — **8 em 16/10/2026** |
 | Regras com artefato de código definido | 4 | 27 |
 | Casos de uso | 7 (template, com `Chamado`/`Produto`) | 15 (nomenclatura `Vistoria`) |
 | Cenários críticos com regra definida | 0 | 0 — registrados como pendentes em §1.6 |
@@ -926,4 +939,4 @@ Fontes consultadas:
 
 ---
 
-*Documento gerado em 04/09/2026 e consolidado na Fase 0 de 29/09/2026 (decisões D-01 a D-11, catálogo ampliado para 20 RF + 27 regras de domínio + 19 RNF, 15 casos de uso). Formato Markdown, pronto para versionamento git.*
+*Documento gerado em 04/09/2026 e consolidado na Fase 0 de 29/09/2026 (decisões D-01 a D-11, catálogo ampliado para 20 RF + 27 regras de domínio + 19 RNF, 15 casos de uso). Revisado em 13/10/2026 (D-12, K-05, lei v1.2.0) e em **16/10/2026**: §1.3 sem coluna de status — a fonte única passou a ser `docs/rastreabilidade.md` §1 —, correção de RF-VIST-007 e da justificativa D-11, e números de cobertura substituídos por medição. Formato Markdown, pronto para versionamento git.*

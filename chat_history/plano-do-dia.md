@@ -1,5 +1,50 @@
 # Plano do Dia — SindiFlow
 
+> ## Sessão de 16/10/2026 — procedimento de correção (aplicado)
+>
+> O conteúdo de 13/10 abaixo foi **preservado**, não substituído: por §8.2b um plano
+> não aplicado por completo não é deletado, e as Fases 1 a 5 continuam pendentes.
+>
+> **Motivo:** a verificação do estado real encontrou documentação que **afirmava o
+> que não era verdade** — e um buraco de contrato em `Evidencia`.
+>
+> Procedimento único, executado nesta sessão:
+>
+> | # | Passo | Status |
+> |---|-------|--------|
+> | 1 | `node` 22.23.3 + `npm ci` (ambiente não existia) | ✅ |
+> | 2 | RED: `evidencia.vo.spec.ts` novo + 3 testes de cópia defensiva | ✅ 5 falhas comportamentais |
+> | 3 | GREEN: `Evidencia.criar` exige hash + clona `timestamp`; `ItemChecklist` copia na construção e na leitura | ✅ |
+> | 4 | Comentário RF-VIST-001 corrigido (não havia guarda) | ✅ |
+> | 5 | 4 gates | ✅ 178 testes · coverage · typecheck · lint |
+> | 6 | `rastreabilidade.md` vira fonte única; `PENDENTE:` em artefatos-fantasma; duplicatas C-01/C-05 removidas | ✅ |
+> | 7 | `documento-software.md` sem coluna de status; correções de texto e de números | ✅ |
+>
+> **O que a verificação encontrou, e a documentação dizia o contrário:**
+>
+> - `Evidencia` aceitava `hash` ausente enquanto o DDL exige `hash NOT NULL`
+> - `ItemChecklist.evidencias` devolvia o array interno — a "cópia defensiva" que o
+>   Lote 6 declarou estar em `Vistoria`, `Ocorrencia`, `ItemChecklist` e
+>   `Geolocalizacao` **não existia** em `ItemChecklist`
+> - `RF-GRV-001`, `RF-GRV-002`, `RF-SYNC-001`, `RF-SYNC-002` estavam `⬜` com
+>   implementação e teste prontos
+> - `RF-VIST-001` era dada como PASS em `documento-software.md` **sem nenhuma guarda**
+> - `RF-VIST-007` tinha texto de uma regra e implementação de outra
+> - C-01 e C-05 apareciam duplicados em §7, um como resolvido e outro como aberto
+> - 29 fontes e 33 specs citadas como se existissem
+>
+> **Pendências abertas por esta sessão:** C-10 (guarda de RF-VIST-001), C-11
+> (RF-SYNC-005/006/007 com coluna e sem código), C-12 (RF-EVI-001 parcial), C-13
+> (RNF19 sem gate).
+>
+> **Decisões do responsável:** `rastreabilidade.md` §1 como fonte única de status ·
+> marcar alvo em vez de apagar · RF-VIST-001 só corrigir a afirmação, sem implementar
+> a guarda · corrigir o `hash` da `Evidencia` com TDD.
+>
+> ---
+>
+> # Plano do Dia — SindiFlow — sessão de 13/10/2026 (preservado)
+
 **Data:** 13/10/2026
 **Fase executada:** Fase 0 (conformidade) + Fase 0.5, Blocos A e B (contratos e domínio)
 **Não executado:** Bloco C, Fases 1 a 5 — o app segue mock

@@ -75,4 +75,64 @@ describe('ItemChecklist Entity', () => {
     item.bloquearEdicao();
     expect(item.vistoriaFinalizada).toBe(true);
   });
+
+  /**
+   * Cópia defensiva — mesma defesa já aplicada em `Vistoria.itens`
+   * (`[...this._itens]`) e `Ocorrencia.fotos` (`[...this._fotos]`). Sem ela o
+   * agregado é mutável por fora e o chamador do construtor acaba vendo o próprio
+   * array crescer a cada `adicionarEvidencia`.
+   */
+  describe('cópia defensiva das evidências', () => {
+    function novaEvidencia(id = 'ev-x'): Evidencia {
+      return Evidencia.criar({ id, caminhoArquivoLocal: `file:///${id}.jpg`, hash: `hash-${id}` });
+    }
+
+    it('não deve expor o array interno na leitura', () => {
+      const item = ItemChecklist.criar({
+        id: 'item-1',
+        vistoriaId: 'vist-1',
+        titulo: 'Extintor',
+        categoria: 'Segurança',
+      });
+
+      // O cast é proposital: `readonly Evidencia[]` impede `.push()` só no
+      // TypeScript. Quem roda o app em JS, ou quem usa `as Evidencia[]`, escreve
+      // direto no agregado. O cast é a demonstração desse caminho.
+      const vazamento = item.evidencias as Evidencia[];
+      vazamento.push(novaEvidencia());
+
+      expect(item.evidencias).toHaveLength(0);
+    });
+
+    it('não deve guardar o array recebido no construtor', () => {
+      const externo = [novaEvidencia('ev-1')];
+      const item = ItemChecklist.criar({
+        id: 'item-1',
+        vistoriaId: 'vist-1',
+        titulo: 'Extintor',
+        categoria: 'Segurança',
+        evidencias: externo,
+      });
+
+      externo.push(novaEvidencia('ev-2'));
+
+      expect(item.evidencias).toHaveLength(1);
+    });
+
+    it('deve refletir evidências anexadas depois da construção', () => {
+      const item = ItemChecklist.criar({
+        id: 'item-1',
+        vistoriaId: 'vist-1',
+        titulo: 'Extintor',
+        categoria: 'Segurança',
+      });
+
+      // Sanidade do trade-off: a cópia é na leitura, não um espelho congelado.
+      // `adicionarEvidencia()` é a porta de entrada e precisa continuar valendo.
+      item.adicionarEvidencia(novaEvidencia('ev-9'));
+
+      expect(item.evidencias).toHaveLength(1);
+      expect(item.evidencias[0].id).toBe('ev-9');
+    });
+  });
 });

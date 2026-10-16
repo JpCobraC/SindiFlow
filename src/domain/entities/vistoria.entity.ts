@@ -41,7 +41,16 @@ export class Vistoria {
     this.id = props.id;
     this.condominioId = props.condominioId;
     this.inspetorId = props.inspetorId;
-    // RF-VIST-001: Uma vistoria só pode iniciar em status RASCUNHO
+    // ⚠️ RF-VIST-001 **NÃO** é implementada aqui, apesar do que este comentário
+    // afirmava até 16/10/2026. Não existe guarda de transição: o status vem de
+    // `props.status` ou do default, e `Vistoria.criar({ status: FINALIZADA })`
+    // constrói a vistoria sem reclamar.
+    //
+    // Isto é deliberado e correto para a **reidratação** — o adapter SQLite
+    // monta a vistoria a partir da linha, e uma vistoria já finalizada tem de
+    // voltar finalizada. A regra que falta é estreita: só a *criação* deve
+    // recusar status diferente de RASCUNHO, sem colidir com a leitura do banco.
+    // Registrada como pendência aberta em `docs/rastreabilidade.md` §7.
     this._status = props.status || StatusVistoria.RASCUNHO;
     // Cópias defensivas: `readonly` num `Date` não protege — `dataCriacao
     // .setFullYear(1999)` reescreveria a data real do laudo — e devolver o array

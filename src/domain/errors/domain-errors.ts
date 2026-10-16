@@ -194,3 +194,23 @@ export class ChecklistVazioError extends DomainError {
     this.name = 'ChecklistVazioError';
   }
 }
+
+/**
+ * Evidência fotográfica sem hash — RF-EVI-001.
+ *
+ * O hash já era obrigatório no contrato da câmera (`ICameraGateway`), mas o VO
+ * mantinha `hash?` opcional enquanto o DDL declara `hash TEXT NOT NULL`: um
+ * adapter de reidratação (Fase 1) construía uma evidência sem hash, o VO aceitava
+ * em silêncio e o banco rejeitava na hora de gravar.
+ *
+ * Hash vazio ou só com espaços é tratado como ausente: passaria por `!hash` e
+ * chegaria ao banco com NOT NULL válido e conteúdo inútil.
+ */
+export class EvidenciaSemHashError extends DomainError {
+  constructor() {
+    super(
+      'Evidência fotográfica exige hash obrigatório (RF-EVI-001): o DDL declara hash NOT NULL.'
+    );
+    this.name = 'EvidenciaSemHashError';
+  }
+}
