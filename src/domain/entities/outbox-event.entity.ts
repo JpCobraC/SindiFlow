@@ -25,6 +25,15 @@ export interface OutboxEventProps {
   id: string;
   tabela: string;
   operacao: OperacaoOutbox;
+  /**
+   * O registro que a escrita afeta — **não** o id do evento.
+   *
+   * Um mesmo registro gera vários eventos ao longo da vistoria (cada item
+   * marcado enfileira o seu), então o `id` do evento não serve como chave de
+   * deduplicação. É este campo que, junto com `tabela` e `operacao`, identifica
+   * a **escrita lógica**: RF-SYNC-007, "reenvio nunca duplica registro".
+   */
+  idRegistro: string;
   payload: Record<string, unknown>;
   usuarioId: string;
   deviceId: string;
@@ -55,6 +64,15 @@ export class OutboxEvent {
   readonly id: string;
   readonly tabela: string;
   readonly operacao: OperacaoOutbox;
+  /**
+   * RF-SYNC-007 — chave de deduplicação, derivada de `tabela:operacao:idRegistro`.
+   *
+   * É **derivada, nunca recebida**: nenhum chamador pode esquecê-la e nenhum
+   * chamador pode mandá-la errada. O DDL exige `chave_dedup TEXT NOT NULL` com
+   * índice único, então uma chave ausente não falharia em teste — falharia na
+   * primeira inserção em produção (C-11).
+   */
+  readonly chaveDedup: string;
   readonly usuarioId: string;
   readonly deviceId: string;
   readonly maxTentativas: number;
@@ -71,6 +89,9 @@ export class OutboxEvent {
   private constructor(props: OutboxEventProps) {
     if (!props.id?.trim()) throw new OutboxNaoProcessavelError('id vazio.');
     if (!props.tabela?.trim()) throw new OutboxNaoProcessavelError('tabela vazia.');
+    // Sem esta guarda a chave viraria "vistorias:INSERT:   " — uma chave válida
+    // que colide com a de qualquer outro registro em branco.
+    if (!props.idRegistro?.trim()) throw new OutboxNaoProcessavelError('idRegistro vazio.');
     if (!props.usuarioId?.trim()) throw new OutboxNaoProcessavelError('usuarioId vazio.');
     if (!props.deviceId?.trim()) throw new OutboxNaoProcessavelError('deviceId vazio.');
 
@@ -82,6 +103,7 @@ export class OutboxEvent {
     this.id = props.id;
     this.tabela = props.tabela;
     this.operacao = props.operacao;
+    this.chaveDedup = `${props.tabela}:${props.operacao}:${props.idRegistro}`;
     this._payload = { ...props.payload };
     this.usuarioId = props.usuarioId;
     this.deviceId = props.deviceId;

@@ -89,13 +89,16 @@ export default function MetricasScreen() {
         {/* Status da Arquitetura & Testes */}
         <View style={styles.archCard}>
           <View style={styles.archHeader}>
-            <Text style={styles.archTitle}>Clean Architecture & TDD (Fase 1)</Text>
+            <Text style={styles.archTitle}>Clean Architecture &amp; TDD</Text>
             <View style={styles.coverageBadge}>
-              <Text style={styles.coverageText}>92.6% Cobertura</Text>
+              <Text style={styles.coverageText}>Cobertura sob gate</Text>
             </View>
           </View>
           <Text style={styles.archDesc}>
-            11 Suítes de Testes (33/33 passando). Regras e entidades de domínio 100% puras sem dependência de SQLite ou Supabase.
+            Regras e entidades de domínio puras, sem dependência de SQLite, Expo ou
+            Supabase. A cobertura não é impressa aqui de propósito: um número fixo
+            envelhece em silêncio. Os valores reais saem de <Text style={styles.boldText}>npm run coverage</Text>,
+            que falha se o domínio cair abaixo de 90%.
           </Text>
           <View style={styles.archStats}>
             <Text style={styles.archStatItem}>

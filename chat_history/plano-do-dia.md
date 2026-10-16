@@ -41,6 +41,127 @@
 > marcar alvo em vez de apagar · RF-VIST-001 só corrigir a afirmação, sem implementar
 > a guarda · corrigir o `hash` da `Evidencia` com TDD.
 >
+> > ---
+>
+> ## Sessão de 16/10/2026 — quarto bloco: correções A1, D-F, C1, B2
+>
+> Revisão adversarial do passo 1 encontrou **quatro defeitos no meu próprio
+> trabalho**. Um deles era da mesma classe que eu dizia ter prevenido.
+>
+> | ID | Defeito | Correção |
+> |----|---------|----------|
+> | **A1** | Transação aninhada zerava o buffer da externa e confirmava o próprio conteúdo — **a primeira escrita sumia sem erro nem rastro** | Guarda que lança antes de qualquer efeito colateral |
+> | **D-F** | `executar` devolvia sempre `alteracoes: 1`, então `descartarSincronizados(): Promise<number>` era trivialmente verdadeiro | `definirAlteracoes()` programável, default 1 |
+> | **C1** | A porta nunca tinha sido confrontada com a API real do SDK | `ExpoSQLiteExecutor` escrito para o `tsc` verificar |
+> | **B2** | A porta não executa DDL, e alguém ia adicionar `executarScript` ao bater na parede no passo 4 | Decisão registrada no docblock da porta |
+>
+> **A1 — o RED expôs perda de dado:**
+> ```
+> recusa transação aninhada           → Received promise resolved instead of rejected
+> a recusa não apaga o que a externa…  → Array [ - "INSERT A" ]
+> não confirma nada da aninhada…      → Array [ - "INSERT A", + "INSERT ANINHADO" ]
+> ```
+>
+> **D-F — RED comportamental em três passos:** primeiro o símbolo faltando
+> (`TS2339`), depois o método declarado **sem uso** (`Expected 3 / 0 / 7`,
+> `Received 1`), só então o comportamento. Das cinco asserções, **três são RED e
+> duas são guardas** — marcadas como guardas no arquivo, não contadas como
+> descoberta.
+>
+> **C1 — o compilador confrontou a porta com o SDK, e ela não precisou mudar.**
+> Verificado que o gate é real: com um erro deliberado, `tsc` acusou
+> `TS2339: Property 'campoQueNaoExiste' does not exist on type 'SQLiteRunResult'`
+> e saiu com `exit 2`. Restaurado, `exit 0`.
+>
+> **Erro meu encontrado no B2:** o docblock da porta afirmava que `SqlParam` "não
+> tem `Date` nem `boolean`". Tem `boolean` — o SQLite tem esse tipo. O que a porta
+> de fato exclui são os **tipos de blob** (`Uint8Array`/`ArrayBuffer`), que é a
+> proteção real da §1.4, e `Date`, que não é tipo de bind e força conversão ISO
+> explícita. Corrigido.
+>
+> **Erro meu de verificação:** um comando meu acusou "VIOLACAO" na pureza de
+> `domain`/`application`. Era o comando — `from './x'` não casa com `from '\.\.'`,
+> então o `grep -v` devolvia justamente as linhas relativas. Refeito: 21 imports,
+> todos relativos, zero externos.
+>
+> **Ponto cego registrado:** `src/infra` não está no `coverageThreshold`, então o
+> `ExpoSQLiteExecutor` está sem teste **e** sem gate de cobertura. Coerente com o
+> C-15, mas agora é um arquivo, não uma ausência.
+>
+> Gates: **206 testes, 20 suítes**, coverage · typecheck · lint com `exit 0`.
+> Bundle iOS reconstruído: **0 arquivos com rastro de `expo-sqlite`**.
+>
+> ---
+>
+> ## Sessão de 16/10/2026 — terceiro bloco: Fase 1, passo 1
+>
+> Bundle verificado antes de começar: `npx expo export --platform ios` com cache
+> limpo gerou **1500 módulos, 3,5 MB de bytecode Hermes**, `exit 0`. O
+> `babel.config.js` criado no bloco anterior não quebra o build. Saída foi para
+> `/tmp`, o repositório não foi tocado.
+>
+> **Passo 1 da Fase 1 — porta `ISQLiteExecutor` e duplo com rollback real.**
+> Escolhido após o spike (C-15): o `expo-sqlite` não roda sob Jest, então o
+> mapeamento dos repositórios será testado contra um duplo de execução, e a
+> compatibilidade de SQL/DDL fica para verificação em dispositivo.
+>
+> | Arquivo | Camada | Papel |
+> |---------|--------|-------|
+> | `src/adapters/repositories/sqlite-executor.interface.ts` | adapters | porta de 4 métodos |
+> | `__tests__/fakes/sqlite-executor.fake.ts` | teste | duplo com staging de transação |
+> | `__tests__/fakes/sqlite-executor.fake.spec.ts` | teste | 17 testes |
+>
+> **Escopo deliberado:** o passo **não** contém código de produção sem teste. Como
+> a implementação real do `expo-sqlite` não tem como ser testada (C-15), ela fica
+> para o passo 4, junto de `openDatabaseSync` e das migrations. Por isso a porta
+> tem só 4 métodos: cada método a mais seria código a mais confiável só por leitura.
+>
+> **Prova de não-vacuidade, executada:** removido o staging do duplo para que ele
+> escrevesse direto no log confirmado. Os dois testes de rollback falharam
+> (`Expected 0, Received 1`) e os outros 15 seguiram verdes. Restaurado.
+>
+> **Erro de processo meu, registrado:** no primeiro ciclo escrevi `consultar`,
+> `consultarUm` e `emTransacao` junto com `executar`, quando o §4.1 pede *código
+> mínimo para passar*. Os 15 testes seguintes passaram sem RED — não têm
+> demonstração de falha. O teste que importa (rollback) teve a demonstração feita.
+>
+> **Armadilha de cobertura verificada:** um arquivo só de tipos não entra no
+> relatório do Istanbul. As médias de `src/adapters` ficaram **idênticas**
+> (94,12 · 85,00 · 97,06 · 97,40, 5 arquivos). Nenhuma exclusão foi necessária.
+>
+> Gates: **197 testes, 20 suítes**, coverage · typecheck · lint com `exit 0`.
+>
+> ---
+>
+> ## Sessão de 16/10/2026 — segundo bloco: passo 1 e spike do SQLite
+>
+> **Passo 1 — afirmações envelhecidas na tela.** `explore.tsx` exibia `92.6% Cobertura`
+> e `11 Suítes de Testes (33/33 passando)` — números de uma fase anterior, que
+> envelhecem em silêncio. Removidos: a tela passa a dizer que a cobertura está sob
+> gate e onde verificá-la, sem imprimir número fixo.
+>
+> **Passo 2 — spike do `expo-sqlite`.** Pergunta: dá para exercitar o SQLite com
+> gate de cobertura? **Resposta: não, em nenhum dos dois projects.** E o caminho
+> até a resposta revelou dois defeitos que ninguém tinha visto:
+>
+> | Defeito | Efeito | Correção |
+> |---------|--------|----------|
+> | **`babel.config.js` nunca existiu** | o project `ui` estava declarado desde 13/10 e **não conseguia rodar um único teste** — o `babel-jest` não aplicava o preset de Flow e a suíte morria em `@react-native/jest-preset/jest/setup.js` | arquivo canônico do Expo criado; `__tests__/infra/ui-project.saude.spec.tsx` prova que o project roda |
+> | **`expo-modules-core` não estava içado** | dependência declarada pelo próprio `expo`, presente em `node_modules/expo/node_modules/` e ausente do topo; o `setup.js` do jest-expo não a resolve | declarada explicitamente em `devDependencies`, na versão que o `expo` pede |
+>
+> Nenhum dos dois era visível porque o project `ui` tinha **0 testes** — um project
+> de teste sem teste é indistinguível de um que funciona.
+>
+> Resultado do spike: `core` não parseia o ESM do `expo-sqlite`; `ui` roda mas
+> `openDatabaseSync` falha com `NativeDatabase is not a constructor` (não há
+> SQLite nativo no ambiente de teste, e o jest-expo não traz mock). Registrado
+> como **C-15**, com as implicações para o desenho da Fase 1.
+>
+> Novo: **C-14** — o RNTL não renderiza por conflito de peer-dependência
+> (`test-renderer@^1` pede `react@^19.3.0`, o projeto tem `19.2.3`).
+>
+> Gates: **180 testes, 19 suítes**, coverage · typecheck · lint com `exit 0`.
+>
 > ---
 >
 > # Plano do Dia — SindiFlow — sessão de 13/10/2026 (preservado)

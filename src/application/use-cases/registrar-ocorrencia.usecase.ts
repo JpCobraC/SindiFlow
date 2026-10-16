@@ -39,6 +39,8 @@ export class RegistrarOcorrenciaUseCase {
     await this.outboxRepo.enfileirar({
       tabela: 'ocorrencias',
       operacao: 'INSERT',
+      // RF-SYNC-007: a chave de dedup cola na ocorrência, não no evento.
+      idRegistro: ocorrencia.id,
       payload: {
         id: ocorrencia.id,
         vistoriaId: ocorrencia.vistoriaId,

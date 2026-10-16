@@ -17,6 +17,8 @@ function novoEvento(overrides: Partial<Parameters<typeof OutboxEvent.criar>[0]> 
     id: 'out-1',
     tabela: 'vistorias',
     operacao: 'UPDATE',
+    // RF-SYNC-007: registro que a escrita afeta, distinto do id do evento.
+    idRegistro: 'vist-1',
     payload: { id: 'vist-1', status: 'FINALIZADA' },
     usuarioId: 'user-1',
     deviceId: 'device-1',

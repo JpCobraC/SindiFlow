@@ -12,6 +12,17 @@ export interface DadosOutbox {
   id?: string;
   tabela: string;
   operacao: OperacaoOutbox;
+  /**
+   * O registro que a escrita afeta — **obrigatório**, e é o que, com `tabela` e
+   * `operacao`, forma a `chaveDedup` (RF-SYNC-007).
+   *
+   * Não é o `id` do evento: um mesmo registro gera vários eventos ao longo da
+   * vistoria, e o dedup precisa colar na **escrita lógica**, não no evento.
+   *
+   * Não se deriva de `payload.id`: `payload` é `Record<string, unknown>`, então
+   * essa leitura seria silenciosamente frágil.
+   */
+  idRegistro: string;
   payload: Record<string, unknown>;
   usuarioId: string;
   deviceId: string;

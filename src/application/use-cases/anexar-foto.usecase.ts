@@ -98,6 +98,8 @@ export class AnexarFotoUseCase {
       await this.outboxRepo.enfileirar({
         tabela: 'fotos_evidencia',
         operacao: 'INSERT',
+        // RF-SYNC-007: a chave de dedup cola na evidência, não no evento.
+        idRegistro: evidencia.id,
         payload: {
           id: evidencia.id,
           item_id: destino.item?.id ?? null,

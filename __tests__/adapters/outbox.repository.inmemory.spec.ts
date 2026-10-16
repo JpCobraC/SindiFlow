@@ -10,6 +10,8 @@ function dados(overrides: Partial<Parameters<OutboxRepositoryInMemory['enfileira
   return {
     tabela: 'vistorias',
     operacao: 'UPDATE' as const,
+    // Registro que a escrita afeta, e não o id do evento — RF-SYNC-007.
+    idRegistro: 'vist-1',
     payload: { id: 'vist-1' },
     usuarioId: 'user-1',
     deviceId: 'device-1',
@@ -32,6 +34,32 @@ describe('OutboxRepositoryInMemory (Adapters)', () => {
   });
 
   describe('enfileirar', () => {
+    it('deve derivar a chaveDedup a partir da escrita lógica (RF-SYNC-007)', async () => {
+      // Teste de fiação, não de unidade: a entidade tem spec própria. O que se
+      // prova aqui é que o repositório REPASSA `idRegistro` até a chave — se um
+      // adapter discardsse o campo, a entidade lançaria e este teste acusaria.
+      const evento = await repo.enfileirar(
+        dados({ tabela: 'ocorrencias', operacao: 'INSERT', idRegistro: 'oc-42' })
+      );
+
+      expect(evento.chaveDedup).toBe('ocorrencias:INSERT:oc-42');
+    });
+
+    it('deve produzir a mesma chave para dois eventos da mesma escrita lógica', async () => {
+      const primeiro = await repo.enfileirar(dados({ id: 'out-1', idRegistro: 'vist-1' }));
+      const segundo = await repo.enfileirar(dados({ id: 'out-2', idRegistro: 'vist-1' }));
+
+      expect(segundo.chaveDedup).toBe(primeiro.chaveDedup);
+      expect(segundo.id).not.toBe(primeiro.id);
+    });
+
+    it('deve produzir chaves diferentes para escritas lógicas diferentes', async () => {
+      const a = await repo.enfileirar(dados({ id: 'out-1', idRegistro: 'vist-1' }));
+      const b = await repo.enfileirar(dados({ id: 'out-2', idRegistro: 'vist-2' }));
+
+      expect(a.chaveDedup).not.toBe(b.chaveDedup);
+    });
+
     it('deve devolver o evento criado, com id e status PENDENTE', async () => {
       const evento = await repo.enfileirar(dados({ id: 'out-1' }));
 

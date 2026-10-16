@@ -1,8 +1,8 @@
 ---
 name: sindiflow-obrigacoes
 description: Skill obrigatória para o projeto SindiFlow — aplica todas as obrigações técnicas, regras de Clean Architecture extrema, domínios, regras de negócio, TDD, e o mecanismo de auto-correção obrigatório. Use esta skill em TODA interação relacionada ao projeto SindiFlow.
-version: 1.2.0
-date: 2026-10-13
+version: 1.3.0
+date: 2026-10-16
 ---
 
 # OBRIGAÇÕES DE DESENVOLVIMENTO — SINDFLOW v1.0
@@ -147,10 +147,12 @@ export class VistoriaRepositorySQLite implements VistoriaRepository {
 4. **Declarar** a camada onde o código será escrito
 5. **Explicar** como o código respeita as regras de negócio
 
-**Frase obrigatória no commit:**
+**Frase obrigatória na mensagem de commit:**
 ```
 Revisado conforme obrigações.md §4.2
 ```
+
+⚠️ A frase é **preparada pelo agente** e **executada pelo usuário**. Ver §4.4.
 
 ### 4.3 CHECKLIST PRÉ-COMMIT
 
@@ -159,6 +161,35 @@ Revisado conforme obrigações.md §4.2
 - [ ] Assegurado que nenhum workaround foi usado
 - [ ] Revisado o plano de implementação contra este documento
 - [ ] Declarada a camada de Clean Architecture onde o código reside
+
+### 4.4 COMMIT E AUTORIA — ❌ PROIBIDO AO AGENTE
+
+❌ **O agente NUNCA DEVE**, em nenhuma hipótese, mesmo com o trabalho concluído e os
+gates verdes:
+
+- Executar `git commit`, `git commit --amend`, `git revert`, `git push`
+- Configurar identidade: `git config user.name`, `git config user.email` — **nem com
+  `--local`**
+- Assinar, co-assinar ou atribuir autoria em nome de qualquer pessoa
+- Inferir a identidade do autor a partir de commits anteriores e aplicá-la
+
+✅ **O agente DEVE:**
+
+- Preparar a **mensagem de commit completa em texto**, para o usuário revisar e
+  executar
+- Deixar as mudanças no working tree (staging é aceitável e desejável)
+- Declarar no relatório final: *"commit pendente — ação do usuário"*
+- Em caso de dúvida entre commitar e não commitar: **não commitar**
+
+**Justificativa.** Autoria não é metadata, é atribuição de responsabilidade. O
+incidente de 16/10/2026 mostrou por que a regra precisa ser explícita: com §4.2 e
+§4.3 exigindo artefatos de commit, o agente inferiu que commitar fazia parte do
+procedimento, e ainda configurou a identidade do usuário com base no autor do
+commit anterior. Nenhum dos dois foi solicitado. Uma inferência razoável não é
+autorização.
+
+> **§9** — esta alteração da lei foi aprovada pelo responsável do projeto em
+> 16/10/2026. Registrada na versão 1.3.0.
 
 ---
 
@@ -212,6 +243,7 @@ Antes de **implementar**, **falar** ou **cogitar planejar**, o agente DEVE se pe
 | Ausência de teste unitário | Rejeitar PR até teste existir |
 | Uso de workaround | Abrir issue para correção técnica |
 | Violação de regra de negócio | Rollback + revisão arquitetural |
+| **Commit, push ou identidade git pelo agente** | **Rollback imediato (`git reset`), remoção da identidade configurada e aviso explícito ao usuário — §4.4** |
 
 ---
 
@@ -256,8 +288,8 @@ Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
 
 ## 9. ÚLTIMA REVISÃO
 
-- **Data**: 13/10/2026
-- **Versão**: 1.2.0
+- **Data**: 16/10/2026
+- **Versão**: 1.3.0
 - **Próxima revisão**: Toda sexta-feira às 16h
 - **Proposta de alteração**: Issue marcada como `[OBRIGAÇÃO]`, requiere aprovação de 2 arquitetos
 
@@ -267,6 +299,7 @@ Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
 |--------|------|-----------|-----------|
 | 1.1.0 | 04/09/2026 | §8 (Planos Diários) adicionado | — |
 | 1.2.0 | 13/10/2026 | §1.1 e §7: **Expo SDK 54 → Expo SDK 57**. O `package.json` estava em `expo@^57.0.27` / `react-native@0.86.3` desde antes desta sessão, enquanto a lei e o `AGENTS.md` apontavam para a v54. Rebaixar o código para a 54 seria trabalho destrutivo contra o código já escrito e testado; a lei foi alinhada ao código. Issue **K-05** em `docs/rastreabilidade.md` §7 | Aprovada pelo responsável do projeto em 13/10/2026 |
+| 1.3.0 | 16/10/2026 | **§4.4 nova — commit e autoria proibidos ao agente.** O agente não commita, não envia e não configura identidade git; prepara a mensagem e deixa a execução com o usuário. §4.2 passou a dizer que a frase é preparada pelo agente e executada pelo usuário. Origem: o agente commiteu e configurou a identidade do responsável sem autorização, em 16/10/2026 | Aprovada pelo responsável do projeto em 16/10/2026 |
 
 ---
 
