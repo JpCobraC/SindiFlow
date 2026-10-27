@@ -5,6 +5,7 @@ import {
   ItemChecklistDeOutraVistoriaError,
   VistoriaNaoFinalizavelError,
   VistoriaPercentualIncompletoError,
+  VistoriaStatusInvalidoError,
 } from '../errors/domain-errors';
 import { Geolocalizacao } from '../value-objects/geolocalizacao.vo';
 import { ItemChecklist, StatusItemChecklist } from './item-checklist.entity';
@@ -41,16 +42,6 @@ export class Vistoria {
     this.id = props.id;
     this.condominioId = props.condominioId;
     this.inspetorId = props.inspetorId;
-    // ⚠️ RF-VIST-001 **NÃO** é implementada aqui, apesar do que este comentário
-    // afirmava até 16/10/2026. Não existe guarda de transição: o status vem de
-    // `props.status` ou do default, e `Vistoria.criar({ status: FINALIZADA })`
-    // constrói a vistoria sem reclamar.
-    //
-    // Isto é deliberado e correto para a **reidratação** — o adapter SQLite
-    // monta a vistoria a partir da linha, e uma vistoria já finalizada tem de
-    // voltar finalizada. A regra que falta é estreita: só a *criação* deve
-    // recusar status diferente de RASCUNHO, sem colidir com a leitura do banco.
-    // Registrada como pendência aberta em `docs/rastreabilidade.md` §7.
     this._status = props.status || StatusVistoria.RASCUNHO;
     // Cópias defensivas: `readonly` num `Date` não protege — `dataCriacao
     // .setFullYear(1999)` reescreveria a data real do laudo — e devolver o array
@@ -145,6 +136,21 @@ export class Vistoria {
   }
 
   public static criar(props: VistoriaProps): Vistoria {
+    // RF-VIST-001: uma vistoria só pode iniciar com status RASCUNHO.
+    if (props.status !== undefined && props.status !== StatusVistoria.RASCUNHO) {
+      throw new VistoriaStatusInvalidoError(props.status);
+    }
+    return new Vistoria(props);
+  }
+
+  /**
+   * Reidrata uma vistoria a partir de uma linha do banco de dados.
+   *
+   * Diferente de `criar()`, não aplica a guarda de RF-VIST-001: uma vistoria
+   * já finalizada no banco deve voltar finalizada, sem passar por `finalizar()`.
+   * Usada exclusivamente pelo adapter SQLite (Fase 1, passo 2b).
+   */
+  public static reidratar(props: VistoriaProps): Vistoria {
     return new Vistoria(props);
   }
 }

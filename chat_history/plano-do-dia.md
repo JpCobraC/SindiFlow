@@ -1,5 +1,56 @@
 # Plano do Dia — SindiFlow
 
+> ## Sessão de 27/10/2026 — Fase 1, passo 2b (repositórios SQLite de escrita) + ressalvas
+>
+> O conteúdo de 16/10 e 13/10 abaixo foi **preservado**, não substituído: por §8.2b um
+> plano não aplicado por completo não é deletado, e as Fases 2 a 5 continuam pendentes.
+>
+> **Decisões do responsável:** C-16 → coalescer ("último vence", §3.3) · C-17 →
+> `src/infra/db/expo-sqlite.executor.ts` em `coveragePathIgnorePatterns` com comentário
+> vinculando C-15 · C-14 → `react@19.3.1` + `@testing-library/react-native@12.9.0`.
+>
+> ### Etapa A — Ressalvas (concluídas)
+>
+> | # | Passo | Status |
+> |---|-------|--------|
+> | A.1 | C-14: `react` atualizado para 19.3.1 + RNTL 12.9.0 instalado | ✅ |
+> | A.2 | C-17: `expo-sqlite.executor.ts` em `coveragePathIgnorePatterns` | ✅ |
+> | A.3 | C-15: Checklist de dispositivo criado (`docs/verificacao-dispositivo-sqlite.md`) | ✅ |
+> | A.4 | Gates verdes após alterações: 221 testes, 21 suítes | ✅ |
+>
+> ### Etapa B — RF-VIST-001 guarda (C-10) — TDD, domain
+>
+> | # | Passo | Status |
+> |---|-------|--------|
+> | B.1 | `VistoriaStatusInvalidoError` adicionado a `domain-errors.ts` | ✅ |
+> | B.2 | `Vistoria.criar()` recusa status ≠ RASCUNHO | ✅ |
+> | B.3 | `Vistoria.reidratar()` permite qualquer status (hidratação do banco) | ✅ |
+> | B.4 | Testes de reidratação migrados de `criar` para `reidratar` | ✅ |
+> | B.5 | 3 novos testes RF-VIST-001 | ✅ RED → GREEN |
+>
+> ### Etapa C — Passo 2b: repositórios SQLite de escrita — TDD, adapters
+>
+> | # | Passo | Status |
+> |---|-------|--------|
+> | C.1 | `OutboxRepositorySQLite` + spec (20 testes) | ✅ RED → GREEN |
+> | C.2 | `VistoriaRepositorySQLite` + spec (9 testes) | ✅ RED → GREEN |
+> | C.3 | `OcorrenciaRepositorySQLite` + spec (8 testes) | ✅ RED → GREEN |
+> | C.4 | `Ocorrencia.reidratar()` adicionado; validações movidas de construtor para `criar` | ✅ |
+> | C.5 | Gates verdes finais: 258 testes, 24 suítes, lint limpo, typecheck OK | ✅ |
+>
+> **Camadas respeitadas (§2.1):** `domain` puro (zero `expo-*`) → `application` (só
+> interfaces de domain) → `adapters` (repositórios sobre `ISQLiteExecutor`) →
+> `infra` (`ExpoSQLiteExecutor` com `expo-sqlite`). `Date` → ISO string antes de
+> `SqlParam` (§1.4).
+>
+> **Nenhum threshold relaxado. Nenhum `eslint-disable`.**
+>
+> **Próximo bloqueio:** C-16 já decidido (coalescer). C-15 exige verificação em
+> dispositivo (checklist em `docs/`). C-12 (RF-EVI-001 "arquivo local presente")
+> pertence à Fase 2.
+>
+> > ---
+>
 > ## Sessão de 16/10/2026 — procedimento de correção (aplicado)
 >
 > O conteúdo de 13/10 abaixo foi **preservado**, não substituído: por §8.2b um plano
@@ -258,8 +309,10 @@ Legenda: `✅ concluído · ⬜ não iniciado`
 
 | ID | Bloqueio | Resolve em |
 |----|----------|------------|
-| D-12 | **Todos os adapters são fake e toda persistência é `Map`.** Trocar as interfaces de repositório para `Promise` quebra as 15 suítes e os 8 use cases — esse é o RED inicial do TDD | **Fase 1** |
+| D-12 | **Todos os adapters são fake e toda persistência é `Map`.** Fase 1 passo 2b implementou `OutboxRepositorySQLite`, `VistoriaRepositorySQLite`, `OcorrenciaRepositorySQLite` sobre `ISQLiteExecutor`. Falta: `openDatabaseSync` + migrations (`PRAGMA user_version`) e wire nos use cases | **Fase 1 (em andamento)** |
+| C-16 | **Colisão da chave de dedup.** Decidido: coalescer ("último vence", §3.3) | ✅ decidido |
 | Supabase | **Não existe projeto Supabase.** `chat_history/2026-09-07.md` registra "nada definido: URL, key, schema, RLS". A Fase 3 fica bloqueada | **Fase 3** |
+| C-15 | **`expo-sqlite` não roda sob Jest.** Checklist de dispositivo em `docs/verificacao-dispositivo-sqlite.md` | **dispositivo** |
 | T-02 | Repositórios in-memory sem teste | ✅ resolvido na Fase 0.5 |
 | C-01..C-09 | 9 cenários de sync/auth sem regra definida (`docs/documento-software.md` §1.6) | Fase 3 / Fase 4 |
 
@@ -270,6 +323,9 @@ Legenda: `✅ concluído · ⬜ não iniciado`
 | Fase | Conteúdo | Obrigação |
 |------|----------|-----------|
 | **1** | `src/infra/db/` (open + migrations por `PRAGMA user_version`) e `src/adapters/repositories/*.sqlite.ts`. Interfaces viram `Promise` | §1.2 |
+| | ✅ Passo 2b concluído: `OutboxRepositorySQLite`, `VistoriaRepositorySQLite`, `OcorrenciaRepositorySQLite` + specs (258 testes, 24 suítes) | |
+| | ⬽ Falta: `openDatabaseSync` + migrations (`PRAGMA user_version`) e wire nos use cases | |
+| **2** | Gateways reais: `expo-image-picker`, `expo-location` (por sessão, §1.4), `expo-network`, `expo-file-system` (`File`/`Paths`, **nunca base64**) | §1.3, §1.4 |
 | **2** | Gateways reais: `expo-image-picker`, `expo-location` (por sessão, §1.4), `expo-network`, `expo-file-system` (`File`/`Paths`, **nunca base64**) | §1.3, §1.4 |
 | **3** | `src/infra/supabase/`, retry exponencial usando a entidade `OutboxEvent` (hoje órfã), `sync_log`, last-write-wins com `updated_at` | §1.3, §3.3 |
 | **4** | `Usuario` + sessão de 7 dias no `SecureStore`, convite por e-mail, aviso 1 dia antes, bloqueio total ao expirar | RF01–RF04 |

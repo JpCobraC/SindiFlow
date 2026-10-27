@@ -47,20 +47,6 @@ export class Ocorrencia {
   private _solucao?: string;
 
   private constructor(props: OcorrenciaProps) {
-    // Uma gravidade inválida precisa falhar. Antes, o `default` do switch de
-    // `slaHoras` fundia BAIXA com qualquer valor desconhecido, e uma ocorrência
-    // sem gravidade recebia o prazo mais longo — o menos urgente.
-    if (!Object.values(GravidadeOcorrencia).includes(props.gravidade)) {
-      throw new GravidadeInvalidaError(props.gravidade);
-    }
-
-    // Seção 3.2: Ocorrência ALTA exige foto obrigatória
-    if (props.gravidade === GravidadeOcorrencia.ALTA) {
-      if (!props.fotos || props.fotos.length === 0) {
-        throw new OcorrenciaAltaSemFotoError();
-      }
-    }
-
     this.id = props.id;
     this.vistoriaId = props.vistoriaId;
     this.itemId = props.itemId;
@@ -163,6 +149,29 @@ export class Ocorrencia {
   }
 
   public static criar(props: OcorrenciaProps): Ocorrencia {
+    // Validações de negócio só na criação — a reidratação (reidratar) as pula.
+    if (!Object.values(GravidadeOcorrencia).includes(props.gravidade)) {
+      throw new GravidadeInvalidaError(props.gravidade);
+    }
+
+    // Seção 3.2: Ocorrência ALTA exige foto obrigatória
+    if (props.gravidade === GravidadeOcorrencia.ALTA) {
+      if (!props.fotos || props.fotos.length === 0) {
+        throw new OcorrenciaAltaSemFotoError();
+      }
+    }
+
+    return new Ocorrencia(props);
+  }
+
+  /**
+   * Reidrata uma ocorrência a partir de uma linha do banco de dados.
+   *
+   * Diferente de `criar()`, não aplica validações de negócio (gravidade inválida,
+   * ALTA sem foto): os dados já foram validados quando foram gravados. Usado
+   * exclusivamente pelo adapter SQLite (Fase 1, passo 2b).
+   */
+  public static reidratar(props: OcorrenciaProps): Ocorrencia {
     return new Ocorrencia(props);
   }
 }

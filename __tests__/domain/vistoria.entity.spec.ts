@@ -7,6 +7,7 @@ import {
   ItemCriticoSemObservacaoError,
   VistoriaJaFinalizadaError,
   VistoriaNaoFinalizavelError,
+  VistoriaStatusInvalidoError,
 } from '../../src/domain/errors/domain-errors';
 
 const T0 = new Date('2026-10-13T12:00:00.000Z');
@@ -49,6 +50,42 @@ describe('Vistoria Entity', () => {
 
     expect(vistoria.status).toBe(StatusVistoria.RASCUNHO);
     expect(vistoria.dataCriacao).toBeInstanceOf(Date);
+  });
+
+  it('deve recusar criar com status FINALIZADO (RF-VIST-001)', () => {
+    expect(() =>
+      Vistoria.criar({
+        id: 'vist-1',
+        condominioId: 'cond-1',
+        inspetorId: 'user-1',
+        status: StatusVistoria.FINALIZADA,
+        itens: criarItensMock(5),
+      })
+    ).toThrow(VistoriaStatusInvalidoError);
+  });
+
+  it('deve recusar criar com status EM_ANDAMENTO (RF-VIST-001)', () => {
+    expect(() =>
+      Vistoria.criar({
+        id: 'vist-1',
+        condominioId: 'cond-1',
+        inspetorId: 'user-1',
+        status: StatusVistoria.EM_ANDAMENTO,
+        itens: criarItensMock(5),
+      })
+    ).toThrow(VistoriaStatusInvalidoError);
+  });
+
+  it('deve recusar criar com status CANCELADA (RF-VIST-001)', () => {
+    expect(() =>
+      Vistoria.criar({
+        id: 'vist-1',
+        condominioId: 'cond-1',
+        inspetorId: 'user-1',
+        status: StatusVistoria.CANCELADA,
+        itens: criarItensMock(5),
+      })
+    ).toThrow(VistoriaStatusInvalidoError);
   });
 
   it('deve impedir finalização se menos de 80% dos itens forem marcados (RF-VIST-002)', () => {
@@ -162,7 +199,7 @@ describe('Vistoria Entity', () => {
       // não de uma chamada a finalizar(). Sem isto, RF-VIST-007 é burlado em
       // todo cold start.
       const itens = criarItensMock(5);
-      const vistoria = Vistoria.criar({
+      const vistoria = Vistoria.reidratar({
         id: 'vist-1',
         condominioId: 'cond-1',
         inspetorId: 'user-1',
@@ -185,7 +222,7 @@ describe('Vistoria Entity', () => {
     });
 
     it('deve recusar finalização de vistoria CANCELADA', () => {
-      const vistoria = Vistoria.criar({
+      const vistoria = Vistoria.reidratar({
         id: 'vist-1',
         condominioId: 'cond-1',
         inspetorId: 'user-1',

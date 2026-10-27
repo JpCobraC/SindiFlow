@@ -57,7 +57,16 @@ module.exports = {
         'src/application/**/*.ts',
         'src/adapters/**/*.ts',
       ],
-      coveragePathIgnorePatterns: ['/node_modules/', '\\.d\\.ts$'],
+      // C-17: src/infra/db/expo-sqlite.executor.ts está sem teste de runtime
+      // porque `expo-sqlite` não roda sob Jest (C-15). É código confiável
+      // apenas por leitura + validação via `tsc` (gate `typecheck`).
+      // Ponto cago intencional — não adicionar `src/infra/**` ao
+      // `coverageThreshold` até que exista teste de dispositivo.
+      coveragePathIgnorePatterns: [
+        '/node_modules/',
+        '\\.d\\.ts$',
+        'src/infra/db/expo-sqlite.executor.ts',
+      ],
     },
     {
       displayName: 'ui',

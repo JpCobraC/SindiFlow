@@ -151,6 +151,21 @@ export class ItemChecklistDeOutraVistoriaError extends DomainError {
   }
 }
 
+/**
+ * Vistoria só pode ser criada com status RASCUNHO (RF-VIST-001).
+ *
+ * A guarda existe apenas em `criar()`: a reidratação do banco (`reidratar()`)
+ * deve devolver a vistoria já finalizada sem reclamar. Sem esta distinção,
+ * `Vistoria.criar({ status: FINALIZADA })` passava em silêncio e a regra era
+ * letra morta — exatamente o defeito encontrado em 16/10/2026.
+ */
+export class VistoriaStatusInvalidoError extends DomainError {
+  constructor(status: string) {
+    super(`Vistoria só pode ser criada com status RASCUNHO (RF-VIST-001). Status recebido: ${status}`);
+    this.name = 'VistoriaStatusInvalidoError';
+  }
+}
+
 /** Gravidade fora da enum de §3.2. */
 export class GravidadeInvalidaError extends DomainError {
   constructor(gravidade: unknown) {
