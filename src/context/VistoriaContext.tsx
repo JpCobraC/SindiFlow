@@ -1,11 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
+import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
 import { OcorrenciaRepositoryInMemory } from '../adapters/repositories/ocorrencia.repository.inmemory';
+import { OutboxRepositorySQLite } from '../adapters/repositories/outbox.repository.sqlite';
+import { VistoriaRepositorySQLite } from '../adapters/repositories/vistoria.repository.sqlite';
 import { OutboxRepositoryInMemory } from '../adapters/repositories/outbox.repository.inmemory';
 import { VistoriaRepositoryInMemory } from '../adapters/repositories/vistoria.repository.inmemory';
+import { SQLiteExecutorFake } from '../adapters/repositories/sqlite-executor.fake';
 import { AnexarFotoUseCase } from '../application/use-cases/anexar-foto.usecase';
 import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import {
@@ -47,7 +50,7 @@ export interface VistoriaContextData {
 
   // Gateways e Ações de Hardware (Fakes / Mocks)
   locationGateway: LocationGatewayFake;
-  cameraGateway: CameraGatewayFake;
+  cameraGateway: CameraGatewayExpo;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
   anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia | null>;
 
@@ -69,14 +72,18 @@ export interface VistoriaContextData {
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
 
-// Instâncias In-Memory únicas (Fakes / Mocks determinísticos)
-const vistoriaRepo = new VistoriaRepositoryInMemory();
-const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
-const outboxRepo = new OutboxRepositoryInMemory();
+// Instâncias dos repositóórios — SQLite com executor fake para compatibilidade com Jest (C-15).
+// Em produção, trocar o executor por `ExpoSQLiteExecutor` com banco real.
+//
+const executorFake = new SQLiteExecutorFake();
+
+const vistoriaRepo = new VistoriaRepositorySQLite(executorFake);
+const ocorrenciaRepo = new OcorrenciaRepositorySQLite(executorFake);
+const outboxRepo = new OutboxRepositorySQLite(executorFake);
 const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
 const syncGateway = new RemoteSyncGatewayFake();
 const locationGateway = new LocationGatewayFake();
-const cameraGateway = new CameraGatewayFake();
+const cameraGateway = new CameraGatewayExpo();;
 
 // Instâncias dos Casos de Uso
 const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo, outboxRepo);

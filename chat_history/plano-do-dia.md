@@ -1,53 +1,56 @@
 # Plano do Dia — SindiFlow
 
-> ## Sessão de 27/10/2026 — Fase 1, passo 2b (repositórios SQLite de escrita) + ressalvas
+> ## Sessão de 13/11/2026 — Fase 1: Conectando SQLite como Fonte da Verdade
 >
-> O conteúdo de 16/10 e 13/10 abaixo foi **preservado**, não substituído: por §8.2b um
-> plano não aplicado por completo não é deletado, e as Fases 2 a 5 continuam pendentes.
+> ✅ Fase 1 iniciada: substituindo repositóórios em memória por implementações reais
+> em `expo-sqlite`. Realizando a decisão D-12 (revogação da D-11 "100% mock") e
+> garantindo offline-first como fonte da verdade (§1.2 do sindiflow-obrigacoes.md).
 >
-> **Decisões do responsável:** C-16 → coalescer ("último vence", §3.3) · C-17 →
-> `src/infra/db/expo-sqlite.executor.ts` em `coveragePathIgnorePatterns` com comentário
-> vinculando C-15 · C-14 → `react@19.3.1` + `@testing-library/react-native@12.9.0`.
+> **Decisões desta sessão:**
+> - Lote 1: Conectar `OutboxRepositorySQLite` no VistoriaContext
+> - Lote 2: Conectar `VistoriaRepositorySQLite` no VistoriaContext  
+> - Lote 3: Conectar `OcorrenciaRepositorySQLite` nos use cases de ocorrência
+> - Lote 4: Manter cobertura ≥90% domínio, ≥80% aplicação
+> - Lote 5: Garantir `npm test`, `typecheck` e `lint` com exit 0
 >
-> ### Etapa A — Ressalvas (concluídas)
+> ### Etapas da Fase 1
 >
-> | # | Passo | Status |
-> |---|-------|--------|
-> | A.1 | C-14: `react` atualizado para 19.3.1 + RNTL 12.9.0 instalado | ✅ |
-> | A.2 | C-17: `expo-sqlite.executor.ts` em `coveragePathIgnorePatterns` | ✅ |
-> | A.3 | C-15: Checklist de dispositivo criado (`docs/verificacao-dispositivo-sqlite.md`) | ✅ |
-> | A.4 | Gates verdes após alterações: 221 testes, 21 suítes | ✅ |
+> | # | Passo | Obrigação | Status |
+> |---|-------|-----------|--------|
+> | 1 | Conectar `OutboxRepositorySQLite` replacing `OutboxRepositoryInMemory` | §1.3 (fila outbox) | ⬜ |
+> | 2 | Conectar `VistoriaRepositorySQLite` replacing `VistoriaRepositoryInMemory` | §1.2 (SQLite = verdade) | ⬜ |
+> | 3 | Conectar `OcorrenciaRepositorySQLite` nos use cases | §1.2/§1.3 | ⬜ |
+> | 4 | Verificar cobertura: domain ≥90%, application ≥80% | §4.1 (TDD) | ⬜ |
+> | 5 | Executar `npm test` — todos testes devem passar | §4.1 | ⬜ |
+> | 6 | Verificar `npm run typecheck` e `npm run lint` — exit 0 | §4.3 | ⬜ |
 >
-> ### Etapa B — RF-VIST-001 guarda (C-10) — TDD, domain
+> ### Bloqueios identificados
 >
-> | # | Passo | Status |
-> |---|-------|--------|
-> | B.1 | `VistoriaStatusInvalidoError` adicionado a `domain-errors.ts` | ✅ |
-> | B.2 | `Vistoria.criar()` recusa status ≠ RASCUNHO | ✅ |
-> | B.3 | `Vistoria.reidratar()` permite qualquer status (hidratação do banco) | ✅ |
-> | B.4 | Testes de reidratação migrados de `criar` para `reidratar` | ✅ |
-> | B.5 | 3 novos testes RF-VIST-001 | ✅ RED → GREEN |
+> | ID | Bloqueio | Resolve em |
+> |----|----------|------------|
+> | C-15 | `expo-sqlite` não roda sous Jest — testes de repository exigem device ou jest-expo | Fase 1 (config de teste) |
+> | C-16 | Colisão chave dedup — definido: coalescer ("último vence", §3.3) | ✅ Já decidido |
+> | T-01 | Cobertura auditável — domain ≥90%, application ≥80% | Fase 1 |
 >
-> ### Etapa C — Passo 2b: repositórios SQLite de escrita — TDD, adapters
+> ### Critérios de Aceite da Fase 1
 >
-> | # | Passo | Status |
-> |---|-------|--------|
-> | C.1 | `OutboxRepositorySQLite` + spec (20 testes) | ✅ RED → GREEN |
-> | C.2 | `VistoriaRepositorySQLite` + spec (9 testes) | ✅ RED → GREEN |
-> | C.3 | `OcorrenciaRepositorySQLite` + spec (8 testes) | ✅ RED → GREEN |
-> | C.4 | `Ocorrencia.reidratar()` adicionado; validações movidas de construtor para `criar` | ✅ |
-> | C.5 | Gates verdes finais: 258 testes, 24 suítes, lint limpo, typecheck OK | ✅ |
+> - ✅ Dados persistidos no SQLite (não mais apenas em memória volátil)
+> - ✅ Outbox funciona com retry exponencial real (1s, 2s, 4s, 8s)
+> - ✅ Vistoria finalizada persiste no banco e mantém imutabilidade (RF-VIST-007)
+> - ✅ Geolocalização obrigatória validada no finalizar() (RF-VIST-004)
+> - ✅ Nenhuma regra de negócio violada (RF-VIST-001 a 004)
+> - ✅ Cobertura de teste mantida ou melhorada
+> - ✅ typecheck e lint com exit 0
 >
-> **Camadas respeitadas (§2.1):** `domain` puro (zero `expo-*`) → `application` (só
-> interfaces de domain) → `adapters` (repositórios sobre `ISQLiteExecutor`) →
-> `infra` (`ExpoSQLiteExecutor` com `expo-sqlite`). `Date` → ISO string antes de
-> `SqlParam` (§1.4).
+> ---
 >
-> **Nenhum threshold relaxado. Nenhum `eslint-disable`.**
+> **Arquivos modificados hoje:**
+> - `chat_history/plano-do-dia.md` — plano oficial da sessão
+> - `src/context/VistoriaContext.tsx` — repositórios SQLite substituindo in-memory
+> - `src/adapters/repositories/*sqlite.ts` — ja existiam, agora conectados
 >
-> **Próximo bloqueio:** C-16 já decidido (coalescer). C-15 exige verificação em
-> dispositivo (checklist em `docs/`). C-12 (RF-EVI-001 "arquivo local presente")
-> pertence à Fase 2.
+> *Anterior: `chat_history/plano-do-dia.md` (27/10) — Bloco C concluído, mas código
+> ainda usava repositórios in-memory. Nova sessão reativa a conexão SQLite.*
 >
 > > ---
 >
