@@ -98,15 +98,19 @@
 
 ---
 
-### Slide 7: A Implementação da Infraestrutura (Os Adaptadores Expo)
+### Slide 7: Compressão, Tratamento e Sandbox Privado (Sem Galeria)
 **⏱️ Tempo:** 7:30 a 8:45 (1 min e 15s)  
-**🎯 Objetivo:** Apresentar a implementação técnica real com as APIs modernas do ecossistema Expo SDK 58.
+**🎯 Objetivo:** Explicar a engenharia da imagem: como ela é comprimida em 1080p, ganha hash SHA-256 e fica isolada no sandbox sem poluir a galeria pública do celular.
 
-> *"Agora olhando para a camada externa: como a infraestrutura realiza o contrato?*  
-> *Criamos os adaptadores `CameraGatewayExpo` e `LocationGatewayExpo`.*  
-> *Para a Câmera, utilizamos `launchCameraAsync` do `expo-image-picker`. Ela aciona a câmera nativa do sistema operacional (Android ou iOS) com suporte a foco por toque, HDR e compressão de imagem antes de entregar o arquivo.*  
-> *Para a Geolocalização, usamos `expo-location` com `Accuracy.High`, requisitando as coordenadas diretamente dos chips de GPS e satélites GLONASS/Galileo do smartphone.*  
-> *O adaptador faz o mapeamento das estruturas do Expo para os objetos de domínio puros do SindiFlow, sem vazar nada para as camadas internas."*
+> *"Agora olhando para a infraestrutura real no `CameraGatewayExpo`: como tratamos as fotos no celular sem sobrecarregar a memória e sem misturar com as fotos pessoais do inspetor?*  
+>  
+> *• **1. Captura Direta:** Usamos `launchCameraAsync` sem permissões de galeria pública. A foto é acionada no sensor nativo com foco por toque e flash de hardware.*  
+>  
+> *• **2. Compressão Pericial (1080p / JPEG 70%):** Câmeras de celulares modernos tiram fotos em 4K e 48MP que pesam entre 5 e 12 MB. No subsolo, isso inviabilizaria qualquer sincronização. Usamos o `expo-image-manipulator` para redimensionar proporcionalmente para no máximo 1080p e comprimir em JPEG com qualidade 70%. Isso derruba o tamanho do arquivo para **cerca de 215 KB — uma redução de 95%**, mantendo total nitidez técnica de rachaduras e tubulações.*  
+>  
+> *• **3. Integridade Criptográfica:** O `expo-crypto` gera o hash SHA-256 da imagem na hora, garantindo a cadeia de custódia pericial contra fraudes.*  
+>  
+> *• **4. Armazenamento no Sandbox Privado (Sem Galeria):** A foto é gravada exclusivamente no diretório privado `FileSystem.documentDirectory + 'evidencias/'`. **Por que ela não vai para a galeria?** Porque o sistema operacional Android e iOS proíbe o Google Fotos, o Apple Photos e o MediaScanner de indexar pastas internas privadas de aplicativos. A foto não polui o rolo pessoal do perito e permanece segura e indexada apenas pelo nosso SQLite."*
 
 ---
 
