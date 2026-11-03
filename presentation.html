@@ -560,8 +560,8 @@
                         <p class="card-body-text" style="font-size: 0.82rem;">
                             <strong>Zero imports de SDKs externos.</strong><br>
                             • <code>Geolocalizacao</code> (Value Object imutável, limites -90..90 e -180..180).<br>
-                            • <code>Evidencia</code> (Value Object com hash e URI local).<br>
-                            • <code>ICameraGateway</code> e <code>ILocationGateway</code> (Interfaces abstratas definindo contratos).
+                            • <code>Evidencia</code> (Value Object com hash SHA-256 e URI local).<br>
+                            • <code>ICameraGateway</code> e <code>ILocationGateway</code> (Interfaces definindo contratos puros).
                         </p>
                     </div>
 
@@ -571,10 +571,10 @@
                             <span>2. Casos de Uso</span>
                         </div>
                         <p class="card-body-text" style="font-size: 0.82rem;">
-                            <strong>Orquestração de regras.</strong><br>
-                            • <code>CapturarLocalizacaoUseCase</code>: checa permissão e instancia o VO.<br>
-                            • <code>AnexarFotoUseCase</code>: valida destino antes do obturador, garante compressão 1080p e grava no agregado.<br>
-                            • <code>FinalizarVistoriaUseCase</code>: bloqueia sem GPS e valida os ≥80% do checklist.
+                            <strong>Orquestração de regras de negócio.</strong><br>
+                            • <code>CapturarLocalizacaoUseCase</code>: obtém e valida posição pericial.<br>
+                            • <code>AnexarFotoUseCase</code>: valida alvo antes de abrir obturador, limita a 1080p e grava no SQLite.<br>
+                            • <code>FinalizarVistoriaUseCase</code>: <strong>bloqueia sem GPS</strong> e valida os ≥80% do checklist.
                         </p>
                     </div>
 
@@ -588,14 +588,39 @@
                             • <code>CameraGatewayExpo</code> (expo-image-picker).<br>
                             • <code>LocationGatewayExpo</code> (expo-location).<br>
                             • <code>VistoriaRepositorySQLite</code> (expo-sqlite).<br>
-                            • Fakes determinísticos para execução de testes em milissegundos.
+                            • Fakes determinísticos para execução de testes velozes.
                         </p>
                     </div>
                 </div>
+
+                <!-- Destaque Mandatório: Onde vai a Câmera e o GPS -->
+                <div class="grid-2col" style="margin-top: 1rem; margin-bottom: 0.5rem;">
+                    <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 0.9rem;">
+                        <h4 style="color: #38BDF8; font-size: 0.95rem; font-weight: 800; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📷 Onde Vai a CÂMERA?</span>
+                        </h4>
+                        <p style="font-size: 0.8rem; color: #CBD5E1; line-height: 1.45;">
+                            • <strong>Nos Itens do Checklist:</strong> Anexada ao <code>ItemChecklist</code> como evidência visual de integridade ou avaria.<br>
+                            • <strong>Nas Ocorrências Críticas (§3.2):</strong> Anexo fotográfico <em>mandatório</em> para anomalias com SLA de 24h (Gravidade ALTA).<br>
+                            • <strong>No FileSystem + SQLite:</strong> Arquivo comprimido em máx 1080p no disco físico, indexado no SQLite por hash SHA-256 (nunca base64).
+                        </p>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 0.9rem;">
+                        <h4 style="color: #10B981; font-size: 0.95rem; font-weight: 800; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <span>📍 Onde Vai o GPS MANDATÓRIO?</span>
+                        </h4>
+                        <p style="font-size: 0.8rem; color: #CBD5E1; line-height: 1.45;">
+                            • <strong>Na Sessão de Vistoria (Não por foto):</strong> Obedece a regra §1.4 evitando dispersão de coordenadas avulsas.<br>
+                            • <strong>Gatilho Mandatório na Conclusão (RF-VIST-004):</strong> Invariante de domínio — o método <code>vistoria.finalizar(geolocalizacao)</code> lança erro se executado sem satélite.<br>
+                            • <strong>Assinatura Pericial de Presença:</strong> Certifica juridicamente (NBR 5674) que o inspetor esteve fisicamente no edifício no momento do laudo.
+                        </p>
+                    </div>
+                </div>
+
                 <div class="speaker-notes-box">
                     <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 2:15 a 3:45</span>
                     <p class="speaker-notes-text">
-                        "Aplicamos Clean Architecture extrema. O erro comum em apps mobile é importar 'expo-camera' ou 'expo-location' dentro de componentes ou da lógica de negócio. No SindiFlow, o Domínio não faz a menor ideia de que o Expo existe. O Domínio define interfaces: ICameraGateway e ILocationGateway. A camada de Adapters implementa essas interfaces usando as APIs do Expo. Se amanhã migrarmos de Expo para React Native puro ou outra biblioteca, o Domínio e os Casos de Uso não sofrem uma única linha de alteração."
+                        "Onde exatamente entram a Câmera e o GPS? A Câmera entra vinculada a cada Item de Checklist e Ocorrência de Gravidade Alta como um Value Object Evidencia, com hash e caminho físico em disco. Já o GPS MANDATÓRIO não é tirado por foto: ele entra na Sessão de Vistoria, disparado compulsoriamente pelo Caso de Uso FinalizarVistoria (RF-VIST-004). Sem as coordenadas do satélite, o Domínio se recusa a concluir a inspeção, assegurando que o laudo técnico comprove a presença física do inspetor no condomínio."
                     </p>
                 </div>
             </section>
