@@ -129,3 +129,4 @@
 > *Entregamos um aplicativo onde a **Câmera** comprova o dano com integridade física; a **Geolocalização** comprova a presença pericial do engenheiro no condomínio; e o **SQLite local** garante que nenhuma informação se perca, mesmo a 3 andares abaixo do solo.*  
 > *O código respeita rigorosamente a Clean Architecture, o DDD e os princípios de TDD.*  
 > *Muito obrigado pela atenção, e estamos abertos para perguntas e para demonstrar o app funcionando ao vivo no dispositivo!"*
+
