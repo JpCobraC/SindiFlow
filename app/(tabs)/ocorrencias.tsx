@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   Alert,
   Modal,
@@ -637,3 +637,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+

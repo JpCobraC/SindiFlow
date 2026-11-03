@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -102,7 +102,7 @@ export default function MetricasScreen() {
           </Text>
           <View style={styles.archStats}>
             <Text style={styles.archStatItem}>
-              <Text style={styles.boldText}>Rede:</Text> {isOnline ? 'Online (Wi-Fi)' : 'Offline (Subsolo G2)'}
+              <Text style={styles.boldText}>Rede:</Text> {isOnline ? 'Online (Sincronizado)' : 'Offline (Local)'}
             </Text>
             <Text style={styles.archStatItem}>
               <Text style={styles.boldText}>Vistoria:</Text> {vistoriaAtiva?.status || 'N/A'}
@@ -316,4 +316,5 @@ const styles = StyleSheet.create({
   normaText: { color: '#8B949E', fontSize: 12, lineHeight: 18 },
   bold: { color: '#F0F6FC', fontWeight: 'bold' },
 });
+
 

@@ -198,7 +198,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [outboxPendentes, setOutboxPendentes] = useState<OutboxEvent[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
-  const [isOnline, setIsOnline] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isSimulandoErro503, setIsSimulandoErro503] = useState<boolean>(false);
   const [isCarregando, setIsCarregando] = useState<boolean>(true);
   const [isHardwareNativo, setIsHardwareNativo] = useState<boolean>(true);
@@ -208,12 +208,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsHardwareNativo(novo);
     cameraGateway.isNativo = novo;
     locationGateway.isNativo = novo;
-    addLog(
-      'INFO',
-      novo
-        ? 'Câmera e Geolocalização alternadas para MÓDULOS NATIVOS EXPO (expo-image-picker / expo-location).'
-        : 'Câmera e Geolocalização alternadas para MOCK DETERMINÍSTICO.'
-    );
   };
 
   const addLog = useCallback((tipo: AuditLogItem['tipo'], mensagem: string) => {
@@ -338,14 +332,13 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       await atualizarEstadoOcorrencias(vistoria.id);
       await atualizarEstadoOutbox();
 
-      networkService.setOnline(false);
-      setIsOnline(false);
+      networkService.setOnline(true);
+      setIsOnline(true);
       syncGateway.setSimularErro503(false);
       setIsSimulandoErro503(false);
 
-      addLog('INFO', 'SQLite Offline Inicializado — Fonte da verdade (§1.2).');
       addLog('INFO', 'Vistoria Edifício Solar carregada em RASCUNHO com 50% respondido.');
-      addLog('INFO', 'Dispositivo em modo OFFLINE simulando garagem G2 sem sinal.');
+      addLog('INFO', 'Módulos nativos de Câmera e Geolocalização (Expo) prontos.');
     } catch (e: any) {
       addLog('BLOQUEIO', `Erro na inicialização: ${e?.message || e}`);
     } finally {
