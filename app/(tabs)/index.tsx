@@ -145,11 +145,29 @@ export default function VistoriaScreen() {
     }
   };
 
-  if (isCarregando || !vistoriaAtiva) {
+  if (isCarregando) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.center]}>
         <ActivityIndicator size="large" color="#38BDF8" />
         <Text style={{ color: '#94A3B8', marginTop: 12 }}>Carregando agregados em memória...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!vistoriaAtiva) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.center, { padding: 24 }]}>
+        <Text style={{ color: '#F87171', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
+          Vistoria não inicializada
+        </Text>
+        <Text style={{ color: '#94A3B8', marginBottom: 20, textAlign: 'center' }}>
+          Não foi possível carregar a vistoria ativa. Toque abaixo para reinicializar os dados.
+        </Text>
+        <TouchableOpacity
+          style={[styles.finalizeBtn, { paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 }]}
+          onPress={reiniciarMock}>
+          <Text style={styles.finalizeBtnText}>Inicializar Vistoria</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     );
   }

@@ -5,10 +5,9 @@ import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo'
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
-import { OcorrenciaRepositorySQLite } from '../adapters/repositories/ocorrencia.repository.sqlite';
-import { OutboxRepositorySQLite } from '../adapters/repositories/outbox.repository.sqlite';
-import { VistoriaRepositorySQLite } from '../adapters/repositories/vistoria.repository.sqlite';
-import { SQLiteExecutorFake } from '../adapters/repositories/sqlite-executor.fake';
+import { OcorrenciaRepositoryInMemory } from '../adapters/repositories/ocorrencia.repository.inmemory';
+import { OutboxRepositoryInMemory } from '../adapters/repositories/outbox.repository.inmemory';
+import { VistoriaRepositoryInMemory } from '../adapters/repositories/vistoria.repository.inmemory';
 import { AnexarFotoUseCase } from '../application/use-cases/anexar-foto.usecase';
 import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import {
@@ -169,11 +168,10 @@ export interface VistoriaContextData {
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
 
-// Instâncias dos repositórios SQLite
-const executorFake = new SQLiteExecutorFake();
-const vistoriaRepo = new VistoriaRepositorySQLite(executorFake);
-const ocorrenciaRepo = new OcorrenciaRepositorySQLite(executorFake);
-const outboxRepo = new OutboxRepositorySQLite(executorFake);
+// Instâncias dos repositórios
+const vistoriaRepo = new VistoriaRepositoryInMemory();
+const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+const outboxRepo = new OutboxRepositoryInMemory();
 const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
 const syncGateway = new RemoteSyncGatewayFake();
 
@@ -240,9 +238,9 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const popularMockInicial = useCallback(async () => {
     try {
-      (vistoriaRepo as any).limpar?.();
-      (ocorrenciaRepo as any).limpar?.();
-      (outboxRepo as any).limpar?.();
+      vistoriaRepo.limpar();
+      ocorrenciaRepo.limpar();
+      outboxRepo.limpar();
 
       const vistoria = await criarVistoriaUseCase.executar({
         id: 'vist-solar-01',
