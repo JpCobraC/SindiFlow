@@ -240,9 +240,9 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const popularMockInicial = useCallback(async () => {
     try {
-      vistoriaRepo.limpar();
-      ocorrenciaRepo.limpar();
-      outboxRepo.limpar();
+      (vistoriaRepo as any).limpar?.();
+      (ocorrenciaRepo as any).limpar?.();
+      (outboxRepo as any).limpar?.();
 
       const vistoria = await criarVistoriaUseCase.executar({
         id: 'vist-solar-01',
@@ -460,7 +460,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         return null;
       }
 
-      if (resultado.status === 'erro' || resultado.status === 'erro_captura') {
+      if (resultado.status === 'erro_captura') {
         addLog('BLOQUEIO', `Falha ao anexar foto: ${resultado.mensagem}`);
         throw new Error(resultado.mensagem);
       }
@@ -553,10 +553,10 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const resultado = await sincronizarOutboxUseCase.executar();
       await atualizarEstadoOutbox();
 
-      if (resultado.sucessos > 0) {
+      if (resultado.sincronizados > 0) {
         addLog(
           'SUCESSO',
-          `Sincronização concluída: ${resultado.sucessos} itens enviados com 200 OK.`
+          `Sincronização concluída: ${resultado.sincronizados} itens enviados com 200 OK.`
         );
       }
       if (resultado.falhas > 0) {

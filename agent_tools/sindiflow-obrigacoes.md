@@ -14,7 +14,7 @@ Esta skill contém todas as obrigações inegociáveis do projeto SindiFlow. **O
 ## 1. PRINCÍPIOS TÉCNICOS INEGOCIÁVEIS
 
 ### 1.1 PLATAFORMA
-- ✅ O aplicativo **DEVE** ser 100% nativo usando **Expo SDK 57**
+- ✅ O aplicativo **DEVE** ser 100% nativo usando **Expo SDK 58**
 - ❌ **PROIBIDO**: qualquer menção a implementação web, PWA ou browser
 - ✅ **PERMITIDO**: apenas `expo start --android`, `expo start --ios`, `expo start --device`
 - ✅ **VALIDAÇÃO**: verificar `package.json` para ausência de dependências web

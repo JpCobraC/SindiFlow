@@ -77,8 +77,10 @@ export default function VistoriaScreen() {
     try {
       setAnexandoFotoId(itemId);
       const ev = await anexarFoto({ itemId });
-      const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
-      Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: ${isHardwareNativo ? 'Câmera Nativa Expo' : 'Simulador Mock'}`);
+      if (ev) {
+        const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
+        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: ${isHardwareNativo ? 'Câmera Nativa Expo' : 'Simulador Mock'}`);
+      }
     } catch (err: any) {
       if (err?.message?.includes('cancelada')) return;
       Alert.alert('Falha na Câmera (RNF02)', err?.message || 'Não foi possível capturar a foto.');
