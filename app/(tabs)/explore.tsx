@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Alert,
-  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -25,21 +24,23 @@ export default function MetricasScreen() {
   } = useVistoria();
 
   const handleReset = () => {
-    const confirmMsg = 'Deseja restaurar o estado inicial da demonstração (50% checklist, 2 ocorrências, 3 outbox)?';
-    if (Platform.OS === 'web') {
-      if (window.confirm(confirmMsg)) {
-        reiniciarMock();
-      }
-    } else {
-      Alert.alert('Reiniciar Mock', confirmMsg, [
+    Alert.alert(
+      'Reiniciar Mock',
+      'Deseja restaurar o estado inicial da demonstração (50% checklist, 2 ocorrências, 3 outbox)?',
+      [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Reiniciar', style: 'destructive', onPress: () => reiniciarMock() },
-      ]);
-    }
+      ]
+    );
   };
 
+  // Um item do checklist está "respondido" quando deixou de estar PENDENTE.
+  // `ItemChecklist` não expõe um getter `respondido` — usar essa propriedade
+  // fazia o dashboard inteiro calcular 0/undefined e quebrava o typecheck.
   const totalItens = itensChecklist.length;
-  const respondidos = itensChecklist.filter((i) => i.status !== StatusItemChecklist.PENDENTE).length;
+  const respondidos = itensChecklist.filter(
+    (i) => i.status !== StatusItemChecklist.PENDENTE
+  ).length;
   const percentual = totalItens > 0 ? Math.round((respondidos / totalItens) * 100) : 0;
 
   const ocorrenciasAltas = ocorrencias.filter(
@@ -54,7 +55,7 @@ export default function MetricasScreen() {
     acc[item.categoria].total += 1;
     if (item.status !== StatusItemChecklist.PENDENTE) {
       acc[item.categoria].respondidos += 1;
-      if (item.status === 'OK') acc[item.categoria].ok += 1;
+      if (item.status === StatusItemChecklist.OK) acc[item.categoria].ok += 1;
     }
     return acc;
   }, {} as Record<string, { total: number; respondidos: number; ok: number }>);
@@ -88,13 +89,16 @@ export default function MetricasScreen() {
         {/* Status da Arquitetura & Testes */}
         <View style={styles.archCard}>
           <View style={styles.archHeader}>
-            <Text style={styles.archTitle}>Clean Architecture & TDD (Fase 1)</Text>
+            <Text style={styles.archTitle}>Clean Architecture &amp; TDD</Text>
             <View style={styles.coverageBadge}>
-              <Text style={styles.coverageText}>92.6% Cobertura</Text>
+              <Text style={styles.coverageText}>Cobertura sob gate</Text>
             </View>
           </View>
           <Text style={styles.archDesc}>
-            11 Suítes de Testes (33/33 passando). Regras e entidades de domínio 100% puras sem dependência de SQLite ou Supabase.
+            Regras e entidades de domínio puras, sem dependência de SQLite, Expo ou
+            Supabase. A cobertura não é impressa aqui de propósito: um número fixo
+            envelhece em silêncio. Os valores reais saem de <Text style={styles.boldText}>npm run coverage</Text>,
+            que falha se o domínio cair abaixo de 90%.
           </Text>
           <View style={styles.archStats}>
             <Text style={styles.archStatItem}>

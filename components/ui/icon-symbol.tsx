@@ -1,17 +1,21 @@
-// Fallback for using MaterialIcons on Android and web.
+// Fallback for using MaterialIcons on Android.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
+import { SymbolWeight } from 'expo-symbols';
 
-type IconMapping = Partial<Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>>;
-type IconSymbolName = keyof typeof MAPPING;
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
 /**
  * Add your SF Symbols to Material Icons mappings here.
  * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
+ *
+ * O mapa é tipado por `satisfies Record<string, MaterialIconName>` e não por
+ * `Partial<Record<SymbolViewProps['name'], ...>>`: no SDK 57 `SymbolViewProps['name']`
+ * deixou de ser um simples `string` e passou a incluir variantes condicionais por
+ * plataforma, o que quebrava `keyof typeof MAPPING` e impedia o typecheck de passar.
  */
 const MAPPING = {
   'house.fill': 'home',
@@ -22,10 +26,12 @@ const MAPPING = {
   'exclamationmark.triangle.fill': 'warning',
   'arrow.triangle.2.circlepath': 'sync',
   'chart.bar.fill': 'bar-chart',
-} as IconMapping;
+} as const satisfies Record<string, MaterialIconName>;
+
+export type IconSymbolName = keyof typeof MAPPING;
 
 /**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
+ * An icon component that uses native SF Symbols on iOS, and Material Icons on Android.
  * This ensures a consistent look across platforms, and optimal resource usage.
  * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
  */

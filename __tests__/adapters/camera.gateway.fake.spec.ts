@@ -29,11 +29,15 @@ describe('CameraGatewayFake', () => {
   });
 
   it('deve capturar foto simulada com URI e dimensões máximas 1080p (RNF08)', async () => {
-    const foto = await cameraGateway.capturarFoto({
+    const resultado = await cameraGateway.capturarFoto({
       larguraMaxima: 1080,
       alturaMaxima: 1080,
       qualidade: 0.8,
     });
+
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status !== 'sucesso') throw new Error('esperava sucesso');
+    const foto = resultado.foto;
 
     expect(foto.uri).toContain('file:///');
     expect(foto.largura).toBeLessThanOrEqual(1080);
@@ -50,8 +54,32 @@ describe('CameraGatewayFake', () => {
       hash: 'sha256-mock-hash-123',
     });
 
-    const foto = await cameraGateway.capturarFoto();
-    expect(foto.uri).toBe('file:///cache/custom_evidencia.jpg');
-    expect(foto.hash).toBe('sha256-mock-hash-123');
+    const resultado = await cameraGateway.capturarFoto();
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status !== 'sucesso') throw new Error('esperava sucesso');
+    expect(resultado.foto.uri).toBe('file:///cache/custom_evidencia.jpg');
+    expect(resultado.foto.hash).toBe('sha256-mock-hash-123');
+  });
+
+  it('deve distinguir cancelamento de erro, sem crash (RNF02)', async () => {
+    // Cancelar é o caminho mais comum numa tela de câmera. Com
+    // `Promise<FotoCapturada>` o adapter teria de fabricar uri ou lançar.
+    cameraGateway.setCancelado(true);
+    const cancelado = await cameraGateway.capturarFoto();
+    expect(cancelado.status).toBe('cancelado');
+
+    cameraGateway.setCancelado(false);
+    cameraGateway.setErro('Câmera ocupada');
+    const erro = await cameraGateway.capturarFoto();
+    expect(erro.status).toBe('erro');
+    if (erro.status !== 'erro') throw new Error('esperava erro');
+    expect(erro.mensagem).toBe('Câmera ocupada');
+  });
+
+  it('sempre deve devolver hash: RF-EVI-001 exige verificação da evidência', async () => {
+    const resultado = await cameraGateway.capturarFoto();
+    if (resultado.status !== 'sucesso') throw new Error('esperava sucesso');
+    expect(resultado.foto.hash).toBeTruthy();
+    expect(resultado.foto.timestamp).toBeInstanceOf(Date);
   });
 });

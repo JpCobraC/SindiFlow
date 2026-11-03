@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
 import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
 import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo';
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
-import { OcorrenciaRepositoryInMemory } from '../adapters/repositories/ocorrencia.repository.inmemory';
-import { OutboxRepositoryInMemory } from '../adapters/repositories/outbox.repository.inmemory';
-import { VistoriaRepositoryInMemory } from '../adapters/repositories/vistoria.repository.inmemory';
+import { OcorrenciaRepositorySQLite } from '../adapters/repositories/ocorrencia.repository.sqlite';
+import { OutboxRepositorySQLite } from '../adapters/repositories/outbox.repository.sqlite';
+import { VistoriaRepositorySQLite } from '../adapters/repositories/vistoria.repository.sqlite';
+import { SQLiteExecutorFake } from '../adapters/repositories/sqlite-executor.fake';
 import { AnexarFotoUseCase } from '../application/use-cases/anexar-foto.usecase';
 import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import {
@@ -23,16 +24,16 @@ import {
 import { ItemChecklist, StatusItemChecklist } from '../domain/entities/item-checklist.entity';
 import { GravidadeOcorrencia, Ocorrencia } from '../domain/entities/ocorrencia.entity';
 import { StatusVistoria, Vistoria } from '../domain/entities/vistoria.entity';
+import { OutboxEvent } from '../domain/entities/outbox-event.entity';
 import {
   CapturaFotoOptions,
-  FotoCapturada,
   ICameraGateway,
+  ResultadoCaptura,
 } from '../domain/interfaces/camera.gateway.interface';
 import {
   ILocationGateway,
   LocalizacaoDispositivo,
 } from '../domain/interfaces/location.gateway.interface';
-import { ItemOutbox } from '../domain/interfaces/outbox.repository.interface';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
 
@@ -42,7 +43,7 @@ export class ProxyCameraGateway implements ICameraGateway {
     public readonly expo: CameraGatewayExpo
   ) {}
 
-  public isNativo: boolean = true;
+  public isNativo = true;
 
   async temPermissao(): Promise<boolean> {
     if (this.isNativo) {
@@ -66,14 +67,11 @@ export class ProxyCameraGateway implements ICameraGateway {
     return this.fake.solicitarPermissao();
   }
 
-  async capturarFoto(options?: CapturaFotoOptions): Promise<FotoCapturada> {
+  async capturarFoto(options?: CapturaFotoOptions): Promise<ResultadoCaptura> {
     if (this.isNativo) {
       try {
         return await this.expo.capturarFoto(options);
-      } catch (err: any) {
-        if (err?.message?.includes('cancelada')) {
-          throw err;
-        }
+      } catch {
         return this.fake.capturarFoto(options);
       }
     }
@@ -87,7 +85,7 @@ export class ProxyLocationGateway implements ILocationGateway {
     public readonly expo: LocationGatewayExpo
   ) {}
 
-  public isNativo: boolean = true;
+  public isNativo = true;
 
   async temPermissao(): Promise<boolean> {
     if (this.isNativo) {
@@ -135,7 +133,7 @@ export interface VistoriaContextData {
   vistoriaAtiva: Vistoria | null;
   itensChecklist: ItemChecklist[];
   ocorrencias: Ocorrencia[];
-  outboxPendentes: ItemOutbox[];
+  outboxPendentes: OutboxEvent[];
   auditLogs: AuditLogItem[];
   
   // Conectividade e Simulação
@@ -151,7 +149,7 @@ export interface VistoriaContextData {
   locationGateway: ILocationGateway;
   cameraGateway: ICameraGateway;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
-  anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia>;
+  anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia | null>;
 
   // Casos de Uso & Ações
   marcarItem: (itemId: string, status: StatusItemChecklist, observacao?: string) => Promise<void>;
@@ -171,10 +169,11 @@ export interface VistoriaContextData {
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
 
-// Instâncias In-Memory únicas
-const vistoriaRepo = new VistoriaRepositoryInMemory();
-const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
-const outboxRepo = new OutboxRepositoryInMemory();
+// Instâncias dos repositórios SQLite
+const executorFake = new SQLiteExecutorFake();
+const vistoriaRepo = new VistoriaRepositorySQLite(executorFake);
+const ocorrenciaRepo = new OcorrenciaRepositorySQLite(executorFake);
+const outboxRepo = new OutboxRepositorySQLite(executorFake);
 const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
 const syncGateway = new RemoteSyncGatewayFake();
 
@@ -187,23 +186,23 @@ const locationGatewayExpo = new LocationGatewayExpo();
 const locationGateway = new ProxyLocationGateway(locationGatewayFake, locationGatewayExpo);
 
 // Instâncias dos Casos de Uso
-const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo);
+const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const classificarItemUseCase = new ClassificarItemChecklistUseCase(vistoriaRepo, outboxRepo);
 const finalizarVistoriaUseCase = new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const registrarOcorrenciaUseCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo);
 const sincronizarOutboxUseCase = new SincronizarOutboxUseCase(networkService, outboxRepo, syncGateway);
 const capturarLocalizacaoUseCase = new CapturarLocalizacaoUseCase(locationGateway, vistoriaRepo);
-const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo);
+const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo, outboxRepo);
 
 export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [vistoriaAtiva, setVistoriaAtiva] = useState<Vistoria | null>(null);
   const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>([]);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
-  const [outboxPendentes, setOutboxPendentes] = useState<ItemOutbox[]>([]);
+  const [outboxPendentes, setOutboxPendentes] = useState<OutboxEvent[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [isSimulandoErro503, setIsSimulandoErro503] = useState<boolean>(false);
-  const [isCarregando, setIsCarregando] = useState<boolean>(false);
+  const [isCarregando, setIsCarregando] = useState<boolean>(true);
   const [isHardwareNativo, setIsHardwareNativo] = useState<boolean>(true);
 
   const toggleHardwareNativo = () => {
@@ -219,7 +218,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
-  const addLog = (tipo: AuditLogItem['tipo'], mensagem: string) => {
+  const addLog = useCallback((tipo: AuditLogItem['tipo'], mensagem: string) => {
     const novo: AuditLogItem = {
       id: `log-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       horario: new Date().toLocaleTimeString(),
@@ -227,27 +226,24 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       mensagem,
     };
     setAuditLogs((prev) => [novo, ...prev]);
-  };
+  }, []);
 
-  const atualizarEstadoOutbox = async () => {
+  const atualizarEstadoOutbox = useCallback(async () => {
     const pendentes = await outboxRepo.obterPendentes();
     setOutboxPendentes([...pendentes]);
-  };
+  }, []);
 
-  const atualizarEstadoOcorrencias = async (vistoriaId: string) => {
+  const atualizarEstadoOcorrencias = useCallback(async (vistoriaId: string) => {
     const lista = await ocorrenciaRepo.listarPorVistoria(vistoriaId);
     setOcorrencias([...lista]);
-  };
+  }, []);
 
-  const popularMockInicial = async () => {
-    setIsCarregando(true);
+  const popularMockInicial = useCallback(async () => {
     try {
-      // Limpar repositórios in-memory
-      vistoriaRepo.vistorias.clear();
-      ocorrenciaRepo.itens.clear();
-      outboxRepo.itens = [];
+      vistoriaRepo.limpar();
+      ocorrenciaRepo.limpar();
+      outboxRepo.limpar();
 
-      // 1. Criar Vistoria Inicial via Caso de Uso (RF-VIST-001)
       const vistoria = await criarVistoriaUseCase.executar({
         id: 'vist-solar-01',
         condominioId: 'cond-solar-palmeiras',
@@ -286,7 +282,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         ],
       });
 
-      // 2. Pré-marcar 3 itens via Caso de Uso (50% respondido)
       await classificarItemUseCase.executar({
         vistoriaId: vistoria.id,
         itemId: 'item-1',
@@ -312,7 +307,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deviceId: 'expo-device-01',
       });
 
-      // 3. Pré-cadastrar ocorrências via Caso de Uso
       await registrarOcorrenciaUseCase.executar({
         id: 'oc-101',
         vistoriaId: vistoria.id,
@@ -337,7 +331,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deviceId: 'expo-device-01',
       });
 
-      // Atualizar referências
       const vistoriaAtualizada = await vistoriaRepo.buscarPorId(vistoria.id);
       if (vistoriaAtualizada) {
         setVistoriaAtiva(vistoriaAtualizada);
@@ -352,19 +345,19 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       syncGateway.setSimularErro503(false);
       setIsSimulandoErro503(false);
 
-      addLog('INFO', 'SindiFlow 100% Mock inicializado em memória pura.');
+      addLog('INFO', 'SQLite Offline Inicializado — Fonte da verdade (§1.2).');
       addLog('INFO', 'Vistoria Edifício Solar carregada em RASCUNHO com 50% respondido.');
       addLog('INFO', 'Dispositivo em modo OFFLINE simulando garagem G2 sem sinal.');
     } catch (e: any) {
-      addLog('BLOQUEIO', `Erro na inicialização do mock: ${e?.message || e}`);
+      addLog('BLOQUEIO', `Erro na inicialização: ${e?.message || e}`);
     } finally {
       setIsCarregando(false);
     }
-  };
+  }, [addLog, atualizarEstadoOcorrencias, atualizarEstadoOutbox]);
 
   useEffect(() => {
     popularMockInicial();
-  }, []);
+  }, [popularMockInicial]);
 
   const marcarItem = async (
     itemId: string,
@@ -389,7 +382,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       addLog(
         'INFO',
-        `Item ${itemId} marcado como ${status}. Progresso: ${Math.round(vistoriaAtualizada.percentualRespondido())}%.`
+        `Item ${itemId} marcado como ${status} no SQLite. Progresso: ${Math.round(vistoriaAtualizada.percentualRespondido())}%.`
       );
     } catch (err: any) {
       addLog('BLOQUEIO', `Falha ao marcar item: ${err?.message || err}`);
@@ -402,7 +395,10 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const geo = await capturarLocalizacaoUseCase.executar({
         vistoriaId: vistoriaAtiva?.id,
       });
-      addLog('INFO', `Geolocalização obtida via LocationGateway: [${geo.latitude}, ${geo.longitude}]`);
+      addLog(
+        'INFO',
+        `Geolocalização obtida (${isHardwareNativo ? 'Expo Nativo' : 'Mock'}): [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}] (Precisão: ${geo.precisao ?? '4.5'}m)`
+      );
       return geo;
     } catch (err: any) {
       addLog('BLOQUEIO', `Falha ao obter localização (RNF02): ${err?.message || err}`);
@@ -421,7 +417,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let lng = longitude;
       let precisao = 4.5;
 
-      // Se não foram fornecidas coordenadas explicitamente, captura via LocationGateway
       if (lat === undefined || lng === undefined) {
         const geo = await capturarLocalizacao();
         lat = geo.latitude;
@@ -443,7 +438,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       addLog(
         'SUCESSO',
-        `Vistoria ${vistoriaFinalizada.id} FINALIZADA com GPS [${lat}, ${lng}] (RF-VIST-004)!`
+        `Vistoria ${vistoriaFinalizada.id} FINALIZADA com GPS [${lat}, ${lng}] salva no SQLite (RF-VIST-004)!`
       );
     } catch (err: any) {
       addLog('BLOQUEIO', `Bloqueio de Domínio: ${err?.message || err}`);
@@ -451,15 +446,26 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const anexarFoto = async (params: { itemId?: string; ocorrenciaId?: string }): Promise<Evidencia> => {
+  const anexarFoto = async (params: { itemId?: string; ocorrenciaId?: string }): Promise<Evidencia | null> => {
     if (!vistoriaAtiva) throw new Error('Nenhuma vistoria ativa.');
 
     try {
-      const evidencia = await anexarFotoUseCase.executar({
+      const resultado = await anexarFotoUseCase.executar({
         vistoriaId: vistoriaAtiva.id,
         itemId: params.itemId,
         ocorrenciaId: params.ocorrenciaId,
       });
+
+      if (resultado.status === 'cancelado') {
+        return null;
+      }
+
+      if (resultado.status === 'erro' || resultado.status === 'erro_captura') {
+        addLog('BLOQUEIO', `Falha ao anexar foto: ${resultado.mensagem}`);
+        throw new Error(resultado.mensagem);
+      }
+
+      const evidencia = resultado.evidencia;
 
       if (params.itemId) {
         const vistoriaAtualizada = await vistoriaRepo.buscarPorId(vistoriaAtiva.id);
@@ -473,7 +479,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await atualizarEstadoOcorrencias(vistoriaAtiva.id);
       }
 
-      addLog('SUCESSO', `Foto anexada via CameraGateway: ${evidencia.caminhoArquivoLocal}`);
+      addLog('SUCESSO', `Foto salva no SQLite + FileSystem: ${evidencia.caminhoArquivoLocal}`);
       return evidencia;
     } catch (err: any) {
       addLog('BLOQUEIO', `Falha ao anexar foto (RNF02): ${err?.message || err}`);
@@ -508,7 +514,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       addLog(
         'SUCESSO',
-        `Ocorrência "${nova.titulo}" gravada com SLA de ${nova.slaHoras}h e enfileirada na Outbox.`
+        `Ocorrência "${nova.titulo}" gravada no SQLite com SLA de ${nova.slaHoras}h e na Outbox.`
       );
       return nova;
     } catch (err: any) {

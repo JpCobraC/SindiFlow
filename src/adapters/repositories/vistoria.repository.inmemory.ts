@@ -2,7 +2,7 @@ import { Vistoria } from '../../domain/entities/vistoria.entity';
 import { IVistoriaRepository } from '../../domain/interfaces/vistoria.repository.interface';
 
 export class VistoriaRepositoryInMemory implements IVistoriaRepository {
-  public vistorias: Map<string, Vistoria> = new Map();
+  private vistorias: Map<string, Vistoria> = new Map();
 
   async salvar(vistoria: Vistoria): Promise<void> {
     this.vistorias.set(vistoria.id, vistoria);
@@ -14,5 +14,10 @@ export class VistoriaRepositoryInMemory implements IVistoriaRepository {
 
   async listarPorCondominio(condominioId: string): Promise<Vistoria[]> {
     return Array.from(this.vistorias.values()).filter((v) => v.condominioId === condominioId);
+  }
+
+  /** Limpeza total. Usada pelo seed de demonstração. */
+  limpar(): void {
+    this.vistorias.clear();
   }
 }

@@ -63,7 +63,7 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
       ],
     });
 
-    const foto = await gateway.capturarFoto({
+    const resultado = await gateway.capturarFoto({
       larguraMaxima: 1080,
       alturaMaxima: 1080,
       qualidade: 0.8,
@@ -75,19 +75,23 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
       allowsEditing: false,
     });
 
-    expect(foto.uri).toBe('file:///data/user/0/com.sindiflow/cache/photo.jpg');
-    expect(foto.largura).toBe(1920);
-    expect(foto.altura).toBe(1080);
-    expect(foto.tamanhoBytes).toBe(320000);
-    expect(foto.hash).toContain('evidencia_01.jpg');
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status === 'sucesso') {
+      expect(resultado.foto.uri).toBe('file:///data/user/0/com.sindiflow/cache/photo.jpg');
+      expect(resultado.foto.largura).toBe(1920);
+      expect(resultado.foto.altura).toBe(1080);
+      expect(resultado.foto.tamanhoBytes).toBe(320000);
+      expect(resultado.foto.hash).toContain('evidencia_01.jpg');
+    }
   });
 
-  it('deve lançar erro se a captura for cancelada pelo usuário', async () => {
+  it('deve retornar status cancelado se o usuário cancelar a câmera (RNF02)', async () => {
     mockLaunchCameraAsync.mockResolvedValueOnce({
       canceled: true,
       assets: null,
     });
 
-    await expect(gateway.capturarFoto()).rejects.toThrow('Captura de foto cancelada pelo usuário');
+    const resultado = await gateway.capturarFoto();
+    expect(resultado.status).toBe('cancelado');
   });
 });

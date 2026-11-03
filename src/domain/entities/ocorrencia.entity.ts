@@ -1,4 +1,9 @@
-import { OcorrenciaAltaSemFotoError } from '../errors/domain-errors';
+import {
+  GravidadeInvalidaError,
+  OcorrenciaAltaSemFotoError,
+  OcorrenciaDataInvalidaError,
+  OcorrenciaJaResolvidaError,
+} from '../errors/domain-errors';
 
 export enum GravidadeOcorrencia {
   BAIXA = 'BAIXA',
@@ -38,16 +43,10 @@ export class Ocorrencia {
   private _fotos: string[];
   readonly dataCriacao: Date;
   private _dataResolucao?: Date;
+  private _dataCancelamento?: Date;
   private _solucao?: string;
 
   private constructor(props: OcorrenciaProps) {
-    // Seção 3.2: Ocorrência ALTA exige foto obrigatória
-    if (props.gravidade === GravidadeOcorrencia.ALTA) {
-      if (!props.fotos || props.fotos.length === 0) {
-        throw new OcorrenciaAltaSemFotoError();
-      }
-    }
-
     this.id = props.id;
     this.vistoriaId = props.vistoriaId;
     this.itemId = props.itemId;
@@ -56,7 +55,9 @@ export class Ocorrencia {
     this.gravidade = props.gravidade;
     this._status = props.status || StatusOcorrencia.ABERTA;
     this._fotos = props.fotos ? [...props.fotos] : [];
-    this.dataCriacao = props.dataCriacao || new Date();
+    // Cópia defensiva: `readonly` não protege um `Date` de
+    // `dataCriacao.setFullYear(1999)`, que reescreveria o prazo do SLA em disco.
+    this.dataCriacao = new Date((props.dataCriacao ?? new Date()).getTime());
     this._dataResolucao = props.dataResolucao;
     this._solucao = props.solucao;
   }
@@ -65,16 +66,8 @@ export class Ocorrencia {
     return this._status;
   }
 
-  public get fotos(): readonly string[] {
-    return this._fotos;
-  }
-
   public get dataResolucao(): Date | undefined {
-    return this._dataResolucao;
-  }
-
-  public get solucao(): string | undefined {
-    return this._solucao;
+    return this._dataResolucao ? new Date(this._dataResolucao.getTime()) : undefined;
   }
 
   /**
@@ -90,8 +83,10 @@ export class Ocorrencia {
       case GravidadeOcorrencia.MEDIA:
         return 72;
       case GravidadeOcorrencia.BAIXA:
-      default:
         return 168;
+      default:
+        // Inalcançável: o construtor rejeita gravidade fora da enum.
+        throw new GravidadeInvalidaError(this.gravidade);
     }
   }
 
@@ -99,7 +94,24 @@ export class Ocorrencia {
     return new Date(this.dataCriacao.getTime() + this.slaHoras * 60 * 60 * 1000);
   }
 
+  public get dataCancelamento(): Date | undefined {
+    return this._dataCancelamento ? new Date(this._dataCancelamento.getTime()) : undefined;
+  }
+
+  public get solucao(): string | undefined {
+    return this._solucao;
+  }
+
+  public get fotos(): readonly string[] {
+    return [...this._fotos];
+  }
+
   public estaAtrasada(dataReferencia: Date = new Date()): boolean {
+    // Cancelada nunca está atrasada: o relógio não para para um ticket
+    // encerrado. Sem esta guarda ela ficaria "atrasada" indefinidamente.
+    if (this._status === StatusOcorrencia.CANCELADA) {
+      return false;
+    }
     if (this._status === StatusOcorrencia.RESOLVIDA && this._dataResolucao) {
       return this._dataResolucao.getTime() > this.dataLimiteSla.getTime();
     }
@@ -107,16 +119,59 @@ export class Ocorrencia {
   }
 
   public resolver(dataResolucao: Date = new Date(), solucao?: string): void {
+    this.exigirNaoEncerrada('resolver');
+    if (dataResolucao.getTime() < this.dataCriacao.getTime()) {
+      throw new OcorrenciaDataInvalidaError();
+    }
     this._status = StatusOcorrencia.RESOLVIDA;
-    this._dataResolucao = dataResolucao;
+    this._dataResolucao = new Date(dataResolucao.getTime());
     this._solucao = solucao;
   }
 
+  public cancelar(dataCancelamento: Date = new Date()): void {
+    this.exigirNaoEncerrada('cancelar');
+    this._status = StatusOcorrencia.CANCELADA;
+    this._dataCancelamento = new Date(dataCancelamento.getTime());
+  }
+
+  private exigirNaoEncerrada(operacao: string): void {
+    if (
+      this._status === StatusOcorrencia.RESOLVIDA ||
+      this._status === StatusOcorrencia.CANCELADA
+    ) {
+      throw new OcorrenciaJaResolvidaError(`${this.id} (${operacao})`);
+    }
+  }
+
   public adicionarFoto(caminhoFoto: string): void {
+    this.exigirNaoEncerrada('adicionarFoto');
     this._fotos.push(caminhoFoto);
   }
 
   public static criar(props: OcorrenciaProps): Ocorrencia {
+    // Validações de negócio só na criação — a reidratação (reidratar) as pula.
+    if (!Object.values(GravidadeOcorrencia).includes(props.gravidade)) {
+      throw new GravidadeInvalidaError(props.gravidade);
+    }
+
+    // Seção 3.2: Ocorrência ALTA exige foto obrigatória
+    if (props.gravidade === GravidadeOcorrencia.ALTA) {
+      if (!props.fotos || props.fotos.length === 0) {
+        throw new OcorrenciaAltaSemFotoError();
+      }
+    }
+
+    return new Ocorrencia(props);
+  }
+
+  /**
+   * Reidrata uma ocorrência a partir de uma linha do banco de dados.
+   *
+   * Diferente de `criar()`, não aplica validações de negócio (gravidade inválida,
+   * ALTA sem foto): os dados já foram validados quando foram gravados. Usado
+   * exclusivamente pelo adapter SQLite (Fase 1, passo 2b).
+   */
+  public static reidratar(props: OcorrenciaProps): Ocorrencia {
     return new Ocorrencia(props);
   }
 }

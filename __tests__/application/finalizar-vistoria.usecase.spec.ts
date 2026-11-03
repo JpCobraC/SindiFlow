@@ -39,4 +39,53 @@ describe('FinalizarVistoriaUseCase', () => {
     expect(pendentes[0].usuarioId).toBe('user-123');
     expect(pendentes[0].deviceId).toBe('device-abc-123');
   });
+
+  it('deve rejeitar quando a vistoria não existe', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const outboxRepo = new OutboxRepositoryInMemory();
+    const useCase = new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo);
+
+    await expect(
+      useCase.executar({
+        vistoriaId: 'v-inexistente',
+        latitude: -23.55052,
+        longitude: -46.633308,
+        deviceId: 'device-abc-123',
+      })
+    ).rejects.toThrow('Vistoria com ID v-inexistente não encontrada');
+
+    expect(await outboxRepo.obterPendentes()).toHaveLength(0);
+  });
+
+  it('deve propagar a geolocalização com precisão quando informada', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const outboxRepo = new OutboxRepositoryInMemory();
+    const useCase = new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo);
+
+    const item1 = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    item1.marcarStatus(StatusItemChecklist.OK);
+
+    const vistoria = Vistoria.criar({
+      id: 'v-1',
+      condominioId: 'cond-1',
+      inspetorId: 'user-123',
+      itens: [item1],
+    });
+    await vistoriaRepo.salvar(vistoria);
+
+    const resultado = await useCase.executar({
+      vistoriaId: 'v-1',
+      latitude: -23.55052,
+      longitude: -46.633308,
+      precisao: 4.5,
+      deviceId: 'device-abc-123',
+    });
+
+    expect(resultado.geolocalizacao?.precisao).toBe(4.5);
+
+    const pendentes = await outboxRepo.obterPendentes();
+    expect(pendentes[0].payload.latitude).toBe(-23.55052);
+    expect(pendentes[0].payload.longitude).toBe(-46.633308);
+    expect(pendentes[0].payload.data_finalizacao).toBeDefined();
+  });
 });

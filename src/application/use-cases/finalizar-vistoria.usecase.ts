@@ -39,6 +39,8 @@ export class FinalizarVistoriaUseCase {
     await this.outboxRepo.enfileirar({
       tabela: 'vistorias',
       operacao: 'UPDATE',
+      // RF-SYNC-007: a chave de dedup cola na vistoria, não no evento.
+      idRegistro: vistoria.id,
       payload: {
         id: vistoria.id,
         condominio_id: vistoria.condominioId,

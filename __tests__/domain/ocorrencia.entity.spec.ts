@@ -1,5 +1,12 @@
 import { GravidadeOcorrencia, Ocorrencia, StatusOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
-import { OcorrenciaAltaSemFotoError } from '../../src/domain/errors/domain-errors';
+import {
+  GravidadeInvalidaError,
+  OcorrenciaAltaSemFotoError,
+  OcorrenciaDataInvalidaError,
+  OcorrenciaJaResolvidaError,
+} from '../../src/domain/errors/domain-errors';
+
+const T0 = new Date('2026-10-13T12:00:00.000Z');
 
 describe('Ocorrencia Entity (Domínio)', () => {
   const agora = new Date('2026-10-02T10:00:00.000Z');
@@ -98,5 +105,143 @@ describe('Ocorrencia Entity (Domínio)', () => {
 
     const dataAposVencimento = new Date('2026-10-03T11:00:00.000Z');
     expect(ocorrencia.estaAtrasada(dataAposVencimento)).toBe(true);
+  });
+  describe('lote 6: gravidade inválida não pode falhar para o prazo mais longo', () => {
+    it('deve recusar gravidade desconhecida na criação', () => {
+      expect(() =>
+        // @ts-expect-error runtime com valor fora da enum
+        Ocorrencia.criar({ id: 'oc-x', vistoriaId: 'v1', titulo: 'T', gravidade: 'URGENTE' })
+      ).toThrow(GravidadeInvalidaError);
+    });
+
+    it('não pode receber o SLA de 7 dias por acidente de enum', () => {
+      // O `default` do switch fundia BAIXA com qualquer valor desconhecido: uma
+      // gravidade inválida recebia o prazo mais longo, ou seja, o menos urgente.
+      expect(() =>
+        Ocorrencia.criar({
+          id: 'oc-x',
+          vistoriaId: 'v1',
+          titulo: 'T',
+          // @ts-expect-error runtime com valor fora da enum
+          gravidade: undefined,
+        })
+      ).toThrow(GravidadeInvalidaError);
+    });
+  });
+
+  describe('lote 6: resolver é terminal', () => {
+    function aberta(): Ocorrencia {
+      return Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Bomba vibrando',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        dataCriacao: T0,
+      });
+    }
+
+    it('não deve permitir resolver duas vezes, preservando a resolução original', () => {
+      const oc = aberta();
+      const primeira = new Date(T0.getTime() + 3600_000);
+      oc.resolver(primeira, 'Reaperto da gaxeta');
+
+      expect(() => oc.resolver(new Date(T0.getTime() + 7200_000), 'Solução reescrita')).toThrow(
+        OcorrenciaJaResolvidaError
+      );
+      expect(oc.dataResolucao).toEqual(primeira);
+      expect(oc.solucao).toBe('Reaperto da gaxeta');
+    });
+
+    it('deve recusar resolução anterior à criação', () => {
+      const oc = aberta();
+      expect(() => oc.resolver(new Date(T0.getTime() - 1000), 'impossível')).toThrow(
+        OcorrenciaDataInvalidaError
+      );
+      expect(oc.status).not.toBe(StatusOcorrencia.RESOLVIDA);
+    });
+  });
+
+  describe('lote 6: estaAtrasada em ocorrência cancelada', () => {
+    it('não deve dizer que uma ocorrência cancelada está atrasada para sempre', () => {
+      const oc = Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Cancelada',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        dataCriacao: T0,
+      });
+      oc.cancelar(new Date(T0.getTime() + 60_000));
+
+      // O relógio nunca para para um ticket cancelado: comparar com `new Date()`
+      // o marcava como atrasado indefinidamente.
+      expect(oc.estaAtrasada(new Date(T0.getTime() + 365 * 24 * 3600_000))).toBe(false);
+    });
+  });
+
+  describe('lote 6: cópias defensivas', () => {
+    it('não deve deixar o dataCriacao original ser reescrito e mudar o prazo do SLA', () => {
+      const externo = new Date('2026-10-13T12:00:00.000Z');
+      const oc = Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Bomba',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        dataCriacao: externo,
+      });
+
+      const limiteAntes = oc.dataLimiteSla.getTime();
+      externo.setFullYear(1999);
+
+      expect(oc.dataCriacao.getUTCFullYear()).toBe(2026);
+      expect(oc.dataLimiteSla.getTime()).toBe(limiteAntes);
+    });
+
+    it('não deve expor o array de fotos interno', () => {
+      const oc = Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Bomba',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        fotos: ['file:///a.jpg'],
+      });
+
+      (oc.fotos as string[]).push('file:///injetada.jpg');
+
+      expect(oc.fotos).toHaveLength(1);
+    });
+  });
+
+  describe('ramificações restantes', () => {
+    it('slaHoras deve recusar gravidade corrompida em memória, não devolver 168h', () => {
+      // O construtor já rejeita; esta é a rede de segurança para uma instância
+      // corrompida por reidratação parcial. Devolver 168h seria o prazo mais
+      // longo — a falha mais permissiva possível numa regra de prazo.
+      const oc = Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Bomba',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        dataCriacao: T0,
+      });
+      (oc as unknown as { gravidade: string }).gravidade = 'CORROMPIDA';
+
+      expect(() => oc.slaHoras).toThrow(GravidadeInvalidaError);
+    });
+
+    it('dataCancelamento deve devolver cópia defensiva', () => {
+      const oc = Ocorrencia.criar({
+        id: 'oc-1',
+        vistoriaId: 'v-1',
+        titulo: 'Bomba',
+        gravidade: GravidadeOcorrencia.BAIXA,
+        dataCriacao: T0,
+      });
+      oc.cancelar(T0);
+
+      const d = oc.dataCancelamento!;
+      d.setFullYear(1999);
+
+      expect(oc.dataCancelamento!.getUTCFullYear()).toBe(2026);
+    });
   });
 });
