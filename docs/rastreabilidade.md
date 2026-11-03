@@ -40,6 +40,9 @@ Conferível **manualmente**, sem automação: toda regra tem um identificador es
 | Application | `src/application/use-cases/criar-vistoria.usecase.ts` | `__tests__/application/criar-vistoria.usecase.spec.ts` |
 | Adapters | `src/adapters/repositories/vistoria.repository.inmemory.ts` | `__tests__/adapters/repositories.inmemory.spec.ts` |
 | Adapters | `src/adapters/gateways/camera.gateway.fake.ts` | `__tests__/adapters/camera.gateway.fake.spec.ts` |
+| Adapters | `src/adapters/gateways/camera.gateway.expo.ts` | `__tests__/adapters/camera.gateway.expo.spec.ts` |
+| Adapters | `src/adapters/gateways/location.gateway.fake.ts` | `__tests__/adapters/location.gateway.fake.spec.ts` |
+| Adapters | `src/adapters/gateways/location.gateway.expo.ts` | `__tests__/adapters/location.gateway.expo.spec.ts` |
 | Adapters | `PENDENTE: src/adapters/context/auth-context.tsx` | `PENDENTE: __tests__/adapters/auth-context.spec.tsx` |
 
 **Prioridade** — `P1` entra no código da fase atual; `P2` fica documentada e adiada.
