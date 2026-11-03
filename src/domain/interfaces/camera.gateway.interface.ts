@@ -24,8 +24,7 @@ export interface FotoCapturada {
 export type ResultadoCaptura =
   | { status: 'sucesso'; foto: FotoCapturada }
   | { status: 'cancelado' }
-  | { status: 'erro'; mensagem: string }
-  | { status: 'erro_captura'; mensagem: string };
+  | { status: 'erro'; mensagem: string };
 
 export interface ICameraGateway {
   temPermissao(): Promise<boolean>;
