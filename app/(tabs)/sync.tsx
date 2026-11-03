@@ -17,7 +17,9 @@ export default function SyncScreen() {
     outboxPendentes,
     auditLogs,
     isOnline,
+    isSimulandoErro503,
     toggleRede,
+    toggleErro503,
     sincronizarOutbox,
   } = useVistoria();
 
@@ -39,12 +41,12 @@ export default function SyncScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Status Bar */}
+        {/* Banner Mock */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              {isOnline ? 'Dispositivo Online • Sincronização Ativa' : 'Dispositivo em Modo Offline'}
+              ⚡ 100% Mock In-Memory ({isOnline ? 'Online Wi-Fi' : 'Offline Subsolo G2'})
             </Text>
           </View>
           <View style={styles.outboxPill}>
@@ -55,18 +57,18 @@ export default function SyncScreen() {
         {/* Header */}
         <Text style={styles.title}>Motor Outbox & Resiliência</Text>
         <Text style={styles.subtitle}>
-          Padrão transacional local com retry exponencial (§1.3 / §2.1)
+          Padrão transacional local com retry exponencial para áreas subterrâneas
         </Text>
 
-        {/* Painel de Controle de Rede */}
+        {/* Painel de Controle de Rede e Falha */}
         <View style={styles.controlPanel}>
           <View style={styles.controlRow}>
             <View>
               <Text style={styles.controlTitle}>Conexão de Rede (expo-network)</Text>
               <Text style={styles.controlDesc}>
                 {isOnline
-                  ? 'Conexão ativa — Pronto para envio remoto'
-                  : 'Modo offline — Gravações salvas na fila Outbox local'}
+                  ? 'Wi-Fi ativo — Pronto para envio remoto'
+                  : 'Subsolo G2 — Sem conectividade celular'}
               </Text>
             </View>
             <Switch
@@ -76,12 +78,29 @@ export default function SyncScreen() {
               thumbColor={isOnline ? '#10B981' : '#94A3B8'}
             />
           </View>
+
+          <View style={[styles.controlRow, { borderTopWidth: 1, borderTopColor: '#232E48', paddingTop: 12 }]}>
+            <View>
+              <Text style={styles.controlTitle}>Simular Falha HTTP 503 no Supabase</Text>
+              <Text style={styles.controlDesc}>
+                {isSimulandoErro503
+                  ? 'Backend responderá com erro (testa backoff)'
+                  : 'Backend operando normalmente (200 OK)'}
+              </Text>
+            </View>
+            <Switch
+              value={isSimulandoErro503}
+              onValueChange={toggleErro503}
+              trackColor={{ false: '#334155', true: '#DC2626' }}
+              thumbColor={isSimulandoErro503 ? '#EF4444' : '#94A3B8'}
+            />
+          </View>
         </View>
 
         {/* Status da Fila Outbox */}
         <View style={styles.outboxStatusCard}>
           <View style={styles.outboxStatusHeader}>
-            <Text style={styles.outboxStatusLabel}>Fila Transacional Local</Text>
+            <Text style={styles.outboxStatusLabel}>Fila Transacional em Memória</Text>
             <Text style={styles.outboxStatusCount}>
               {outboxPendentes.length} pacote(s) pendente(s)
             </Text>
@@ -129,7 +148,7 @@ export default function SyncScreen() {
           ))
         )}
 
-        {/* Logs de Auditoria do Domínio */}
+        {/* Logs de Auditoria do Mock */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
           Logs de Auditoria do Domínio ({auditLogs.length})
         </Text>

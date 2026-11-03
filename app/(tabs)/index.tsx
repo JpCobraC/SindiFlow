@@ -175,17 +175,22 @@ export default function VistoriaScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Barra de Status */}
+        {/* Banner de Status Mock, Conectividade & Modo de Hardware */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              {isOnline ? 'Online • Rede Ativa' : 'Modo Offline Seguro'}
+              {isOnline ? 'Online' : 'Offline Subsolo'} • {isHardwareNativo ? '📷📍 Expo Nativo' : '⚡ Mock Hardware'}
             </Text>
           </View>
           <View style={styles.bannerActions}>
+            <TouchableOpacity style={styles.hwToggleBtn} onPress={toggleHardwareNativo}>
+              <Text style={styles.hwToggleText}>
+                {isHardwareNativo ? 'Usar Mock' : 'Usar Expo'}
+              </Text>
+            </TouchableOpacity>
             <View style={styles.outboxPill}>
-              <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+              <Text style={styles.outboxPillText}>{outboxPendentes.length} Outbox</Text>
             </View>
           </View>
         </View>
@@ -236,74 +241,47 @@ export default function VistoriaScreen() {
           </View>
         </View>
 
-        {/* Card Didático e Operacional: Onde o GPS entra */}
+        {/* Card de Geolocalização da Sessão (RF-VIST-004 / §1.4) */}
         <View style={styles.geoCard}>
           <View style={styles.geoCardHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.geoTitle}>📍 ONDE O GPS ENTRA NO PROJETO</Text>
-              <Text style={styles.geoSubTitle}>
-                Assinatura Pericial de Presença Física (RF-VIST-004 • NBR 5674)
+            <Text style={styles.geoTitle}>📍 Sessão de Geolocalização (RF-VIST-004)</Text>
+            <TouchableOpacity
+              style={styles.geoRefreshBtn}
+              onPress={handleObterGPS}
+              disabled={isFinalizada || capturandoGps}>
+              <Text style={styles.geoRefreshText}>
+                {capturandoGps ? 'Lendo GPS...' : 'Testar / Atualizar GPS'}
               </Text>
-            </View>
-            <View style={styles.geoBadgeExpo}>
-              <Text style={styles.geoBadgeExpoText}>expo-location</Text>
-            </View>
+            </TouchableOpacity>
           </View>
-
-          <Text style={styles.geoExplanationText}>
-            Conforme as regras do domínio, o GPS não é capturado solto por foto. Ele é a
-            <Text style={{ fontWeight: '700', color: '#38BDF8' }}> garantia jurídica e pericial </Text>
-            de que o engenheiro esteve presente no condomínio no momento em que a vistoria foi concluída.
-          </Text>
 
           {vistoriaAtiva.geolocalizacao ? (
             <View style={styles.geoInfoBox}>
-              <View style={styles.geoNoticeBadge}>
-                <Text style={styles.geoNoticeBadgeText}>✓ GPS VINCULADO AO LAUDO FINAL</Text>
-              </View>
               <Text style={styles.geoCoords}>
-                Latitude: {vistoriaAtiva.geolocalizacao.latitude.toFixed(6)}{'\n'}
-                Longitude: {vistoriaAtiva.geolocalizacao.longitude.toFixed(6)}
+                Lat: {vistoriaAtiva.geolocalizacao.latitude.toFixed(6)} | Long:{' '}
+                {vistoriaAtiva.geolocalizacao.longitude.toFixed(6)}
               </Text>
               <Text style={styles.geoDetails}>
-                Precisão: ±{vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m • Selado no Laudo Final
+                ✓ Vinculada à vistoria finalizada • Precisão:{' '}
+                {vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m • Fonte:{' '}
+                {isHardwareNativo ? 'Expo Location Nativo' : 'Simulador Mock'}
               </Text>
             </View>
           ) : sessionGps ? (
             <View style={styles.geoInfoBox}>
-              <View style={[styles.geoNoticeBadge, { borderColor: '#38BDF8', backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                <Text style={[styles.geoNoticeBadgeText, { color: '#38BDF8' }]}>● COORDENADAS PRONTAS PARA O LAUDO</Text>
-              </View>
               <Text style={styles.geoCoords}>
-                Latitude: {sessionGps.latitude.toFixed(6)}{'\n'}
-                Longitude: {sessionGps.longitude.toFixed(6)}
+                Lat: {sessionGps.latitude.toFixed(6)} | Long: {sessionGps.longitude.toFixed(6)}
               </Text>
               <Text style={styles.geoDetails}>
-                Precisão: ±{sessionGps.precisao ?? '4.5'}m • Pronto para assinar a vistoria
+                Sessão em andamento • Precisão: {sessionGps.precisao ?? '4.5'}m • Provedor:{' '}
+                {isHardwareNativo ? 'Expo Location' : 'Mock'}
               </Text>
-              <TouchableOpacity
-                style={styles.geoRefreshBtnInline}
-                onPress={handleObterGPS}
-                disabled={isFinalizada || capturandoGps}>
-                <Text style={styles.geoRefreshText}>
-                  {capturandoGps ? 'Lendo satélites...' : '🔄 Atualizar Coordenadas GPS'}
-                </Text>
-              </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.geoEmptyContainer}>
-              <Text style={styles.geoEmpty}>
-                🛰️ O GPS do aparelho ainda não foi lido nesta sessão. Toque no botão abaixo para capturar agora via satélite ou ele será lido automaticamente ao finalizar:
-              </Text>
-              <TouchableOpacity
-                style={styles.geoButtonLarge}
-                onPress={handleObterGPS}
-                disabled={isFinalizada || capturandoGps}>
-                <Text style={styles.geoButtonLargeText}>
-                  {capturandoGps ? '🛰️ Conectando aos Satélites...' : '🛰️ Capturar GPS do Celular Agora'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.geoEmpty}>
+              Nenhuma coordenada capturada ainda. O GPS será obtido automaticamente via LocationGateway
+              ao finalizar a inspeção, ou toque em "Testar / Atualizar GPS".
+            </Text>
           )}
         </View>
 
@@ -409,19 +387,6 @@ export default function VistoriaScreen() {
             </View>
           </View>
         ))}
-
-        {/* Callout Explicativo: Onde o GPS entra na Finalização */}
-        <View style={styles.gpsMandatoryCallout}>
-          <Text style={styles.gpsMandatoryIcon}>📍</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.gpsMandatoryTitle}>
-              O GPS entra na Finalização da Vistoria (RF-VIST-004):
-            </Text>
-            <Text style={styles.gpsMandatoryDesc}>
-              Ao finalizar, as coordenadas reais do satélite são vinculadas de forma imutável ao laudo pericial, atestando a presença presencial do perito.
-            </Text>
-          </View>
-        </View>
 
         {/* Botão de Finalização com Validação */}
         <TouchableOpacity
@@ -573,101 +538,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: '#38BDF8',
-    letterSpacing: 0.5,
-  },
-  geoSubTitle: {
-    fontSize: 11,
-    color: '#94A3B8',
-    marginTop: 2,
-  },
-  geoBadgeExpo: {
-    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#38BDF8',
-  },
-  geoBadgeExpoText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#38BDF8',
-  },
-  geoExplanationText: {
-    fontSize: 11,
-    color: '#CBD5E1',
-    lineHeight: 16,
-    marginBottom: 12,
-  },
-  geoNoticeBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#10B981',
-    alignSelf: 'flex-start',
-    marginBottom: 6,
-  },
-  geoNoticeBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#10B981',
-  },
-  geoRefreshBtnInline: {
-    backgroundColor: '#1E293B',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: '#38BDF8',
-  },
-  geoEmptyContainer: {
-    backgroundColor: '#151D30',
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-  },
-  geoButtonLarge: {
-    backgroundColor: '#0284C7',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  geoButtonLargeText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 13,
-  },
-  gpsMandatoryCallout: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(56, 189, 248, 0.08)',
-    borderColor: 'rgba(56, 189, 248, 0.35)',
-    borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    alignItems: 'center',
-    gap: 10,
-  },
-  gpsMandatoryIcon: {
-    fontSize: 22,
-  },
-  gpsMandatoryTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#38BDF8',
-    marginBottom: 2,
-  },
-  gpsMandatoryDesc: {
-    fontSize: 11,
-    color: '#94A3B8',
-    lineHeight: 15,
   },
   geoRefreshBtn: {
     backgroundColor: '#1E293B',
