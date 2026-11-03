@@ -490,12 +490,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 0:00 a 1:00</span>
-                    <p class="speaker-notes-text">
-                        "Olá a todos. Hoje apresentamos a implementação dos módulos de Câmera, Geolocalização e Persistência Local no SindiFlow. Nosso foco nesta apresentação de 10 minutos é demonstrar como resolvemos problemas críticos de idoneidade pericial em campo utilizando rigor técnico: Clean Architecture com isolamento total de domínio, TDD prévio ao código e armazenamento robusto em SQLite no dispositivo móvel."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 2: Tópico 1 - Abertura e Contextualização -->
@@ -534,12 +529,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 1:00 a 2:15</span>
-                    <p class="speaker-notes-text">
-                        "O grande desafio das vistorias prediais é a idoneidade jurídica. Sem prova de presença física e integridade das fotos, laudos técnicos são facilmente contestados. No SindiFlow, geolocalização e câmera não são features decorativas: são invariantes de domínio. O sistema bloqueia a finalização se o perito não estiver com GPS capturado e exige foto para qualquer anomalia de gravidade ALTA, funcionando 100% offline no subsolo."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 3: Tópico 2 - Princípios Arquiteturais -->
@@ -617,12 +607,7 @@
                     </div>
                 </div>
 
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 2:15 a 3:45</span>
-                    <p class="speaker-notes-text">
-                        "Onde exatamente entram a Câmera e o GPS? A Câmera entra vinculada a cada Item de Checklist e Ocorrência de Gravidade Alta como um Value Object Evidencia, com hash e caminho físico em disco. Já o GPS MANDATÓRIO não é tirado por foto: ele entra na Sessão de Vistoria, disparado compulsoriamente pelo Caso de Uso FinalizarVistoria (RF-VIST-004). Sem as coordenadas do satélite, o Domínio se recusa a concluir a inspeção, assegurando que o laudo técnico comprove a presença física do inspetor no condomínio."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 4: Tópico 3 - Estratégia de TDD -->
@@ -662,12 +647,7 @@
                         </ul>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 3:45 a 5:00</span>
-                    <p class="speaker-notes-text">
-                        "Um dos pilares do SindiFlow é o TDD obrigatório. Como testar hardware como câmera e GPS em CI/CD sem abrir câmera física? Através da inversão de dependência: nos casos de uso, injetamos gateways fakes configuráveis que testam todos os caminhos felizes e de erro em milissegundos. Nos adaptadores, testamos que as APIs do Expo são chamadas com os parâmetros corretos de compressão 1080p e que o cancelamento do usuário é tratado como fluxo normal e não como falha."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 5: Tópico 4 - Domínio e Interfaces -->
@@ -727,12 +707,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 5:00 a 6:15</span>
-                    <p class="speaker-notes-text">
-                        "Aqui vemos o contrato de domínio. Notem que FotoCapturada exige hash, dimensões e URI no FileSystem — nenhuma menção a base64, cumprindo o §1.4. Além disso, modelamos o resultado da câmera como uma união discriminada ('sucesso', 'cancelado', 'erro'). Fechar a câmera não é uma exceção de sistema, é uma escolha de fluxo do usuário que o TypeScript obriga a tratar."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 6: Tópico 5 - TDD na Prática -->
@@ -791,12 +766,7 @@ Time:        13.57 s
                         </p>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 6:15 a 7:30</span>
-                    <p class="speaker-notes-text">
-                        "Aqui apresentamos a evidência do TDD na prática: 25 suítes de testes e 264 testes unitários rodando com 100% de sucesso. Testamos tanto o caminho do sucesso quanto as restrições: se o GPS não for capturado, o agregado Vistoria bloqueia a finalização; se a câmera for cancelada, o use case responde amigavelmente; e se a foto for tirada, o hash de rastreabilidade é computado no ato."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 7: Tópico 6 - Implementação da Infraestrutura -->
@@ -863,12 +833,7 @@ Time:        13.57 s
                         </div>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 7:30 a 8:45</span>
-                    <p class="speaker-notes-text">
-                        "Vejam a elegância dos adaptadores: CameraGatewayExpo e LocationGatewayExpo encapsulam toda a complexidade do Expo. Usamos launchCameraAsync do expo-image-picker, que aciona a câmera nativa do sistema operacional com foco por toque e compressão, e getCurrentPositionAsync com Accuracy.High do expo-location. Os adapters convertem as respostas do Expo para os objetos de domínio puros do SindiFlow."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 8: Tópico 7 - Salvando no Banco de Dados Local -->
@@ -936,12 +901,7 @@ Time:        13.57 s
                         </div>
                     </div>
                 </div>
-                <div class="speaker-notes-box">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 8:45 a 9:30</span>
-                    <p class="speaker-notes-text">
-                        "Por fim, a persistência. Conforme a Seção 1.2 das nossas obrigações técnicas, o SQLite é a fonte da verdade offline. Toda coordenada de GPS capturada é persistida na tabela vistorias com precisão em metros e timestamp. As fotos são salvas em fotos_evidencia armazenando o caminho de arquivo do FileSystem, nunca base64, preservando a performance do banco. Toda escrita ocorre em transação com enfileiramento na Outbox para sincronização posterior."
-                    </p>
-                </div>
+                
             </section>
 
             <!-- SLIDE 9: Conclusão & Live Demo -->
@@ -990,12 +950,7 @@ Time:        13.57 s
                         </p>
                     </div>
                 </div>
-                <div class="speaker-notes-box" style="margin-top: 1.5rem;">
-                    <span class="speaker-notes-label">🎙️ Roteiro de Fala — Minuto 9:30 a 10:00 (Fechamento)</span>
-                    <p class="speaker-notes-text">
-                        "Em resumo: entregamos um sistema onde a Câmera comprova o dano com integridade física; a Geolocalização comprova a presença do perito no condomínio; e o SQLite garante que nenhuma informação se perca, mesmo a 3 andares abaixo do solo. O código respeita 100% da Clean Architecture e das normas da engenharia de software moderna. Estamos abertos para perguntas e demonstração ao vivo no app."
-                    </p>
-                </div>
+                
             </section>
 
         </div>
