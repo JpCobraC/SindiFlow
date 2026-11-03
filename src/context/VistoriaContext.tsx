@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
 import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
+import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo';
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
 import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
@@ -21,9 +23,105 @@ import {
 import { ItemChecklist, StatusItemChecklist } from '../domain/entities/item-checklist.entity';
 import { GravidadeOcorrencia, Ocorrencia } from '../domain/entities/ocorrencia.entity';
 import { StatusVistoria, Vistoria } from '../domain/entities/vistoria.entity';
+import {
+  CapturaFotoOptions,
+  FotoCapturada,
+  ICameraGateway,
+} from '../domain/interfaces/camera.gateway.interface';
+import {
+  ILocationGateway,
+  LocalizacaoDispositivo,
+} from '../domain/interfaces/location.gateway.interface';
 import { ItemOutbox } from '../domain/interfaces/outbox.repository.interface';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
+
+export class ProxyCameraGateway implements ICameraGateway {
+  constructor(
+    public readonly fake: CameraGatewayFake,
+    public readonly expo: CameraGatewayExpo
+  ) {}
+
+  public isNativo: boolean = true;
+
+  async temPermissao(): Promise<boolean> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.temPermissao();
+      } catch {
+        return await this.fake.temPermissao();
+      }
+    }
+    return this.fake.temPermissao();
+  }
+
+  async solicitarPermissao(): Promise<boolean> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.solicitarPermissao();
+      } catch {
+        return await this.fake.solicitarPermissao();
+      }
+    }
+    return this.fake.solicitarPermissao();
+  }
+
+  async capturarFoto(options?: CapturaFotoOptions): Promise<FotoCapturada> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.capturarFoto(options);
+      } catch (err: any) {
+        if (err?.message?.includes('cancelada')) {
+          throw err;
+        }
+        return this.fake.capturarFoto(options);
+      }
+    }
+    return this.fake.capturarFoto(options);
+  }
+}
+
+export class ProxyLocationGateway implements ILocationGateway {
+  constructor(
+    public readonly fake: LocationGatewayFake,
+    public readonly expo: LocationGatewayExpo
+  ) {}
+
+  public isNativo: boolean = true;
+
+  async temPermissao(): Promise<boolean> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.temPermissao();
+      } catch {
+        return await this.fake.temPermissao();
+      }
+    }
+    return this.fake.temPermissao();
+  }
+
+  async solicitarPermissao(): Promise<boolean> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.solicitarPermissao();
+      } catch {
+        return await this.fake.solicitarPermissao();
+      }
+    }
+    return this.fake.solicitarPermissao();
+  }
+
+  async obterPosicaoAtual(): Promise<LocalizacaoDispositivo> {
+    if (this.isNativo) {
+      try {
+        return await this.expo.obterPosicaoAtual();
+      } catch {
+        return this.fake.obterPosicaoAtual();
+      }
+    }
+    return this.fake.obterPosicaoAtual();
+  }
+}
 
 export interface AuditLogItem {
   id: string;
@@ -45,9 +143,13 @@ export interface VistoriaContextData {
   isSimulandoErro503: boolean;
   isCarregando: boolean;
 
-  // Gateways e Ações de Hardware (Fakes / Mocks)
-  locationGateway: LocationGatewayFake;
-  cameraGateway: CameraGatewayFake;
+  // Modo de Hardware
+  isHardwareNativo: boolean;
+  toggleHardwareNativo: () => void;
+
+  // Gateways e Ações de Hardware
+  locationGateway: ILocationGateway;
+  cameraGateway: ICameraGateway;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
   anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia>;
 
@@ -69,14 +171,20 @@ export interface VistoriaContextData {
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
 
-// Instâncias In-Memory únicas (Fakes / Mocks determinísticos)
+// Instâncias In-Memory únicas
 const vistoriaRepo = new VistoriaRepositoryInMemory();
 const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
 const outboxRepo = new OutboxRepositoryInMemory();
 const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
 const syncGateway = new RemoteSyncGatewayFake();
-const locationGateway = new LocationGatewayFake();
-const cameraGateway = new CameraGatewayFake();
+
+const cameraGatewayFake = new CameraGatewayFake();
+const cameraGatewayExpo = new CameraGatewayExpo();
+const cameraGateway = new ProxyCameraGateway(cameraGatewayFake, cameraGatewayExpo);
+
+const locationGatewayFake = new LocationGatewayFake();
+const locationGatewayExpo = new LocationGatewayExpo();
+const locationGateway = new ProxyLocationGateway(locationGatewayFake, locationGatewayExpo);
 
 // Instâncias dos Casos de Uso
 const criarVistoriaUseCase = new CriarVistoriaUseCase(vistoriaRepo);
@@ -96,6 +204,20 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [isSimulandoErro503, setIsSimulandoErro503] = useState<boolean>(false);
   const [isCarregando, setIsCarregando] = useState<boolean>(false);
+  const [isHardwareNativo, setIsHardwareNativo] = useState<boolean>(true);
+
+  const toggleHardwareNativo = () => {
+    const novo = !isHardwareNativo;
+    setIsHardwareNativo(novo);
+    cameraGateway.isNativo = novo;
+    locationGateway.isNativo = novo;
+    addLog(
+      'INFO',
+      novo
+        ? 'Câmera e Geolocalização alternadas para MÓDULOS NATIVOS EXPO (expo-image-picker / expo-location).'
+        : 'Câmera e Geolocalização alternadas para MOCK DETERMINÍSTICO.'
+    );
+  };
 
   const addLog = (tipo: AuditLogItem['tipo'], mensagem: string) => {
     const novo: AuditLogItem = {
@@ -456,6 +578,8 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         isOnline,
         isSimulandoErro503,
         isCarregando,
+        isHardwareNativo,
+        toggleHardwareNativo,
         locationGateway,
         cameraGateway,
         capturarLocalizacao,

@@ -41,8 +41,22 @@
       ],
       "expo-font",
       "expo-image",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O SindiFlow precisa de acesso à câmera para registrar evidências de vistorias e ocorrências.",
+          "photosPermission": "O SindiFlow precisa de acesso às fotos para anexar evidências aos laudos."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "O SindiFlow precisa da localização para validar a presença física do inspetor na vistoria técnica (RF-VIST-004)."
+        }
+      ],
       "expo-status-bar",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

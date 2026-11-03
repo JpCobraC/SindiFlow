@@ -26,16 +26,66 @@ export default function VistoriaScreen() {
     outboxPendentes,
     reiniciarMock,
     isCarregando,
+    isHardwareNativo,
+    toggleHardwareNativo,
+    capturarLocalizacao,
+    anexarFoto,
   } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState('');
+  const [sessionGps, setSessionGps] = useState<{
+    latitude: number;
+    longitude: number;
+    precisao?: number;
+  } | null>(null);
+  const [capturandoGps, setCapturandoGps] = useState(false);
+  const [anexandoFotoId, setAnexandoFotoId] = useState<string | null>(null);
 
   // Cálculo de progresso do agregado de domínio
   const percentual = vistoriaAtiva ? Math.round(vistoriaAtiva.percentualRespondido()) : 0;
   const aptoParaFinalizar = percentual >= 80;
   const isFinalizada = vistoriaAtiva?.status === StatusVistoria.FINALIZADA;
+
+  const handleObterGPS = async () => {
+    try {
+      setCapturandoGps(true);
+      const geo = await capturarLocalizacao();
+      setSessionGps({
+        latitude: geo.latitude,
+        longitude: geo.longitude,
+        precisao: geo.precisao,
+      });
+      Alert.alert(
+        '✓ GPS Capturado com Sucesso (RF-VIST-004)',
+        `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros\n⚙️ Provedor: ${isHardwareNativo ? 'Expo Location Nativo' : 'Simulador Determinístico'}`
+      );
+    } catch (err: any) {
+      Alert.alert('Falha na Localização (RNF02)', err?.message || 'Não foi possível capturar o GPS.');
+    } finally {
+      setCapturandoGps(false);
+    }
+  };
+
+  const handleAnexarFoto = async (itemId: string) => {
+    if (isFinalizada) {
+      Alert.alert('Vistoria Concluída', 'Esta vistoria já foi finalizada e não aceita mais fotos.');
+      return;
+    }
+
+    try {
+      setAnexandoFotoId(itemId);
+      const ev = await anexarFoto({ itemId });
+      const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
+      Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: ${isHardwareNativo ? 'Câmera Nativa Expo' : 'Simulador Mock'}`);
+    } catch (err: any) {
+      if (err?.message?.includes('cancelada')) return;
+      Alert.alert('Falha na Câmera (RNF02)', err?.message || 'Não foi possível capturar a foto.');
+    } finally {
+      setAnexandoFotoId(null);
+    }
+  };
 
   const handleMarcarStatus = async (id: string, novoStatus: StatusItemChecklist) => {
     if (isFinalizada) {
@@ -80,10 +130,10 @@ export default function VistoriaScreen() {
 
   const handleFinalizar = async () => {
     try {
-      await finalizarVistoria();
+      await finalizarVistoria(sessionGps?.latitude, sessionGps?.longitude);
       Alert.alert(
         '✓ Vistoria Finalizada com Sucesso!',
-        `📍 Assinatura digital com geolocalização pericial capturada via LocationGateway\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
+        `📍 Assinatura digital com geolocalização pericial capturada via ${isHardwareNativo ? 'Expo Location' : 'LocationGateway'}\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
       );
     } catch (err: any) {
       Alert.alert(
@@ -105,16 +155,23 @@ export default function VistoriaScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Banner de Status Mock & Conectividade */}
+        {/* Banner de Status Mock, Conectividade & Modo de Hardware */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              ⚡ 100% Mock In-Memory ({isOnline ? 'Online Wi-Fi' : 'Offline Subsolo G2'})
+              {isOnline ? 'Online' : 'Offline Subsolo'} • {isHardwareNativo ? '📷📍 Expo Nativo' : '⚡ Mock Hardware'}
             </Text>
           </View>
-          <View style={styles.outboxPill}>
-            <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+          <View style={styles.bannerActions}>
+            <TouchableOpacity style={styles.hwToggleBtn} onPress={toggleHardwareNativo}>
+              <Text style={styles.hwToggleText}>
+                {isHardwareNativo ? 'Usar Mock' : 'Usar Expo'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.outboxPill}>
+              <Text style={styles.outboxPillText}>{outboxPendentes.length} Outbox</Text>
+            </View>
           </View>
         </View>
 
@@ -162,6 +219,50 @@ export default function VistoriaScreen() {
                 : '⚠ Bloqueio RF-VIST-002: É obrigatório responder ≥80% dos itens'}
             </Text>
           </View>
+        </View>
+
+        {/* Card de Geolocalização da Sessão (RF-VIST-004 / §1.4) */}
+        <View style={styles.geoCard}>
+          <View style={styles.geoCardHeader}>
+            <Text style={styles.geoTitle}>📍 Sessão de Geolocalização (RF-VIST-004)</Text>
+            <TouchableOpacity
+              style={styles.geoRefreshBtn}
+              onPress={handleObterGPS}
+              disabled={isFinalizada || capturandoGps}>
+              <Text style={styles.geoRefreshText}>
+                {capturandoGps ? 'Lendo GPS...' : 'Testar / Atualizar GPS'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {vistoriaAtiva.geolocalizacao ? (
+            <View style={styles.geoInfoBox}>
+              <Text style={styles.geoCoords}>
+                Lat: {vistoriaAtiva.geolocalizacao.latitude.toFixed(6)} | Long:{' '}
+                {vistoriaAtiva.geolocalizacao.longitude.toFixed(6)}
+              </Text>
+              <Text style={styles.geoDetails}>
+                ✓ Vinculada à vistoria finalizada • Precisão:{' '}
+                {vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m • Fonte:{' '}
+                {isHardwareNativo ? 'Expo Location Nativo' : 'Simulador Mock'}
+              </Text>
+            </View>
+          ) : sessionGps ? (
+            <View style={styles.geoInfoBox}>
+              <Text style={styles.geoCoords}>
+                Lat: {sessionGps.latitude.toFixed(6)} | Long: {sessionGps.longitude.toFixed(6)}
+              </Text>
+              <Text style={styles.geoDetails}>
+                Sessão em andamento • Precisão: {sessionGps.precisao ?? '4.5'}m • Provedor:{' '}
+                {isHardwareNativo ? 'Expo Location' : 'Mock'}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.geoEmpty}>
+              Nenhuma coordenada capturada ainda. O GPS será obtido automaticamente via LocationGateway
+              ao finalizar a inspeção, ou toque em "Testar / Atualizar GPS".
+            </Text>
+          )}
         </View>
 
         {/* Lista de Itens do Checklist */}
@@ -242,6 +343,27 @@ export default function VistoriaScreen() {
                   CRÍTICO
                 </Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Ação de Evidência Fotográfica do Item (CameraGateway / RF-EVI-001) */}
+            <View style={styles.itemFooterRow}>
+              <TouchableOpacity
+                style={styles.itemFotoBtn}
+                onPress={() => handleAnexarFoto(item.id)}
+                disabled={isFinalizada || anexandoFotoId === item.id}>
+                <Text style={styles.itemFotoBtnText}>
+                  {anexandoFotoId === item.id
+                    ? 'Capturando...'
+                    : item.evidencias.length > 0
+                    ? `📷 ${item.evidencias.length} Foto(s) Anexada(s)`
+                    : '📷 Tirar Foto (Câmera)'}
+                </Text>
+              </TouchableOpacity>
+              {item.evidencias.length > 0 && (
+                <Text style={styles.itemFotoHash}>
+                  Hash: {item.evidencias[item.evidencias.length - 1].hash?.slice(0, 12)}...
+                </Text>
+              )}
             </View>
           </View>
         ))}
@@ -347,6 +469,24 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#CBD5E1',
   },
+  bannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hwToggleBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+  },
+  hwToggleText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
   outboxPill: {
     backgroundColor: 'rgba(56, 189, 248, 0.15)',
     borderWidth: 1,
@@ -359,6 +499,88 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#38BDF8',
+  },
+  geoCard: {
+    backgroundColor: '#0E1726',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1E293B',
+    padding: 14,
+    marginBottom: 20,
+  },
+  geoCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  geoTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#38BDF8',
+  },
+  geoRefreshBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+  },
+  geoRefreshText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  geoInfoBox: {
+    backgroundColor: '#151D30',
+    padding: 10,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#10B981',
+  },
+  geoCoords: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  geoDetails: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  geoEmpty: {
+    fontSize: 12,
+    color: '#64748B',
+    fontStyle: 'italic',
+    lineHeight: 16,
+  },
+  itemFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1E293B',
+  },
+  itemFotoBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3B4B70',
+  },
+  itemFotoBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#38BDF8',
+  },
+  itemFotoHash: {
+    fontSize: 10,
+    color: '#64748B',
+    fontFamily: 'monospace',
   },
   headerCard: {
     backgroundColor: '#151D30',

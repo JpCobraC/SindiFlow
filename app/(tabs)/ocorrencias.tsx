@@ -10,12 +10,21 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 
 export default function OcorrenciasScreen() {
-  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes, cameraGateway } = useVistoria();
+  const {
+    ocorrencias,
+    registrarOcorrencia,
+    isOnline,
+    outboxPendentes,
+    cameraGateway,
+    isHardwareNativo,
+    toggleHardwareNativo,
+  } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
@@ -25,17 +34,14 @@ export default function OcorrenciasScreen() {
 
   const handleCapturarFoto = async () => {
     try {
-      if (fotoUri) {
-        setFotoUri(null);
-      } else {
-        const foto = await cameraGateway.capturarFoto({
-          larguraMaxima: 1080,
-          alturaMaxima: 1080,
-          qualidade: 0.8,
-        });
-        setFotoUri(foto.uri);
-      }
+      const foto = await cameraGateway.capturarFoto({
+        larguraMaxima: 1080,
+        alturaMaxima: 1080,
+        qualidade: 0.8,
+      });
+      setFotoUri(foto.uri);
     } catch (err: any) {
+      if (err?.message?.includes('cancelada')) return;
       Alert.alert(
         'Câmera Indisponível (RNF02)',
         err?.message || 'Falha ao solicitar ou acessar a câmera.'
@@ -79,16 +85,23 @@ export default function OcorrenciasScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Banner Mock */}
+        {/* Banner Mock & Hardware */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              ⚡ 100% Mock In-Memory ({isOnline ? 'Online Wi-Fi' : 'Offline Subsolo G2'})
+              {isOnline ? 'Online' : 'Offline Subsolo'} • {isHardwareNativo ? '📷 Expo Nativo' : '⚡ Mock Hardware'}
             </Text>
           </View>
-          <View style={styles.outboxPill}>
-            <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+          <View style={styles.bannerActions}>
+            <TouchableOpacity style={styles.hwToggleBtn} onPress={toggleHardwareNativo}>
+              <Text style={styles.hwToggleText}>
+                {isHardwareNativo ? 'Usar Mock' : 'Usar Expo'}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.outboxPill}>
+              <Text style={styles.outboxPillText}>{outboxPendentes.length} Outbox</Text>
+            </View>
           </View>
         </View>
 
@@ -156,6 +169,18 @@ export default function OcorrenciasScreen() {
               <Text style={styles.itemTitle}>{oc.titulo}</Text>
               {oc.descricao ? (
                 <Text style={styles.itemDesc}>{oc.descricao}</Text>
+              ) : null}
+
+              {/* Galeria de Fotos da Ocorrência */}
+              {oc.fotos && oc.fotos.length > 0 ? (
+                <View style={styles.cardPhotosRow}>
+                  {oc.fotos.map((uri, idx) => (
+                    <View key={idx} style={styles.cardPhotoWrapper}>
+                      <Image source={{ uri }} style={styles.cardPhotoThumb} contentFit="cover" />
+                      <Text style={styles.cardPhotoLabel}>Foto #{idx + 1}</Text>
+                    </View>
+                  ))}
+                </View>
               ) : null}
 
               <View style={styles.cardFooter}>
@@ -253,18 +278,35 @@ export default function OcorrenciasScreen() {
             </View>
 
             {/* Foto via CameraGateway */}
-            <TouchableOpacity
-              style={[
-                styles.cameraBtn,
-                fotoUri ? styles.cameraBtnOk : styles.cameraBtnPending,
-              ]}
-              onPress={handleCapturarFoto}>
-              <Text style={styles.cameraBtnText}>
-                {fotoUri
-                  ? '✓ Foto Capturada via CameraGateway (Toque p/ remover)'
-                  : '📷 Capturar Foto via CameraGateway (Obrigatória se ALTA)'}
-              </Text>
-            </TouchableOpacity>
+            {fotoUri ? (
+              <View style={styles.photoPreviewCard}>
+                <Image source={{ uri: fotoUri }} style={styles.photoPreviewImg} contentFit="cover" />
+                <View style={styles.photoPreviewActions}>
+                  <Text style={styles.photoPreviewTitle}>✓ Evidência Capturada (RNF08)</Text>
+                  <Text style={styles.photoPreviewUri} numberOfLines={1}>
+                    {fotoUri.split('/').pop()}
+                  </Text>
+                  <View style={styles.photoPreviewBtnRow}>
+                    <TouchableOpacity style={styles.photoActionBtn} onPress={handleCapturarFoto}>
+                      <Text style={styles.photoActionBtnText}>Tirar Outra</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.photoActionBtn, styles.photoActionBtnDanger]}
+                      onPress={() => setFotoUri(null)}>
+                      <Text style={[styles.photoActionBtnText, { color: '#EF4444' }]}>Remover</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.cameraBtn, styles.cameraBtnPending]}
+                onPress={handleCapturarFoto}>
+                <Text style={styles.cameraBtnText}>
+                  📷 Capturar Foto via Câmera ({isHardwareNativo ? 'Expo Nativo' : 'Mock'})
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -327,6 +369,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#CBD5E1',
+  },
+  bannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  hwToggleBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#38BDF8',
+  },
+  hwToggleText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#38BDF8',
   },
   outboxPill: {
     backgroundColor: 'rgba(56, 189, 248, 0.15)',
@@ -477,6 +537,30 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 16,
   },
+  cardPhotosRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  cardPhotoWrapper: {
+    borderRadius: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#232E48',
+    backgroundColor: '#0E1322',
+  },
+  cardPhotoThumb: {
+    width: 64,
+    height: 48,
+    backgroundColor: '#1E293B',
+  },
+  cardPhotoLabel: {
+    fontSize: 9,
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingVertical: 2,
+    fontWeight: '700',
+  },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -598,6 +682,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#F8FAFC',
+  },
+  photoPreviewCard: {
+    flexDirection: 'row',
+    backgroundColor: '#0E1322',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    padding: 10,
+    marginBottom: 18,
+    gap: 12,
+    alignItems: 'center',
+  },
+  photoPreviewImg: {
+    width: 72,
+    height: 72,
+    borderRadius: 6,
+    backgroundColor: '#1E293B',
+  },
+  photoPreviewActions: {
+    flex: 1,
+  },
+  photoPreviewTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#10B981',
+    marginBottom: 2,
+  },
+  photoPreviewUri: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginBottom: 8,
+    fontFamily: 'monospace',
+  },
+  photoPreviewBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  photoActionBtn: {
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#3B4B70',
+  },
+  photoActionBtnDanger: {
+    borderColor: '#EF4444',
+  },
+  photoActionBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#38BDF8',
   },
   modalActions: {
     flexDirection: 'row',
