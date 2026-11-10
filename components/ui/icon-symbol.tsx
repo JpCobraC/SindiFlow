@@ -1,9 +1,9 @@
 // Fallback for using MaterialIcons on Android.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { ComponentProps } from 'react';
-import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 import { SymbolWeight } from 'expo-symbols';
+import { ComponentProps } from 'react';
+import { type StyleProp, type TextStyle } from 'react-native';
 
 type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -26,6 +26,15 @@ const MAPPING = {
   'exclamationmark.triangle.fill': 'warning',
   'arrow.triangle.2.circlepath': 'sync',
   'chart.bar.fill': 'bar-chart',
+  'person.fill': 'person',
+  'building.2.fill': 'apartment',
+  'person.2.fill': 'group',
+  'bell.fill': 'notifications',
+  'checkmark.seal.fill': 'verified',
+  'camera.fill': 'camera-alt',
+  'location.fill': 'location-on',
+  'lock.fill': 'lock',
+  'shield.fill': 'security',
 } as const satisfies Record<string, MaterialIconName>;
 
 export type IconSymbolName = keyof typeof MAPPING;

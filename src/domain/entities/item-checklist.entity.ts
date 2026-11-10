@@ -88,6 +88,10 @@ export class ItemChecklist {
     this._vistoriaFinalizada = true;
   }
 
+  public desbloquearEdicao(): void {
+    this._vistoriaFinalizada = false;
+  }
+
   private garantirEditavel(): void {
     if (this._vistoriaFinalizada) {
       throw new ItemChecklistNaoEditavelError(this.id);

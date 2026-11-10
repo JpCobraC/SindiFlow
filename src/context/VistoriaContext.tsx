@@ -35,6 +35,11 @@ import {
 } from '../domain/interfaces/location.gateway.interface';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
+import { RoleUsuario, Usuario } from '../domain/entities/usuario.entity';
+import { Comunicado } from '../domain/entities/comunicado.entity';
+import { AutenticarUsuarioUseCase } from '../application/use-cases/autenticar-usuario.usecase';
+import { AprovarVistoriaUseCase } from '../application/use-cases/aprovar-vistoria.usecase';
+import { DevolverVistoriaUseCase } from '../application/use-cases/devolver-vistoria.usecase';
 
 export class ProxyCameraGateway implements ICameraGateway {
   constructor(
@@ -128,12 +133,20 @@ export interface AuditLogItem {
 }
 
 export interface VistoriaContextData {
+  // Autenticação & Usuários
+  usuarioLogado: Usuario | null;
+  usuariosDisponiveis: Usuario[];
+  fazerLogin: (email: string, senha?: string) => Promise<void>;
+  loginRapido: (role: RoleUsuario) => Promise<void>;
+  fazerLogout: () => void;
+
   // Entidades e Estado In-Memory
   vistoriaAtiva: Vistoria | null;
   itensChecklist: ItemChecklist[];
   ocorrencias: Ocorrencia[];
   outboxPendentes: OutboxEvent[];
   auditLogs: AuditLogItem[];
+  comunicados: Comunicado[];
   
   // Conectividade e Simulação
   isOnline: boolean;
@@ -153,6 +166,8 @@ export interface VistoriaContextData {
   // Casos de Uso & Ações
   marcarItem: (itemId: string, status: StatusItemChecklist, observacao?: string) => Promise<void>;
   finalizarVistoria: (latitude?: number, longitude?: number) => Promise<void>;
+  aprovarVistoria: (parecerTecnico?: string) => Promise<void>;
+  devolverVistoria: (motivo: string) => Promise<void>;
   registrarOcorrencia: (dados: {
     titulo: string;
     descricao?: string;
@@ -160,6 +175,7 @@ export interface VistoriaContextData {
     fotos?: string[];
     itemId?: string;
   }) => Promise<Ocorrencia>;
+  criarComunicado: (titulo: string, conteudo: string) => Promise<void>;
   toggleRede: () => void;
   toggleErro503: () => void;
   sincronizarOutbox: () => Promise<SincronizacaoResultado>;
@@ -191,8 +207,36 @@ const registrarOcorrenciaUseCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo
 const sincronizarOutboxUseCase = new SincronizarOutboxUseCase(networkService, outboxRepo, syncGateway);
 const capturarLocalizacaoUseCase = new CapturarLocalizacaoUseCase(locationGateway, vistoriaRepo);
 const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo, outboxRepo);
+const autenticarUsuarioUseCase = new AutenticarUsuarioUseCase();
+const aprovarVistoriaUseCase = new AprovarVistoriaUseCase(vistoriaRepo, outboxRepo);
+const devolverVistoriaUseCase = new DevolverVistoriaUseCase(vistoriaRepo, outboxRepo);
 
 export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const perfisDemo = AutenticarUsuarioUseCase.obterPerfisDemonstracao();
+  const [usuarioLogado, setUsuarioLogado] = useState<Usuario | null>(perfisDemo[0]); // Inicia como Síndico para visão geral
+  const [usuariosDisponiveis] = useState<Usuario[]>(perfisDemo);
+  const [comunicados, setComunicados] = useState<Comunicado[]>([
+    new Comunicado({
+      id: 'com-1',
+      condominioId: 'cond-solar-palmeiras',
+      autorId: 'usr-sindico-carlos',
+      autorNome: 'Dr. Carlos Alberto (Síndico Geral)',
+      titulo: '📢 Realização de Vistoria Pericial Semestral - NBR 5674',
+      conteudo: 'Informamos a todos os moradores que o Eng. Carlos Eduardo está conduzindo a inspeção predial periódica das áreas comuns, barrilete, bombas de recalque e garagem G2. O laudo técnico finalizado será disponibilizado para consulta de todos os condôminos após aprovação formal.',
+      dataCriacao: new Date(Date.now() - 3600 * 1000 * 24),
+      fixado: true,
+    }),
+    new Comunicado({
+      id: 'com-2',
+      condominioId: 'cond-solar-palmeiras',
+      autorId: 'usr-sindico-carlos',
+      autorNome: 'Administração Solar das Palmeiras',
+      titulo: '⚠️ Manutenção Corretiva Agendada no Barrilete G2',
+      conteudo: 'Devido ao apontamento preventivo registrado no sistema com SLA crítico de 24h, a equipe técnica de hidráulica atuará no retentor da bomba secundária nesta quarta-feira.',
+      dataCriacao: new Date(Date.now() - 3600 * 1000 * 12),
+      fixado: false,
+    }),
+  ]);
   const [vistoriaAtiva, setVistoriaAtiva] = useState<Vistoria | null>(null);
   const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>([]);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
@@ -571,9 +615,110 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const fazerLogin = async (email: string, senha?: string): Promise<void> => {
+    try {
+      const usuario = await autenticarUsuarioUseCase.executar({ email, senha });
+      setUsuarioLogado(usuario);
+      addLog('SUCESSO', `Usuário "${usuario.nome}" autenticado com sucesso [Perfil: ${usuario.role}].`);
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Falha na autenticação: ${err?.message || err}`);
+      throw err;
+    }
+  };
+
+  const loginRapido = async (role: RoleUsuario): Promise<void> => {
+    try {
+      const usuario = await autenticarUsuarioUseCase.executar({ email: '', role });
+      setUsuarioLogado(usuario);
+      addLog('INFO', `Perfil alterado para "${usuario.nome}" [${usuario.role}].`);
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Erro na troca rápida de perfil: ${err?.message || err}`);
+    }
+  };
+
+  const fazerLogout = () => {
+    setUsuarioLogado(null);
+    addLog('INFO', 'Usuário desconectado.');
+  };
+
+  const aprovarVistoria = async (parecerTecnico?: string): Promise<void> => {
+    if (!vistoriaAtiva) throw new Error('Nenhuma vistoria para aprovar.');
+    if (!usuarioLogado || !usuarioLogado.podeAprovarVistoria()) {
+      throw new Error('Apenas o Síndico ou Administrador pode aprovar vistorias técnicas.');
+    }
+
+    try {
+      const aprovada = await aprovarVistoriaUseCase.executar({
+        vistoriaId: vistoriaAtiva.id,
+        aprovadorId: usuarioLogado.id,
+        parecerTecnico: parecerTecnico || 'Laudo pericial aprovado e liberado para os condôminos.',
+        deviceId: 'expo-device-01',
+      });
+
+      setVistoriaAtiva(aprovada);
+      await atualizarEstadoOutbox();
+      addLog('SUCESSO', `Vistoria ${aprovada.id} APROVADA pelo Síndico "${usuarioLogado.nome}". Laudo liberado aos moradores!`);
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Falha ao aprovar vistoria: ${err?.message || err}`);
+      throw err;
+    }
+  };
+
+  const devolverVistoria = async (motivo: string): Promise<void> => {
+    if (!vistoriaAtiva) throw new Error('Nenhuma vistoria ativa.');
+    if (!usuarioLogado || !usuarioLogado.podeAprovarVistoria()) {
+      throw new Error('Apenas o Síndico pode devolver vistorias para revisão.');
+    }
+
+    try {
+      const devolvida = await devolverVistoriaUseCase.executar({
+        vistoriaId: vistoriaAtiva.id,
+        solicitanteId: usuarioLogado.id,
+        motivo,
+        deviceId: 'expo-device-01',
+      });
+
+      setVistoriaAtiva(devolvida);
+      setItensChecklist([...devolvida.itens]);
+      await atualizarEstadoOutbox();
+      addLog('INFO', `Vistoria ${devolvida.id} DEVOLVIDA ao inspetor com o apontamento: "${motivo}".`);
+    } catch (err: any) {
+      addLog('BLOQUEIO', `Falha ao devolver vistoria: ${err?.message || err}`);
+      throw err;
+    }
+  };
+
+  const criarComunicado = async (titulo: string, conteudo: string): Promise<void> => {
+    if (!usuarioLogado || !usuarioLogado.isSindico()) {
+      throw new Error('Apenas o Síndico pode emitir comunicados prediais.');
+    }
+
+    const novo = new Comunicado({
+      id: `com-${Date.now()}`,
+      condominioId: usuarioLogado.condominioId,
+      autorId: usuarioLogado.id,
+      autorNome: usuarioLogado.nome,
+      titulo,
+      conteudo,
+      fixado: false,
+    });
+
+    setComunicados((prev) => [novo, ...prev]);
+    addLog('SUCESSO', `Novo comunicado predial emitido pelo Síndico: "${titulo}".`);
+  };
+
   return (
     <VistoriaContext.Provider
       value={{
+        usuarioLogado,
+        usuariosDisponiveis,
+        comunicados,
+        fazerLogin,
+        loginRapido,
+        fazerLogout,
+        aprovarVistoria,
+        devolverVistoria,
+        criarComunicado,
         vistoriaAtiva,
         itensChecklist,
         ocorrencias,

@@ -1,8 +1,8 @@
 import {
   GeolocalizacaoObrigatoriaError,
+  ItemChecklistDeOutraVistoriaError,
   ItemCriticoSemObservacaoError,
   VistoriaJaFinalizadaError,
-  ItemChecklistDeOutraVistoriaError,
   VistoriaNaoFinalizavelError,
   VistoriaPercentualIncompletoError,
   VistoriaStatusInvalidoError,
@@ -15,6 +15,8 @@ export enum StatusVistoria {
   EM_ANDAMENTO = 'EM_ANDAMENTO',
   FINALIZADA = 'FINALIZADA',
   CANCELADA = 'CANCELADA',
+  APROVADA = 'APROVADA',
+  DEVOLVIDA = 'DEVOLVIDA',
 }
 
 export interface VistoriaProps {
@@ -26,6 +28,10 @@ export interface VistoriaProps {
   dataFinalizacao?: Date;
   geolocalizacao?: Geolocalizacao;
   itens?: ItemChecklist[];
+  parecerTecnico?: string;
+  motivoDevolucao?: string;
+  aprovadoPor?: string;
+  dataAprovacao?: Date;
 }
 
 export class Vistoria {
@@ -37,12 +43,20 @@ export class Vistoria {
   private _dataFinalizacao?: Date;
   private _geolocalizacao?: Geolocalizacao;
   private _itens: ItemChecklist[];
+  private _parecerTecnico?: string;
+  private _motivoDevolucao?: string;
+  private _aprovadoPor?: string;
+  private _dataAprovacao?: Date;
 
   private constructor(props: VistoriaProps) {
     this.id = props.id;
     this.condominioId = props.condominioId;
     this.inspetorId = props.inspetorId;
     this._status = props.status || StatusVistoria.RASCUNHO;
+    this._parecerTecnico = props.parecerTecnico;
+    this._motivoDevolucao = props.motivoDevolucao;
+    this._aprovadoPor = props.aprovadoPor;
+    this._dataAprovacao = props.dataAprovacao ? new Date(props.dataAprovacao.getTime()) : undefined;
     // Cópias defensivas: `readonly` num `Date` não protege — `dataCriacao
     // .setFullYear(1999)` reescreveria a data real do laudo — e devolver o array
     // interno no getter permitiria `(v.itens as ItemChecklist[]).push(...)`.
@@ -132,6 +146,52 @@ export class Vistoria {
     // RF-VIST-007: a partir daqui o checklist da vistoria também é imutável.
     for (const item of this._itens) {
       item.bloquearEdicao();
+    }
+  }
+
+  public get parecerTecnico(): string | undefined {
+    return this._parecerTecnico;
+  }
+
+  public get motivoDevolucao(): string | undefined {
+    return this._motivoDevolucao;
+  }
+
+  public get aprovadoPor(): string | undefined {
+    return this._aprovadoPor;
+  }
+
+  public get dataAprovacao(): Date | undefined {
+    return this._dataAprovacao ? new Date(this._dataAprovacao.getTime()) : undefined;
+  }
+
+  /**
+   * RF16: O Síndico avalia o laudo pericial finalizado e aprova para visualização pública dos condôminos (RF15).
+   */
+  public aprovar(parecerTecnico?: string, aprovadorId?: string, agora: Date = new Date()): void {
+    if (this._status !== StatusVistoria.FINALIZADA) {
+      throw new Error('Apenas vistorias finalizadas pelo inspetor podem ser aprovadas pelo síndico.');
+    }
+    this._status = StatusVistoria.APROVADA;
+    this._parecerTecnico = parecerTecnico;
+    this._aprovadoPor = aprovadorId;
+    this._dataAprovacao = agora;
+  }
+
+  /**
+   * RF16: O Síndico devolve o laudo pericial para correções/complementações do inspetor.
+   */
+  public devolver(motivo: string, responsavelId?: string): void {
+    if (this._status !== StatusVistoria.FINALIZADA) {
+      throw new Error('Apenas vistorias finalizadas podem ser devolvidas para revisão.');
+    }
+    if (!motivo || motivo.trim().length === 0) {
+      throw new Error('Motivo da devolução é obrigatório.');
+    }
+    this._status = StatusVistoria.DEVOLVIDA;
+    this._motivoDevolucao = motivo.trim();
+    for (const item of this._itens) {
+      item.desbloquearEdicao();
     }
   }
 
