@@ -134,10 +134,36 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
   }
 
   async marcarSincronizado(id: string, dataSync: Date = new Date()): Promise<void> {
-    await this.executor.executar(
-      "UPDATE outbox_events SET status = 'SINCRONIZADO', data_sincronizacao = ? WHERE id = ?",
-      [dataSync.toISOString(), id]
-    );
+    await this.executor.emTransacao(async (tx) => {
+      // Buscar dados do evento para o log de auditoria
+      const evento = await tx.consultarUm<{
+        id: string;
+        tabela: string;
+        operacao: string;
+      }>('SELECT id, tabela, operacao FROM outbox_events WHERE id = ?', [id]);
+
+      if (!evento) return;
+
+      // Atualizar status para SINCRONIZADO
+      await tx.executar(
+        "UPDATE outbox_events SET status = 'SINCRONIZADO', data_sincronizacao = ? WHERE id = ?",
+        [dataSync.toISOString(), id]
+      );
+
+      // RF-SYNC-006: log de auditoria — toda operação de sync registra em sync_log
+      await tx.executar(
+        `INSERT INTO sync_log (
+          id, outbox_id, status, mensagem, executado_em
+        ) VALUES (?, ?, ?, ?, ?)`,
+        [
+          `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          evento.id,
+          'SINCRONIZADO',
+          `Evento ${evento.tabela}:${evento.operacao}:${id} sincronizado com sucesso`,
+          dataSync.toISOString(),
+        ]
+      );
+    });
   }
 
   async registrarFalha(id: string, erro: string, agora: Date = new Date()): Promise<void> {

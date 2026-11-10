@@ -3,11 +3,14 @@ import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
 import { CameraGatewayFake } from '../adapters/gateways/camera.gateway.fake';
 import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo';
 import { LocationGatewayFake } from '../adapters/gateways/location.gateway.fake';
-import { NetworkServiceFake } from '../adapters/gateways/network.service.fake';
+import { NetworkServiceReal } from '../adapters/gateways/network.service.real';
 import { RemoteSyncGatewayFake } from '../adapters/gateways/remote-sync.gateway.fake';
-import { OcorrenciaRepositoryInMemory } from '../adapters/repositories/ocorrencia.repository.inmemory';
-import { OutboxRepositoryInMemory } from '../adapters/repositories/outbox.repository.inmemory';
-import { VistoriaRepositoryInMemory } from '../adapters/repositories/vistoria.repository.inmemory';
+import { FileSystemGateway } from '../adapters/gateways/file-system.gateway.real';
+import { OcorrenciaRepositorySQLite } from '../adapters/repositories/ocorrencia.repository.sqlite';
+import { OutboxRepositorySQLite } from '../adapters/repositories/outbox.repository.sqlite';
+import { VistoriaRepositorySQLite } from '../adapters/repositories/vistoria.repository.sqlite';
+import { openSindiFlowDatabase } from '../infra/db/sqlite-connection';
+import { runMigrations } from '../infra/db/migrations';
 import { AnexarFotoUseCase } from '../application/use-cases/anexar-foto.usecase';
 import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import {
@@ -33,11 +36,17 @@ import {
   ILocationGateway,
   LocalizacaoDispositivo,
 } from '../domain/interfaces/location.gateway.interface';
+import { IFileSystemGateway } from '../domain/interfaces/file-system.gateway.interface';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
 import { RoleUsuario, Usuario } from '../domain/entities/usuario.entity';
 import { Comunicado } from '../domain/entities/comunicado.entity';
+import { ExpoSQLiteExecutor } from '../infra/db/expo-sqlite.executor';
 import { AutenticarUsuarioUseCase } from '../application/use-cases/autenticar-usuario.usecase';
+import { AuthGatewaySupabase } from '../adapters/gateways/auth-gateway.supabase';
+import { AuthGatewayGoogle } from '../adapters/gateways/auth-gateway.google';
+import { SessionStorageSecureStore } from '../adapters/auth/session-storage.secure-store';
+import { UsuarioRepositorySQLite } from '../adapters/repositories/usuario.repository.sqlite';
 import { AprovarVistoriaUseCase } from '../application/use-cases/aprovar-vistoria.usecase';
 import { DevolverVistoriaUseCase } from '../application/use-cases/devolver-vistoria.usecase';
 
@@ -160,6 +169,7 @@ export interface VistoriaContextData {
   // Gateways e Ações de Hardware
   locationGateway: ILocationGateway;
   cameraGateway: ICameraGateway;
+  fileSystemGateway: IFileSystemGateway;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
   anexarFoto: (params: { itemId?: string; ocorrenciaId?: string }) => Promise<Evidencia | null>;
 
@@ -184,12 +194,17 @@ export interface VistoriaContextData {
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
 
-// Instâncias dos repositórios
-const vistoriaRepo = new VistoriaRepositoryInMemory();
-const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
-const outboxRepo = new OutboxRepositoryInMemory();
-const networkService = new NetworkServiceFake(false); // Inicia OFFLINE (Subsolo G2)
+// Instâncias dos repositórios — SQLite como fonte da verdade (§1.2)
+const db = openSindiFlowDatabase();
+runMigrations(db);
+const executor = new ExpoSQLiteExecutor(db);
+
+const vistoriaRepo = new VistoriaRepositorySQLite(executor);
+const ocorrenciaRepo = new OcorrenciaRepositorySQLite(executor);
+const outboxRepo = new OutboxRepositorySQLite(executor);
+const networkService = new NetworkServiceReal(); // expo-network real (§1.3)
 const syncGateway = new RemoteSyncGatewayFake();
+const fileSystemGateway = new FileSystemGateway(); // expo-file-system real (§1.4)
 
 const cameraGatewayFake = new CameraGatewayFake();
 const cameraGatewayExpo = new CameraGatewayExpo();
@@ -207,7 +222,24 @@ const registrarOcorrenciaUseCase = new RegistrarOcorrenciaUseCase(ocorrenciaRepo
 const sincronizarOutboxUseCase = new SincronizarOutboxUseCase(networkService, outboxRepo, syncGateway);
 const capturarLocalizacaoUseCase = new CapturarLocalizacaoUseCase(locationGateway, vistoriaRepo);
 const anexarFotoUseCase = new AnexarFotoUseCase(cameraGateway, vistoriaRepo, ocorrenciaRepo, outboxRepo);
-const autenticarUsuarioUseCase = new AutenticarUsuarioUseCase();
+
+// Auth gateway e sessão segura (§1.2, §1.3)
+const authGatewaySupabase = new AuthGatewaySupabase(
+  process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://exemplo.supabase.co',
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'anon-key-teste'
+);
+const authGatewayGoogle = new AuthGatewayGoogle(
+  process.env.EXPO_PUBLIC_SUPABASE_URL ?? 'https://exemplo.supabase.co',
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? 'anon-key-teste'
+);
+const sessionStorage = new SessionStorageSecureStore();
+const usuarioRepo = new UsuarioRepositorySQLite(executor);
+
+const autenticarUsuarioUseCase = new AutenticarUsuarioUseCase(
+  authGatewaySupabase,
+  usuarioRepo,
+  outboxRepo
+);
 const aprovarVistoriaUseCase = new AprovarVistoriaUseCase(vistoriaRepo, outboxRepo);
 const devolverVistoriaUseCase = new DevolverVistoriaUseCase(vistoriaRepo, outboxRepo);
 
@@ -567,7 +599,6 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const toggleRede = () => {
     const novoStatus = !isOnline;
-    networkService.setOnline(novoStatus);
     setIsOnline(novoStatus);
     addLog(
       novoStatus ? 'SUCESSO' : 'INFO',
@@ -731,6 +762,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         toggleHardwareNativo,
         locationGateway,
         cameraGateway,
+        fileSystemGateway,
         capturarLocalizacao,
         anexarFoto,
         marcarItem,

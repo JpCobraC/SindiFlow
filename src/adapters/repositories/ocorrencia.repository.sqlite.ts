@@ -27,7 +27,21 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
   constructor(private readonly executor: ISQLiteExecutor) {}
 
   async salvar(ocorrencia: Ocorrencia): Promise<void> {
+    const agora = new Date().toISOString();
+
     await this.executor.emTransacao(async (tx) => {
+      // RF-SYNC-005: last-write-wins por updated_at. Só atualiza se o registro
+      // existente tiver updated_at menor que o novo (ou não existir).
+      const existente = await tx.consultarUm<{ updated_at: string }>(
+        'SELECT updated_at FROM ocorrencias WHERE id = ?',
+        [ocorrencia.id]
+      );
+
+      if (existente && existente.updated_at >= agora) {
+        // Registro existente é mais recente ou igual: não sobrescreve.
+        return;
+      }
+
       await tx.executar(
         `INSERT INTO ocorrencias (
           id, vistoria_id, item_id, titulo, descricao, gravidade, status,
@@ -62,7 +76,7 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
           iso(ocorrencia.dataResolucao),
           iso(ocorrencia.dataCancelamento),
           ocorrencia.solucao ?? null,
-          new Date().toISOString(),
+          agora,
         ]
       );
     });

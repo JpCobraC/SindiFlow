@@ -62,6 +62,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "EXPO_PUBLIC_SUPABASE_URL": "https://exemplo.supabase.co",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "anon-key-teste",
+      "EXPO_PUBLIC_GOOGLE_CLIENT_ID": ""
     }
   }
 }

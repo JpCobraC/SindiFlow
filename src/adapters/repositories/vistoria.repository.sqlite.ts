@@ -24,7 +24,21 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
   constructor(private readonly executor: ISQLiteExecutor) {}
 
   async salvar(vistoria: Vistoria): Promise<void> {
+    const agora = new Date().toISOString();
+
     await this.executor.emTransacao(async (tx) => {
+      // RF-SYNC-005: last-write-wins por updated_at. Só atualiza se o registro
+      // existente tiver updated_at menor que o novo (ou não existir).
+      const existente = await tx.consultarUm<{ updated_at: string }>(
+        'SELECT updated_at FROM vistorias WHERE id = ?',
+        [vistoria.id]
+      );
+
+      if (existente && existente.updated_at >= agora) {
+        // Registro existente é mais recente ou igual: não sobrescreve.
+        return;
+      }
+
       await tx.executar(
         `INSERT INTO vistorias (
           id, condominio_id, inspetor_id, status, latitude, longitude, precisao,
@@ -50,7 +64,7 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
           vistoria.geolocalizacao?.precisao ?? null,
           vistoria.dataCriacao.toISOString(),
           iso(vistoria.dataFinalizacao),
-          new Date().toISOString(),
+          agora,
         ]
       );
     });

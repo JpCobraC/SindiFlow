@@ -1,3 +1,26 @@
+/**
+ * SindiFlow — AutenticarUsuarioUseCase
+ * Camada: Application (Use Cases)
+ *
+ * Orquestração de autenticação de usuário. Orquestra o `AuthGateway` (Supabase
+ * Auth ou Google) e o `UsuarioRepository` (SQLite).
+ *
+ * Conformidade com §2: depende apenas de interfaces do `domain/`.
+ * Conformidade com §1.3: toda operação de escrita (criação/atualização de
+ * usuário após login) passa pela fila de outbox via `IOutboxRepository`.
+ * Conformidade com §3.3: sessão de 7 dias com expiração controlada.
+ */
+
+import {
+  AuthGateway,
+  ResultadoAutenticacao,
+  SessaoUsuario,
+} from '../../domain/interfaces/auth.gateway.interface';
+import {
+  UsuarioRepository,
+  UsuarioDados,
+} from '../../domain/interfaces/usuario.repository.interface';
+import { IOutboxRepository } from '../../domain/interfaces/outbox.repository.interface';
 import { RoleUsuario, Usuario } from '../../domain/entities/usuario.entity';
 
 export interface AutenticarUsuarioInput {
@@ -6,74 +29,76 @@ export interface AutenticarUsuarioInput {
   role?: RoleUsuario;
 }
 
-export class AutenticarUsuarioUseCase {
-  private static readonly USUARIOS_PADRAO: Array<{
-    id: string;
-    nome: string;
-    email: string;
-    role: RoleUsuario;
-    condominioId: string;
-    unidade?: string;
-    registroProfissional?: string;
-  }> = [
-    {
-      id: 'usr-sindico-carlos',
-      nome: 'Dr. Carlos Alberto de Oliveira',
-      email: 'sindico@solar.com',
-      role: 'SINDICO',
-      condominioId: 'cond-solar-palmeiras',
-    },
-    {
-      id: 'usr-inspetor-carlos',
-      nome: 'Eng. Carlos Eduardo Viana',
-      email: 'inspetor@solar.com',
-      role: 'INSPETOR',
-      condominioId: 'cond-solar-palmeiras',
-      registroProfissional: 'CREA 50692-SP',
-    },
-    {
-      id: 'usr-condomino-mariana',
-      nome: 'Mariana de Souza Ramos',
-      email: 'condomino@solar.com',
-      role: 'CONDOMINO',
-      condominioId: 'cond-solar-palmeiras',
-      unidade: 'Apto 402 - Bloco B',
-    },
-  ];
+/**
+ * Sessão offline de 7 dias conforme decisão de 07/09/2026.
+ */
+const SESSAO_OFFLINE_DIAS = 7;
 
-  public async executar(input: AutenticarUsuarioInput): Promise<Usuario> {
+export class AutenticarUsuarioUseCase {
+  constructor(
+    private readonly authGateway: AuthGateway,
+    private readonly usuarioRepo: UsuarioRepository,
+    private readonly outboxRepo: IOutboxRepository
+  ) {}
+
+  async executar(input: AutenticarUsuarioInput): Promise<Usuario> {
     const emailNormalizado = input.email.trim().toLowerCase();
 
-    // Busca usuário padrão por email ou role
-    const encontrado = AutenticarUsuarioUseCase.USUARIOS_PADRAO.find(
-      (u) =>
-        u.email === emailNormalizado ||
-        (input.role && u.role === input.role)
-    );
+    // 1. Autentica via gateway (Supabase Auth por email ou Google social)
+    const resultado: ResultadoAutenticacao =
+      input.senha
+        ? await this.authGateway.loginPorEmail(emailNormalizado, input.senha)
+        : await this.authGateway.loginComProvedorSocial('google');
 
-    if (encontrado) {
-      return new Usuario({
-        ...encontrado,
+    if (!resultado) {
+      throw new Error('Falha na autenticação.');
+    }
+
+    const { sessao, usuarioNovo } = resultado;
+
+    // 2. Salva/atualiza usuário no SQLite (fonte da verdade offline)
+    const usuarioDados: UsuarioDados = {
+      id: sessao.id,
+      nome: sessao.nome,
+      email: sessao.email,
+      role: sessao.role,
+      condominioId: sessao.condominioId,
+      unidade: sessao.unidade,
+      registroProfissional: sessao.registroProfissional,
+      ativo: true,
+      ultimoAcesso: new Date(),
+      criadoEm: usuarioNovo ? new Date() : undefined,
+    };
+
+    await this.usuarioRepo.salvar(usuarioDados);
+
+    // 3. Enfileira na outbox se for usuário novo (criação) ou atualização
+    if (usuarioNovo) {
+      await this.outboxRepo.enfileirar({
+        tabela: 'users',
+        operacao: 'INSERT',
+        idRegistro: sessao.id,
+        payload: {
+          id: sessao.id,
+          email: sessao.email,
+          role: sessao.role,
+          condominio_id: sessao.condominioId,
+        },
+        usuarioId: sessao.id,
+        deviceId: 'expo-device-01',
       });
     }
 
-    // Permite login dinâmico caso seja outro email válido
-    if (!emailNormalizado.includes('@')) {
-      throw new Error('Email inválido.');
-    }
-
-    const role = input.role || 'CONDOMINO';
+    // 4. Retorna entidade Usuario do domínio
     return new Usuario({
-      id: `usr-${Date.now()}`,
-      nome: emailNormalizado.split('@')[0],
-      email: emailNormalizado,
-      role,
-      condominioId: 'cond-solar-palmeiras',
+      id: sessao.id,
+      nome: sessao.nome,
+      email: sessao.email,
+      role: sessao.role,
+      condominioId: sessao.condominioId,
+      unidade: sessao.unidade,
+      registroProfissional: sessao.registroProfissional,
+      ativo: true,
     });
   }
-
-  public static obterPerfisDemonstracao(): Usuario[] {
-    return AutenticarUsuarioUseCase.USUARIOS_PADRAO.map((props) => new Usuario(props));
-  }
 }
-
