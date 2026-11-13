@@ -9,19 +9,27 @@
  * nos testes Jest.
  */
 jest.mock('@supabase/supabase-js', () => {
+  const mockSingle = jest.fn(async () => ({
+    data: null,
+    error: null,
+  }));
+  const mockSelect = jest.fn(() => ({
+    single: mockSingle,
+  }));
+  const mockUpsert = jest.fn(() => ({
+    select: mockSelect,
+  }));
+  const mockFrom = jest.fn(() => ({
+    upsert: mockUpsert,
+  }));
   return {
     createClient: jest.fn(() => ({
-      from: jest.fn(() => ({
-        upsert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(async () => ({
-              data: null,
-              error: null,
-            })),
-          })),
-        })),
-      })),
+      from: mockFrom,
     })),
+    __mockSingle: mockSingle,
+    __mockSelect: mockSelect,
+    __mockUpsert: mockUpsert,
+    __mockFrom: mockFrom,
   };
 });
 
@@ -31,6 +39,7 @@ import { ErroSincronizacao } from '../../../src/domain/errors/domain-errors';
 import { SyncGatewaySupabase } from '../../../src/adapters/gateways/sync-gateway.supabase';
 
 const mockCreateClient = createClient as jest.Mock;
+const { __mockSingle, __mockUpsert } = require('@supabase/supabase-js');
 
 function criarEventoDeTeste(props?: Partial<{
   id: string;
@@ -88,35 +97,22 @@ describe('SyncGatewaySupabase', () => {
 
   it('deve lançar ErroSincronizacao com transitorio=true em erro 5xx', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-5xx' });
-    const mockUpsert = mockCreateClient().from().upsert;
-    mockUpsert.mockImplementationOnce(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(async () => ({
-          data: null,
-          error: { code: '500', message: 'Internal Server Error', status: 500 },
-        })),
-      })),
-    }));
-
-    await expect(gateway.sincronizarItem(evento)).rejects.toBeInstanceOf(
-      ErroSincronizacao
-    );
+    __mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: '500', message: 'Internal Server Error', status: 500 },
+    });
 
     const erro = await gateway.sincronizarItem(evento).catch((e) => e);
+    expect(erro).toBeInstanceOf(ErroSincronizacao);
     expect(erro.transitorio).toBe(true);
     expect(erro.statusCode).toBe(500);
   });
 
   it('deve lançar ErroSincronizacao com transitorio=false em erro 4xx', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-4xx' });
-    const mockUpsert = mockCreateClient().from().upsert;
-    mockUpsert.mockImplementationOnce(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(async () => ({
-          data: null,
-          error: { code: '403', message: 'Forbidden', status: 403 },
-        })),
-      })),
+    __mockSingle.mockResolvedValueOnce({
+      data: null,
+      error: { code: '403', message: 'Forbidden', status: 403 },
     });
 
     const erro = await gateway.sincronizarItem(evento).catch((e) => e);
@@ -127,14 +123,9 @@ describe('SyncGatewaySupabase', () => {
 
   it('deve resolver com sucesso quando o Supabase retorna 200', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-sucesso' });
-    const mockUpsert = mockCreateClient().from().upsert;
-    mockUpsert.mockImplementationOnce(() => ({
-      select: jest.fn(() => ({
-        single: jest.fn(async () => ({
-          data: { id: 'vist-sucesso' },
-          error: null,
-        })),
-      })),
+    __mockSingle.mockResolvedValueOnce({
+      data: { id: 'vist-sucesso' },
+      error: null,
     });
 
     await expect(gateway.sincronizarItem(evento)).resolves.toBeUndefined();

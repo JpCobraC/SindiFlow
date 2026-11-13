@@ -112,12 +112,17 @@ describe('OcorrenciaRepositorySQLite', () => {
 
     await repo.salvar(ocorrencia);
 
-    const atualizada = Ocorrencia.criar({
+    // Pequeno delay para garantir updated_at diferente (RF-SYNC-005 last-write-wins)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const atualizada = Ocorrencia.reidratar({
       id: 'oc-upd',
       vistoriaId: 'vist-1',
       itemId: 'item-1',
       titulo: 'Título atualizado',
       gravidade: GravidadeOcorrencia.ALTA,
+      fotos: ['file:///ev/upd.jpg'],
+      dataCriacao: new Date(),
     });
 
     await repo.salvar(atualizada);

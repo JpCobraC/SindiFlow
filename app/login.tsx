@@ -31,7 +31,6 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
-  [carregando] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -141,7 +140,7 @@ export default function LoginScreen() {
 
           <View style={styles.dividerContainer}>
             <View style={styles.divider} />
-            <Text style={styles.dividerText">ou</Text>
+            <Text style={styles.dividerText}>ou</Text>
             <View style={styles.divider} />
           </View>
 

@@ -23,6 +23,17 @@ export type LinhaOcorrencia = {
   updated_at: string;
 };
 
+export type LinhaFotoEvidencia = {
+  id: string;
+  ocorrencia_id: string;
+  item_id: string | null;
+  caminho_arquivo: string;
+  hash: string;
+  tamanho_bytes: number | null;
+  data_captura: string;
+  updated_at: string;
+};
+
 export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
   constructor(private readonly executor: ISQLiteExecutor) {}
 
@@ -79,6 +90,33 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
           agora,
         ]
       );
+
+      // Persistir fotos da ocorrência na tabela fotos_evidencia
+      const fotos = ocorrencia.fotos ?? [];
+      for (const caminhoFoto of fotos) {
+        await tx.executar(
+          `INSERT INTO fotos_evidencia (
+            id, ocorrencia_id, item_id, caminho_arquivo, hash,
+            tamanho_bytes, data_captura, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            caminho_arquivo = excluded.caminho_arquivo,
+            hash = excluded.hash,
+            tamanho_bytes = excluded.tamanho_bytes,
+            data_captura = excluded.data_captura,
+            updated_at = excluded.updated_at`,
+          [
+            `foto-${ocorrencia.id}-${caminhoFoto}`,
+            ocorrencia.id,
+            ocorrencia.itemId ?? null,
+            caminhoFoto,
+            caminhoFoto, // hash: usa o caminho como placeholder de integridade
+            null,
+            agora,
+            agora,
+          ]
+        );
+      }
     });
   }
 
@@ -99,7 +137,11 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
       [vistoriaId]
     );
 
-    return linhas.map((linha) => this.hidratar(linha));
+    const ocorrencias: Ocorrencia[] = [];
+    for (const linha of linhas) {
+      ocorrencias.push(await this.hidratar(linha));
+    }
+    return ocorrencias;
   }
 
   async listarTodas(): Promise<Ocorrencia[]> {
@@ -107,10 +149,22 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
       'SELECT * FROM ocorrencias'
     );
 
-    return linhas.map((linha) => this.hidratar(linha));
+    const ocorrencias: Ocorrencia[] = [];
+    for (const linha of linhas) {
+      ocorrencias.push(await this.hidratar(linha));
+    }
+    return ocorrencias;
   }
 
-  private hidratar(linha: LinhaOcorrencia): Ocorrencia {
+  private async hidratar(linha: LinhaOcorrencia): Promise<Ocorrencia> {
+    // Buscar fotos da ocorrência na tabela fotos_evidencia
+    const fotosLinhas = await this.executor.consultar<LinhaFotoEvidencia>(
+      'SELECT * FROM fotos_evidencia WHERE ocorrencia_id = ?',
+      [linha.id]
+    );
+
+    const fotos = fotosLinhas.map((f) => f.caminho_arquivo);
+
     // reidratar (não criar): não revalida regras de negócio (ALTA sem foto etc.)
     // — os dados já foram validados quando gravados.
     return Ocorrencia.reidratar({
@@ -121,7 +175,7 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
       descricao: linha.descricao ?? undefined,
       gravidade: linha.gravidade,
       status: linha.status,
-      fotos: [], // fotos carregadas separadamente (tabela fotos_evidencia)
+      fotos,
       dataCriacao: new Date(linha.data_criacao),
       dataResolucao: linha.data_resolucao ? new Date(linha.data_resolucao) : undefined,
       solucao: linha.solucao ?? undefined,

@@ -22,6 +22,12 @@ module.exports = {
       functions: 60,
       lines: 70,
     },
+    './src/infra/': {
+      statements: 70,
+      branches: 60,
+      functions: 60,
+      lines: 70,
+    },
   },
   projects: [
     {
@@ -35,6 +41,7 @@ module.exports = {
         'src/domain/**/*.ts',
         'src/application/**/*.ts',
         'src/adapters/**/*.ts',
+        'src/infra/**/*.ts',
       ],
       coveragePathIgnorePatterns: [
         '/node_modules/',
