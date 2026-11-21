@@ -1,85 +1,79 @@
 import { ConsultarHistoricoUseCase } from '../../src/application/use-cases/consultar-historico.usecase';
+import { VistoriaRepositoryInMemory } from '../../src/adapters/repositories/vistoria.repository.inmemory';
+import { OcorrenciaRepositoryInMemory } from '../../src/adapters/repositories/ocorrencia.repository.inmemory';
+import { Vistoria, StatusVistoria } from '../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
-import { GravidadeOcorrencia, Ocorrencia } from '../../src/domain/entities/ocorrencia.entity';
-import { StatusVistoria, Vistoria } from '../../src/domain/entities/vistoria.entity';
-import { IOcorrenciaRepository } from '../../src/domain/interfaces/ocorrencia.repository.interface';
-import { IVistoriaRepository } from '../../src/domain/interfaces/vistoria.repository.interface';
+import { Ocorrencia, GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
 import { Geolocalizacao } from '../../src/domain/value-objects/geolocalizacao.vo';
 
-class FakeVistoriaRepository implements IVistoriaRepository {
-  public vistorias: Vistoria[] = [];
+describe('ConsultarHistoricoUseCase', () => {
+  it('deve retornar métricas vazias quando não há vistorias', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+    const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
 
-  async salvar(vistoria: Vistoria): Promise<void> {
-    this.vistorias.push(vistoria);
-  }
-  async buscarPorId(id: string): Promise<Vistoria | null> {
-    return this.vistorias.find((v) => v.id === id) || null;
-  }
-  async listarPorCondominio(condominioId: string): Promise<Vistoria[]> {
-    return this.vistorias.filter((v) => v.condominioId === condominioId);
-  }
-}
+    const resultado = await useCase.executar('cond-1');
 
-class FakeOcorrenciaRepository implements IOcorrenciaRepository {
-  public ocorrencias: Ocorrencia[] = [];
-
-  async salvar(ocorrencia: Ocorrencia): Promise<void> {
-    this.ocorrencias.push(ocorrencia);
-  }
-  async buscarPorId(id: string): Promise<Ocorrencia | null> {
-    return this.ocorrencias.find((o) => o.id === id) || null;
-  }
-  async listarPorVistoria(vistoriaId: string): Promise<Ocorrencia[]> {
-    return this.ocorrencias.filter((o) => o.vistoriaId === vistoriaId);
-  }
-  async listarTodas(): Promise<Ocorrencia[]> {
-    return [...this.ocorrencias];
-  }
-}
-
-describe('ConsultarHistoricoUseCase (Application)', () => {
-  let vistoriaRepo: FakeVistoriaRepository;
-  let ocorrenciaRepo: FakeOcorrenciaRepository;
-  let useCase: ConsultarHistoricoUseCase;
-
-  beforeEach(() => {
-    vistoriaRepo = new FakeVistoriaRepository();
-    ocorrenciaRepo = new FakeOcorrenciaRepository();
-    useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
+    expect(resultado.totalVistorias).toBe(0);
+    expect(resultado.vistoriasFinalizadas).toBe(0);
+    expect(resultado.vistoriasEmAndamento).toBe(0);
+    expect(resultado.totalOcorrencias).toBe(0);
+    expect(resultado.ocorrenciasCriticas).toBe(0);
+    expect(resultado.taxaConformidade).toBe(100);
+    expect(resultado.vistorias).toEqual([]);
   });
 
-  it('deve calcular métricas consolidadas de histórico e conformidade predial', async () => {
-    const item1 = ItemChecklist.criar({ id: 'i1', vistoriaId: 'v1', titulo: 'Extintor', categoria: 'Incêndio', status: StatusItemChecklist.OK });
-    const item2 = ItemChecklist.criar({ id: 'i2', vistoriaId: 'v1', titulo: 'Bomba', categoria: 'Hidráulica', status: StatusItemChecklist.OK });
-    const item3 = ItemChecklist.criar({ id: 'i3', vistoriaId: 'v1', titulo: 'Painel', categoria: 'Elétrica', status: StatusItemChecklist.AVISO });
-    const item4 = ItemChecklist.criar({ id: 'i4', vistoriaId: 'v1', titulo: 'Gerador', categoria: 'Elétrica', status: StatusItemChecklist.CRITICO, observacao: 'Nível de óleo baixo' });
+  it('deve agregar vistorias por status e itens avaliados', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+    const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
 
-    const vistoriaFinalizada = Vistoria.criar({
-      id: 'v1',
-      condominioId: 'cond-alpha',
-      inspetorId: 'user-1',
-      itens: [item1, item2, item3, item4],
-    });
+    const itemOk = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    itemOk.marcarStatus(StatusItemChecklist.OK);
+    const itemCritico = ItemChecklist.criar({ id: 'i-2', vistoriaId: 'v-1', titulo: 'QGBT', categoria: 'Elétrica' });
+    itemCritico.marcarStatus(StatusItemChecklist.CRITICO, 'Lacre violado');
+
+    const vistoriaFinalizada = Vistoria.criar({ id: 'v-1', condominioId: 'cond-1', inspetorId: 'user-1', itens: [itemOk, itemCritico] });
     vistoriaFinalizada.finalizar(Geolocalizacao.criar({ latitude: -23.55, longitude: -46.63 }));
     await vistoriaRepo.salvar(vistoriaFinalizada);
 
-    const ocorrencia = Ocorrencia.criar({
-      id: 'oc-1',
-      vistoriaId: 'v1',
-      titulo: 'Óleo baixo no gerador',
-      gravidade: GravidadeOcorrencia.ALTA,
-      fotos: ['file:///fotos/gerador.jpg'],
-      dataCriacao: new Date(),
-    });
-    await ocorrenciaRepo.salvar(ocorrencia);
+    const itemPendente = ItemChecklist.criar({ id: 'i-3', vistoriaId: 'v-2', titulo: 'Bomba', categoria: 'Hidráulica' });
+    const vistoriaRascunho = Vistoria.criar({ id: 'v-2', condominioId: 'cond-1', inspetorId: 'user-1', itens: [itemPendente] });
+    await vistoriaRepo.salvar(vistoriaRascunho);
 
-    const relatorio = await useCase.executar('cond-alpha');
+    const resultado = await useCase.executar('cond-1');
 
-    expect(relatorio.totalVistorias).toBe(1);
-    expect(relatorio.vistoriasFinalizadas).toBe(1);
-    expect(relatorio.totalOcorrencias).toBe(1);
-    expect(relatorio.ocorrenciasCriticas).toBe(1);
-    // 2 OKs em 4 itens respondidos = 50% de conformidade
-    expect(relatorio.taxaConformidade).toBe(50);
+    expect(resultado.totalVistorias).toBe(2);
+    expect(resultado.vistoriasFinalizadas).toBe(1);
+    expect(resultado.vistoriasEmAndamento).toBe(1);
+    expect(resultado.taxaConformidade).toBe(50); // 1 OK de 2 avaliados
+  });
+
+  it('deve contar ocorrências críticas', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+    const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
+
+    await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-1', vistoriaId: 'v-1', titulo: 'Fissura', gravidade: GravidadeOcorrencia.ALTA, fotos: ['file:///foto.jpg'] }));
+    await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-2', vistoriaId: 'v-1', titulo: 'Pintura', gravidade: GravidadeOcorrencia.BAIXA }));
+
+    const resultado = await useCase.executar('cond-1');
+
+    expect(resultado.totalOcorrencias).toBe(2);
+    expect(resultado.ocorrenciasCriticas).toBe(1);
+  });
+
+  it('deve ignorar vistorias de outro condomínio', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+    const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
+
+    const item = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    const vistoria = Vistoria.criar({ id: 'v-1', condominioId: 'cond-2', inspetorId: 'user-1', itens: [item] });
+    await vistoriaRepo.salvar(vistoria);
+
+    const resultado = await useCase.executar('cond-1');
+
+    expect(resultado.totalVistorias).toBe(0);
   });
 });

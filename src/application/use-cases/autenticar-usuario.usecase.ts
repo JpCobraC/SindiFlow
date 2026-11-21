@@ -63,7 +63,12 @@ export class AutenticarUsuarioUseCase {
     if (!sessao) return null;
 
     const dados = await this.usuarioRepo.buscarPorId(sessao.id);
-    if (!dados) return null;
+    if (!dados) {
+      // Sessão órfã: o usuário não existe mais no SQLite. Limpa o SecureStore
+      // para evitar loop de "sessão inválida" em todo cold start.
+      await this.authGateway.logout();
+      return null;
+    }
 
     return this.mapearUsuario(dados);
   }

@@ -62,7 +62,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
 
   describe('captura', () => {
     it('deve capturar e retornar Evidencia com caminho local e hash (RF-EVI-001, RF07)', async () => {
-      const evidencia = evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' }));
+      const evidencia = evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' }));
 
       expect(evidencia).toBeInstanceOf(Evidencia);
       expect(evidencia.id).toBeDefined();
@@ -77,7 +77,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
         return true;
       });
 
-      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' }));
+      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' }));
       expect(cameraGateway.solicitarPermissao).toHaveBeenCalledTimes(1);
     });
 
@@ -86,14 +86,14 @@ describe('AnexarFotoUseCase (UC05)', () => {
       jest.spyOn(cameraGateway, 'solicitarPermissao').mockResolvedValue(false);
 
       await expect(
-        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' })
+        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' })
       ).rejects.toThrow(PermissaoNegadaError);
     });
 
     it('deve reportar cancelamento sem lançar — cancelar não é erro (RNF02)', async () => {
       cameraGateway.setCancelado(true);
 
-      const resultado = await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' });
+      const resultado = await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' });
 
       expect(resultado.status).toBe('cancelado');
       const pendentes = await outboxRepo.listarTodos();
@@ -103,7 +103,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
     it('deve reportar erro de câmera sem lançar', async () => {
       cameraGateway.setErro('Câmera ocupada');
 
-      const resultado = await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' });
+      const resultado = await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' });
 
       expect(resultado.status).toBe('erro_captura');
       if (resultado.status !== 'erro_captura') throw new Error('esperava erro');
@@ -116,7 +116,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
       const spy = jest.spyOn(cameraGateway, 'capturarFoto');
 
       await expect(
-        useCase.executar({ vistoriaId: 'vist-inexistente', itemId: 'item-1', deviceId: 'device-teste' })
+        useCase.executar({ vistoriaId: 'vist-inexistente', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' })
       ).rejects.toThrow(OcorrenciaNaoEncontradaError);
 
       // O fluxo anterior disparava o obturador e só depois descobria o erro,
@@ -128,7 +128,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
       const spy = jest.spyOn(cameraGateway, 'capturarFoto');
 
       await expect(
-        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-inexistente', deviceId: 'device-teste' })
+        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-inexistente', deviceId: 'device-teste', usuarioId: 'user-teste' })
       ).rejects.toThrow(ItemChecklistNaoEncontradoError);
       expect(spy).not.toHaveBeenCalled();
     });
@@ -136,13 +136,13 @@ describe('AnexarFotoUseCase (UC05)', () => {
     it('deve recusar foto sem destino em vez de produzir evidência órfã', async () => {
       // Antes, `executar({})` devolvia uma Evidencia válida que não era
       // gravada em lugar nenhum: a foto sumia sem erro e sem rastro.
-      await expect(useCase.executar({ deviceId: 'device-teste' })).rejects.toThrow(FotoSemDestinoError);
+      await expect(useCase.executar({ deviceId: 'device-teste', usuarioId: 'user-teste' })).rejects.toThrow(FotoSemDestinoError);
     });
   });
 
   describe('vínculo com a vistoria', () => {
     it('deve anexar a evidência ao item e persistir', async () => {
-      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' }));
+      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' }));
 
       const salva = await vistoriaRepo.buscarPorId('vist-1');
       expect(salva?.itens[0].evidencias).toHaveLength(1);
@@ -151,7 +151,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
     it('deve enfileirar na outbox — §1.3 exige que toda escrita passe pela fila', async () => {
       // O fluxo anterior fazia 2 escritas e 0 enfileiramentos: toda foto
       // capturada em campo era perda permanente.
-      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' }));
+      evidenciaDe(await useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' }));
 
       const pendentes = await outboxRepo.listarTodos();
       expect(pendentes).toHaveLength(1);
@@ -160,6 +160,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
       expect(pendentes[0].payload.item_id).toBe('item-1');
       expect(pendentes[0].payload.hash).toBeTruthy();
       expect(pendentes[0].deviceId).toBe('device-teste');
+      expect(pendentes[0].usuarioId).toBe('user-teste');
     });
 
     it('deve recusar foto em vistoria já finalizada (RF-VIST-007)', async () => {
@@ -173,7 +174,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
       await vistoriaRepo.salvar(vistoria);
 
       await expect(
-        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste' })
+        useCase.executar({ vistoriaId: 'vist-1', itemId: 'item-1', deviceId: 'device-teste', usuarioId: 'user-teste' })
       ).rejects.toThrow();
     });
   });
@@ -192,7 +193,7 @@ describe('AnexarFotoUseCase (UC05)', () => {
     });
 
     it('deve anexar a foto à ocorrência e enfileirar', async () => {
-      evidenciaDe(await useCase.executar({ ocorrenciaId: 'oc-1', deviceId: 'device-teste' }));
+      evidenciaDe(await useCase.executar({ ocorrenciaId: 'oc-1', deviceId: 'device-teste', usuarioId: 'user-teste' }));
 
       const ocorrencia = await ocorrenciaRepo.buscarPorId('oc-1');
       expect(ocorrencia?.fotos).toHaveLength(2);
@@ -200,10 +201,11 @@ describe('AnexarFotoUseCase (UC05)', () => {
       const pendentes = await outboxRepo.listarTodos();
       expect(pendentes[0].payload.ocorrencia_id).toBe('oc-1');
       expect(pendentes[0].deviceId).toBe('device-teste');
+      expect(pendentes[0].usuarioId).toBe('user-teste');
     });
 
     it('deve recusar ocorrência inexistente', async () => {
-      await expect(useCase.executar({ ocorrenciaId: 'oc-9', deviceId: 'device-teste' })).rejects.toThrow(
+      await expect(useCase.executar({ ocorrenciaId: 'oc-9', deviceId: 'device-teste', usuarioId: 'user-teste' })).rejects.toThrow(
         OcorrenciaNaoEncontradaError
       );
     });

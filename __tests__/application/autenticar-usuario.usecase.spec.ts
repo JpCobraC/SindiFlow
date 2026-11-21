@@ -234,4 +234,36 @@ describe('AutenticarUsuarioUseCase', () => {
 
     expect(authGateway.logout).toHaveBeenCalledTimes(1);
   });
+
+  it('devolve null e limpa o SecureStore quando a sessão salva é órfã', async () => {
+    // authGateway retorna sessão, mas o repositório não tem o usuário.
+    await expect(useCase.restaurarSessao()).resolves.toBeNull();
+    expect(authGateway.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejeita e-mail vazio antes de chamar o gateway', async () => {
+    await expect(
+      useCase.executar({ metodo: 'email', email: '   ', senha: 'senha-123' })
+    ).rejects.toThrow('Informe o e-mail.');
+
+    expect(authGateway.loginPorEmail).not.toHaveBeenCalled();
+    expect(usuarioRepo.salvar).not.toHaveBeenCalled();
+  });
+
+  it('rejeita senha vazia antes de chamar o gateway', async () => {
+    await expect(
+      useCase.executar({ metodo: 'email', email: 'teste@exemplo.com', senha: '' })
+    ).rejects.toThrow('Informe a senha.');
+
+    expect(authGateway.loginPorEmail).not.toHaveBeenCalled();
+  });
+
+  it('propaga erro do Google Sign-In (idToken null vira AutenticacaoCanceladaError)', async () => {
+    googleGateway.idToken = null;
+
+    await expect(useCase.executar({ metodo: 'google' })).rejects.toBeInstanceOf(
+      AutenticacaoCanceladaError
+    );
+    expect(authGateway.loginComIdToken).not.toHaveBeenCalled();
+  });
 });

@@ -13,7 +13,7 @@ export interface AnexarFotoInput {
   vistoriaId?: string;
   itemId?: string;
   ocorrenciaId?: string;
-  usuarioId?: string;
+  usuarioId: string;
   deviceId: string;
 }
 
@@ -108,7 +108,7 @@ export class AnexarFotoUseCase {
           hash: evidencia.hash,
           data_captura: evidencia.timestamp.toISOString(),
         },
-        usuarioId: input.usuarioId ?? 'inspetor-carlos',
+        usuarioId: input.usuarioId,
         deviceId: input.deviceId,
       });
     }

@@ -421,6 +421,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         vistoriaId: vistoriaAtiva.id,
         itemId: params.itemId,
         ocorrenciaId: params.ocorrenciaId,
+        usuarioId: usuarioLogado?.id ?? vistoriaAtiva.inspetorId,
         deviceId: app.deviceId,
       });
 
