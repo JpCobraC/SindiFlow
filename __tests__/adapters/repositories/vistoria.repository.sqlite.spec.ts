@@ -5,7 +5,7 @@
  * para validar que o repositórioSQLite mapeia corretamente entidade <-> linha do banco.
  */
 import { VistoriaRepositorySQLite } from '../../../src/adapters/repositories/vistoria.repository.sqlite';
-import { SQLiteExecutorFake } from '../../../src/adapters/repositories/sqlite-executor.fake';
+import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { Vistoria } from '../../../src/domain/entities/vistoria.entity';
 import { StatusVistoria } from '../../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../../src/domain/entities/item-checklist.entity';
@@ -60,6 +60,47 @@ describe('VistoriaRepositorySQLite', () => {
     expect(encontrada?.condominioId).toBe('cond-1');
     expect(encontrada?.inspetorId).toBe('insp-1');
     expect(encontrada?.status).toBe(StatusVistoria.RASCUNHO);
+  });
+
+  it('deve persistir e reidratar os itens do checklist', async () => {
+    const vistoria = criarVistoriaDeTeste({
+      id: 'vist-itens',
+      itens: [
+        { id: 'item-1', titulo: 'Extintores', categoria: 'Incêndio' },
+        { id: 'item-2', titulo: 'QGBT', categoria: 'Elétrica' },
+      ],
+    });
+
+    await repo.salvar(vistoria);
+
+    const encontrada = await repo.buscarPorId('vist-itens');
+    expect(encontrada?.itens).toHaveLength(2);
+    expect(encontrada?.itens.map((i) => i.id)).toEqual(['item-1', 'item-2']);
+    expect(encontrada?.itens[0]?.titulo).toBe('Extintores');
+    expect(encontrada?.itens[0]?.status).toBe(StatusItemChecklist.PENDENTE);
+  });
+
+  it('deve preservar status e observação dos itens ao atualizar a vistoria', async () => {
+    const vistoria = criarVistoriaDeTeste({
+      id: 'vist-status',
+      itens: [
+        { id: 'item-1', titulo: 'Extintores', categoria: 'Incêndio' },
+        { id: 'item-2', titulo: 'QGBT', categoria: 'Elétrica' },
+      ],
+    });
+    await repo.salvar(vistoria);
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+
+    const recarregada = await repo.buscarPorId('vist-status');
+    recarregada?.itens[0]?.marcarStatus(StatusItemChecklist.CRITICO, 'Lacre violado');
+    recarregada?.itens[1]?.marcarStatus(StatusItemChecklist.OK);
+    await repo.salvar(recarregada!);
+
+    const encontrada = await repo.buscarPorId('vist-status');
+    expect(encontrada?.itens[0]?.status).toBe(StatusItemChecklist.CRITICO);
+    expect(encontrada?.itens[0]?.observacao).toBe('Lacre violado');
+    expect(encontrada?.itens[1]?.status).toBe(StatusItemChecklist.OK);
   });
 
   it('deve retornar null quando a vistoria não existe', async () => {
@@ -131,6 +172,9 @@ describe('VistoriaRepositorySQLite', () => {
     });
 
     await repo.salvar(vistoria);
+
+    // RF-SYNC-005 usa updated_at como critério; garante um timestamp diferente.
+    await new Promise((resolve) => setTimeout(resolve, 5));
 
     // Modifica e salva novamente
     const vistaAtualizada = Vistoria.reidratar({

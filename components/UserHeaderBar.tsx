@@ -6,7 +6,7 @@ import { RoleUsuario } from '@/src/domain/entities/usuario.entity';
 import { LoginModal } from './LoginModal';
 
 export const UserHeaderBar: React.FC = () => {
-  const { usuarioLogado, isOnline, toggleRede } = useVistoria();
+  const { usuarioLogado, isOnline } = useVistoria();
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleOpenLogin = () => {
@@ -14,13 +14,6 @@ export const UserHeaderBar: React.FC = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
     setModalVisible(true);
-  };
-
-  const handleToggleRede = () => {
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    }
-    toggleRede();
   };
 
   const roleStyles = getRoleTheme(usuarioLogado?.role);
@@ -60,23 +53,21 @@ export const UserHeaderBar: React.FC = () => {
           </View>
         </TouchableOpacity>
 
-        {/* Indicadores de Conexão e Troca Rápida */}
+        {/* Indicadores de Conexão e Acesso ao Perfil */}
         <View style={styles.actionsGroup}>
-          <TouchableOpacity
+          <View
             style={[
               styles.networkPill,
               isOnline ? styles.networkOnline : styles.networkOffline,
-            ]}
-            onPress={handleToggleRede}
-            activeOpacity={0.8}>
+            ]}>
             <View
               style={[
                 styles.networkDot,
                 { backgroundColor: isOnline ? '#3FB950' : '#F85149' },
               ]}
             />
-            <Text style={styles.networkText}>{isOnline ? 'Online' : 'Subsolo G2'}</Text>
-          </TouchableOpacity>
+            <Text style={styles.networkText}>{isOnline ? 'Online' : 'Offline'}</Text>
+          </View>
 
           <TouchableOpacity
             style={styles.switchButton}

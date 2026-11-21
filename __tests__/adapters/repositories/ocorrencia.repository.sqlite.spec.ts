@@ -2,7 +2,7 @@
  * Testes de mapeamento do OcorrenciaRepositorySQLite contra SQLiteExecutorFake.
  */
 import { OcorrenciaRepositorySQLite } from '../../../src/adapters/repositories/ocorrencia.repository.sqlite';
-import { SQLiteExecutorFake } from '../../../src/adapters/repositories/sqlite-executor.fake';
+import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { Ocorrencia } from '../../../src/domain/entities/ocorrencia.entity';
 import { GravidadeOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';
 import { StatusOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';

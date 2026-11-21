@@ -16,17 +16,18 @@
  * Conformidade com §1.1: 100% nativo, sem web/PWA/browser.
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { ErroSincronizacao } from '../../domain/errors/domain-errors';
 import { IRemoteSyncGateway } from '../../domain/interfaces/remote-sync.gateway.interface';
 
 export class SyncGatewaySupabase implements IRemoteSyncGateway {
-  private readonly client: SupabaseClient;
-
-  constructor(supabaseUrl: string, supabaseAnonKey: string) {
-    this.client = createClient(supabaseUrl, supabaseAnonKey);
-  }
+  /**
+   * Recebe o mesmo cliente autenticado do `AuthGatewaySupabase`. Criar um
+   * cliente separado aqui perdia a sessão e fazia o RLS do Supabase rejeitar
+   * todo envio como anônimo.
+   */
+  constructor(private readonly client: SupabaseClient) {}
 
   /**
    * Envia um evento do outbox para o Supabase via upsert na tabela
@@ -52,6 +53,13 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
         this.tratarErroSupabase(error);
       }
     } catch (erro: any) {
+      // Erro já traduzido por `tratarErroSupabase`: preservar transitoriedade e
+      // status. Sem isto, um 4xx permanente vira 5xx transitório e entra em
+      // retry infinito, violando C-05.
+      if (erro instanceof ErroSincronizacao) {
+        throw erro;
+      }
+
       // Erro de rede, timeout, ou exceção não tipada do SDK
       throw new ErroSincronizacao(
         erro?.message || 'Erro desconhecido na sincronização com Supabase',

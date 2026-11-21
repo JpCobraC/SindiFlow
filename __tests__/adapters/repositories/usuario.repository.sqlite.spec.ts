@@ -5,8 +5,9 @@
  * desativar e reativar.
  */
 import { UsuarioRepositorySQLite } from '../../../src/adapters/repositories/usuario.repository.sqlite';
-import { SQLiteExecutorFake } from '../../../src/adapters/repositories/sqlite-executor.fake';
+import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { RoleUsuario } from '../../../src/domain/interfaces/auth.gateway.interface';
+import { UsuarioDados } from '../../../src/domain/interfaces/usuario.repository.interface';
 
 function criarUsuarioDados(props?: Partial<{
   id: string;
@@ -15,18 +16,7 @@ function criarUsuarioDados(props?: Partial<{
   role: RoleUsuario;
   condominioId: string;
   ativo: boolean;
-}>): ReturnType<typeof import('../../../src/domain/interfaces/usuario.repository.interface')['salvar'] extends never ? any : any> & {
-  id: string;
-  nome: string;
-  email: string;
-  role: RoleUsuario;
-  condominioId: string;
-  unidade?: string;
-  registroProfissional?: string;
-  ativo: boolean;
-  ultimoAcesso?: Date;
-  criadoEm: Date;
-} {
+}>): UsuarioDados {
   const agora = new Date();
   return {
     id: props?.id ?? 'usr-1',

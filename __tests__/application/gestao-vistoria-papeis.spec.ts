@@ -1,31 +1,11 @@
 import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 import { VistoriaRepositoryInMemory } from '../../src/adapters/repositories/vistoria.repository.inmemory';
 import { AprovarVistoriaUseCase } from '../../src/application/use-cases/aprovar-vistoria.usecase';
-import { AutenticarUsuarioUseCase } from '../../src/application/use-cases/autenticar-usuario.usecase';
 import { DevolverVistoriaUseCase } from '../../src/application/use-cases/devolver-vistoria.usecase';
 import { StatusVistoria, Vistoria } from '../../src/domain/entities/vistoria.entity';
 import { Geolocalizacao } from '../../src/domain/value-objects/geolocalizacao.vo';
 
-describe('Autenticação e Gestão de Vistoria (Síndico / Condômino)', () => {
-  it('deve autenticar síndico padrão e retornar permissões de síndico', async () => {
-    const useCase = new AutenticarUsuarioUseCase();
-    const usuario = await useCase.executar({ email: 'sindico@solar.com' });
-
-    expect(usuario.role).toBe('SINDICO');
-    expect(usuario.podeAprovarVistoria()).toBe(true);
-    expect(usuario.isCondomino()).toBe(false);
-  });
-
-  it('deve autenticar condômino padrão e retornar unidade e permissão de visualização de laudos aprovados', async () => {
-    const useCase = new AutenticarUsuarioUseCase();
-    const usuario = await useCase.executar({ role: 'CONDOMINO', email: 'condomino@solar.com' });
-
-    expect(usuario.role).toBe('CONDOMINO');
-    expect(usuario.unidade).toBe('Apto 402 - Bloco B');
-    expect(usuario.podeAprovarVistoria()).toBe(false);
-    expect(usuario.podeVisualizarLaudo('APROVADA')).toBe(true);
-  });
-
+describe('Gestão de Vistoria (Síndico / Condômino)', () => {
   it('deve aprovar vistoria finalizada e registrar evento outbox', async () => {
     const vistoriaRepo = new VistoriaRepositoryInMemory();
     const outboxRepo = new OutboxRepositoryInMemory();

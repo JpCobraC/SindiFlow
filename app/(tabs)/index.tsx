@@ -24,10 +24,8 @@ export default function VistoriaScreen() {
     finalizarVistoria,
     isOnline,
     outboxPendentes,
-    reiniciarMock,
     isCarregando,
-    isHardwareNativo,
-    toggleHardwareNativo,
+    iniciarVistoria,
     capturarLocalizacao,
     anexarFoto,
   } = useVistoria();
@@ -59,7 +57,7 @@ export default function VistoriaScreen() {
       });
       Alert.alert(
         '✓ GPS Capturado com Sucesso (RF-VIST-004)',
-        `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros\n⚙️ Provedor: ${isHardwareNativo ? 'Expo Location Nativo' : 'Simulador Determinístico'}`
+        `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros\n⚙️ Provedor: Expo Location Nativo`
       );
     } catch (err: any) {
       Alert.alert('Falha na Localização (RNF02)', err?.message || 'Não foi possível capturar o GPS.');
@@ -79,7 +77,7 @@ export default function VistoriaScreen() {
       const ev = await anexarFoto({ itemId });
       if (ev) {
         const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
-        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: ${isHardwareNativo ? 'Câmera Nativa Expo' : 'Simulador Mock'}`);
+        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: Câmera Nativa Expo`);
       }
     } catch (err: any) {
       if (err?.message?.includes('cancelada')) return;
@@ -135,7 +133,7 @@ export default function VistoriaScreen() {
       await finalizarVistoria(sessionGps?.latitude, sessionGps?.longitude);
       Alert.alert(
         '✓ Vistoria Finalizada com Sucesso!',
-        `📍 Assinatura digital com geolocalização pericial capturada via ${isHardwareNativo ? 'Expo Location' : 'LocationGateway'}\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
+        `📍 Assinatura digital com geolocalização pericial capturada via Expo Location\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
       );
     } catch (err: any) {
       Alert.alert(
@@ -145,11 +143,22 @@ export default function VistoriaScreen() {
     }
   };
 
+  const handleIniciarVistoria = async () => {
+    try {
+      await iniciarVistoria();
+    } catch (err: any) {
+      Alert.alert(
+        'Não foi possível iniciar',
+        err?.message || 'Apenas inspetores podem iniciar uma vistoria.'
+      );
+    }
+  };
+
   if (isCarregando) {
     return (
       <SafeAreaView style={[styles.safeArea, styles.center]}>
         <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={{ color: '#94A3B8', marginTop: 12 }}>Carregando agregados em memória...</Text>
+        <Text style={{ color: '#94A3B8', marginTop: 12 }}>Abrindo banco local...</Text>
       </SafeAreaView>
     );
   }
@@ -158,15 +167,15 @@ export default function VistoriaScreen() {
     return (
       <SafeAreaView style={[styles.safeArea, styles.center, { padding: 24 }]}>
         <Text style={{ color: '#F87171', fontSize: 18, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
-          Vistoria não inicializada
+          Nenhuma vistoria ativa
         </Text>
         <Text style={{ color: '#94A3B8', marginBottom: 20, textAlign: 'center' }}>
-          Não foi possível carregar a vistoria ativa. Toque abaixo para reinicializar os dados.
+          Inicie uma nova vistoria. O checklist padrão é gravado no SQLite e enfileirado para sincronizar.
         </Text>
         <TouchableOpacity
           style={[styles.finalizeBtn, { paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 }]}
-          onPress={reiniciarMock}>
-          <Text style={styles.finalizeBtnText}>Inicializar Vistoria</Text>
+          onPress={handleIniciarVistoria}>
+          <Text style={styles.finalizeBtnText}>Iniciar Vistoria</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -180,15 +189,10 @@ export default function VistoriaScreen() {
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              {isOnline ? 'Online' : 'Offline Subsolo'} • {isHardwareNativo ? '📷📍 Expo Nativo' : '⚡ Mock Hardware'}
+              {isOnline ? 'Online' : 'Offline Subsolo'} • 📷📍 Expo Nativo
             </Text>
           </View>
           <View style={styles.bannerActions}>
-            <TouchableOpacity style={styles.hwToggleBtn} onPress={toggleHardwareNativo}>
-              <Text style={styles.hwToggleText}>
-                {isHardwareNativo ? 'Usar Mock' : 'Usar Expo'}
-              </Text>
-            </TouchableOpacity>
             <View style={styles.outboxPill}>
               <Text style={styles.outboxPillText}>{outboxPendentes.length} Outbox</Text>
             </View>
@@ -207,9 +211,6 @@ export default function VistoriaScreen() {
                 ]}>
                 {vistoriaAtiva.status}
               </Text>
-              <TouchableOpacity style={styles.resetBtn} onPress={reiniciarMock}>
-                <Text style={styles.resetBtnText}>↺ Reset</Text>
-              </TouchableOpacity>
             </View>
           </View>
 
@@ -264,7 +265,7 @@ export default function VistoriaScreen() {
               <Text style={styles.geoDetails}>
                 ✓ Vinculada à vistoria finalizada • Precisão:{' '}
                 {vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m • Fonte:{' '}
-                {isHardwareNativo ? 'Expo Location Nativo' : 'Simulador Mock'}
+                Expo Location Nativo
               </Text>
             </View>
           ) : sessionGps ? (
@@ -274,13 +275,13 @@ export default function VistoriaScreen() {
               </Text>
               <Text style={styles.geoDetails}>
                 Sessão em andamento • Precisão: {sessionGps.precisao ?? '4.5'}m • Provedor:{' '}
-                {isHardwareNativo ? 'Expo Location' : 'Mock'}
+                Expo Location
               </Text>
             </View>
           ) : (
             <Text style={styles.geoEmpty}>
               Nenhuma coordenada capturada ainda. O GPS será obtido automaticamente via LocationGateway
-              ao finalizar a inspeção, ou toque em "Testar / Atualizar GPS".
+              ao finalizar a inspeção, ou toque em Testar / Atualizar GPS.
             </Text>
           )}
         </View>

@@ -1,45 +1,23 @@
 /**
  * Testes para SyncGatewaySupabase (FA 3.3)
  *
- * Testa que o gateway envia eventos do outbox para o Supabase,
- * traduzindo erros HTTP para ErroSincronizacao com o sinalizador
- * transitorio correto (C-05: 4xx permanente, 5xx transitório).
- *
- * Mockamos @supabase/supabase-js pois não há ambiente de rede
- * nos testes Jest.
+ * O gateway recebe o mesmo cliente Supabase autenticado usado pelo auth;
+ * aqui ele é substituído por um duplo com `from().upsert()`.
+ * C-05: 4xx permanente, 5xx transitório.
  */
-jest.mock('@supabase/supabase-js', () => {
-  const mockSingle = jest.fn(async () => ({
-    data: null,
-    error: null,
-  }));
-  const mockSelect = jest.fn(() => ({
-    single: mockSingle,
-  }));
-  const mockUpsert = jest.fn(() => ({
-    select: mockSelect,
-  }));
-  const mockFrom = jest.fn(() => ({
-    upsert: mockUpsert,
-  }));
-  return {
-    createClient: jest.fn(() => ({
-      from: mockFrom,
-    })),
-    __mockSingle: mockSingle,
-    __mockSelect: mockSelect,
-    __mockUpsert: mockUpsert,
-    __mockFrom: mockFrom,
-  };
-});
-
-import { createClient } from '@supabase/supabase-js';
-import { OutboxEvent, StatusOutbox, OperacaoOutbox } from '../../../src/domain/entities/outbox-event.entity';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  OutboxEvent,
+  StatusOutbox,
+  OperacaoOutbox,
+} from '../../../src/domain/entities/outbox-event.entity';
 import { ErroSincronizacao } from '../../../src/domain/errors/domain-errors';
 import { SyncGatewaySupabase } from '../../../src/adapters/gateways/sync-gateway.supabase';
 
-const mockCreateClient = createClient as jest.Mock;
-const { __mockSingle, __mockUpsert } = require('@supabase/supabase-js');
+const mockUpsert = jest.fn();
+const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+
+const clienteFake = { from: mockFrom } as unknown as SupabaseClient;
 
 function criarEventoDeTeste(props?: Partial<{
   id: string;
@@ -68,20 +46,11 @@ describe('SyncGatewaySupabase', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    gateway = new SyncGatewaySupabase(
-      'https://exemplo.supabase.co',
-      'anon-key-teste'
-    );
+    mockUpsert.mockResolvedValue({ data: null, error: null });
+    gateway = new SyncGatewaySupabase(clienteFake);
   });
 
-  it('deve criar o cliente Supabase com URL e anon key', () => {
-    expect(mockCreateClient).toHaveBeenCalledWith(
-      'https://exemplo.supabase.co',
-      'anon-key-teste'
-    );
-  });
-
-  it('deve enviar evento para o Supabase via upsert', async () => {
+  it('envia evento para o Supabase via upsert', async () => {
     const evento = criarEventoDeTeste({
       tabela: 'vistorias',
       operacao: 'INSERT',
@@ -90,14 +59,15 @@ describe('SyncGatewaySupabase', () => {
 
     await gateway.sincronizarItem(evento);
 
-    const mockFrom = mockCreateClient().from;
     expect(mockFrom).toHaveBeenCalledWith('vistorias');
-    expect(mockFrom().upsert).toHaveBeenCalled();
+    expect(mockUpsert).toHaveBeenCalledWith(evento.payload, {
+      onConflict: evento.chaveDedup,
+    });
   });
 
-  it('deve lançar ErroSincronizacao com transitorio=true em erro 5xx', async () => {
+  it('lança ErroSincronizacao com transitorio=true em erro 5xx', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-5xx' });
-    __mockSingle.mockResolvedValueOnce({
+    mockUpsert.mockResolvedValueOnce({
       data: null,
       error: { code: '500', message: 'Internal Server Error', status: 500 },
     });
@@ -108,9 +78,9 @@ describe('SyncGatewaySupabase', () => {
     expect(erro.statusCode).toBe(500);
   });
 
-  it('deve lançar ErroSincronizacao com transitorio=false em erro 4xx', async () => {
+  it('lança ErroSincronizacao com transitorio=false em erro 4xx', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-4xx' });
-    __mockSingle.mockResolvedValueOnce({
+    mockUpsert.mockResolvedValueOnce({
       data: null,
       error: { code: '403', message: 'Forbidden', status: 403 },
     });
@@ -121,9 +91,18 @@ describe('SyncGatewaySupabase', () => {
     expect(erro.statusCode).toBe(403);
   });
 
-  it('deve resolver com sucesso quando o Supabase retorna 200', async () => {
+  it('lança ErroSincronizacao transitório quando o SDK rejeita sem status', async () => {
+    const evento = criarEventoDeTeste({ idRegistro: 'vist-rede' });
+    mockUpsert.mockRejectedValueOnce(new Error('Network request failed'));
+
+    const erro = await gateway.sincronizarItem(evento).catch((e) => e);
+    expect(erro).toBeInstanceOf(ErroSincronizacao);
+    expect(erro.transitorio).toBe(true);
+  });
+
+  it('resolve com sucesso quando o Supabase retorna 200', async () => {
     const evento = criarEventoDeTeste({ idRegistro: 'vist-sucesso' });
-    __mockSingle.mockResolvedValueOnce({
+    mockUpsert.mockResolvedValueOnce({
       data: { id: 'vist-sucesso' },
       error: null,
     });

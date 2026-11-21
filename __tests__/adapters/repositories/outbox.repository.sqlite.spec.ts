@@ -5,7 +5,7 @@
  * registro de falha, backoff exponencial, dedup e resetar.
  */
 import { OutboxRepositorySQLite } from '../../../src/adapters/repositories/outbox.repository.sqlite';
-import { SQLiteExecutorFake } from '../../../src/adapters/repositories/sqlite-executor.fake';
+import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { DadosOutbox } from '../../../src/domain/interfaces/outbox.repository.interface';
 import { OperacaoOutbox } from '../../../src/domain/entities/outbox-event.entity';
 import { StatusOutbox } from '../../../src/domain/entities/outbox-event.entity';
@@ -151,5 +151,13 @@ describe('OutboxRepositorySQLite', () => {
 
     const todos = await repo.listarTodos();
     expect(todos).toHaveLength(2);
+  });
+
+  it('deve preservar idRegistro na reidratação da linha', async () => {
+    await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-xyz' }));
+
+    const [evento] = await repo.listarTodos();
+
+    expect(evento.idRegistro).toBe('reg-xyz');
   });
 });

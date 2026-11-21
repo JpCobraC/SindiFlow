@@ -2,7 +2,8 @@
  * SindiFlow — FileSystemGateway
  * Camada: Adapters (Gateways)
  *
- * Implementação real de `IFileSystemGateway` usando `expo-file-system`.
+ * Implementação real de `IFileSystemGateway` usando a API de classes do
+ * `expo-file-system` (SDK 58): `File`, `Directory` e `Paths`.
  *
  * Conformidade com §1.4: fotos são armazenadas por caminho no FileSystem,
  * NUNCA em base64 na SQLite.
@@ -10,7 +11,7 @@
  * Conformidade com §1.1: 100% nativo, sem web/PWA/browser.
  */
 
-import * as FileSystem from 'expo-file-system';
+import { Directory, File } from 'expo-file-system';
 import { IFileSystemGateway } from '../../domain/interfaces/file-system.gateway.interface';
 
 export class FileSystemGateway implements IFileSystemGateway {
@@ -19,39 +20,38 @@ export class FileSystemGateway implements IFileSystemGateway {
    * Nunca armazena bytes de imagem no bind do SQLite (§1.4).
    */
   async salvarArquivo(uri: string, content: string): Promise<void> {
-    await FileSystem.writeAsStringAsync(uri, content, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    await new File(uri).write(content);
   }
 
   /**
-   * Lê o conteúdo de um arquivo local.
+   * Lê o conteúdo de um arquivo.
    */
   async lerArquivo(uri: string): Promise<string> {
-    return FileSystem.readAsStringAsync(uri, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    return new File(uri).text();
   }
 
   /**
-   * Verifica se um arquivo existe no local informado.
+   * Verifica se um arquivo — ou diretório — existe no caminho informado.
    */
   async arquivoExiste(uri: string): Promise<boolean> {
-    const info = await FileSystem.getInfoAsync(uri);
-    return info.exists === true;
+    return new File(uri).exists || new Directory(uri).exists;
   }
 
   /**
-   * Remove um arquivo local.
+   * Remove um arquivo local. `delete()` nativo não é idempotente; a guarda
+   * evita transformar remoção repetida em erro de fluxo.
    */
   async removerArquivo(uri: string): Promise<void> {
-    await FileSystem.deleteAsync(uri, { idempotent: true });
+    const arquivo = new File(uri);
+    if (arquivo.exists) {
+      arquivo.delete();
+    }
   }
 
   /**
-   * Cria um diretório (incluindo intermediários) se ainda não existir.
+   * Cria um diretório (incluindo intermediários) de forma idempotente.
    */
   async criarDiretorio(uri: string): Promise<void> {
-    await FileSystem.makeDirectoryAsync(uri, { intermediates: true });
+    new Directory(uri).create({ intermediates: true, idempotent: true });
   }
 }

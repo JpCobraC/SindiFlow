@@ -19,7 +19,7 @@ jest.mock('expo-sqlite', () => {
 });
 
 import { openDatabaseSync } from 'expo-sqlite';
-import { runMigrations, SCHEMA_VERSION } from '../../src/infra/db/migrations';
+import { runMigrations, SCHEMA_VERSION } from '../../../src/infra/db/migrations';
 
 describe('runMigrations', () => {
   beforeEach(() => {

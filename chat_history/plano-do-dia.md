@@ -1,339 +1,253 @@
 # Plano do Dia — SindiFlow
 
-> ## Sessão de 13/11/2026 — Fase 1: Conectando SQLite como Fonte da Verdade
->
-> ✅ Fase 1 iniciada: substituindo repositóórios em memória por implementações reais
-> em `expo-sqlite`. Realizando a decisão D-12 (revogação da D-11 "100% mock") e
-> garantindo offline-first como fonte da verdade (§1.2 do sindiflow-obrigacoes.md).
->
-> **Decisões desta sessão:**
-> - Lote 1: Conectar `OutboxRepositorySQLite` no VistoriaContext
-> - Lote 2: Conectar `VistoriaRepositorySQLite` no VistoriaContext  
-> - Lote 3: Conectar `OcorrenciaRepositorySQLite` nos use cases de ocorrência
-> - Lote 4: Manter cobertura ≥90% domínio, ≥80% aplicação
-> - Lote 5: Garantir `npm test`, `typecheck` e `lint` com exit 0
->
-> ### Etapas da Fase 1
->
-> | # | Passo | Obrigação | Status |
-> |---|-------|-----------|--------|
-> | 1 | Conectar `OutboxRepositorySQLite` replacing `OutboxRepositoryInMemory` | §1.3 (fila outbox) | ⬜ |
-> | 2 | Conectar `VistoriaRepositorySQLite` replacing `VistoriaRepositoryInMemory` | §1.2 (SQLite = verdade) | ⬜ |
-> | 3 | Conectar `OcorrenciaRepositorySQLite` nos use cases | §1.2/§1.3 | ⬜ |
-> | 4 | Verificar cobertura: domain ≥90%, application ≥80% | §4.1 (TDD) | ⬜ |
-> | 5 | Executar `npm test` — todos testes devem passar | §4.1 | ⬜ |
-> | 6 | Verificar `npm run typecheck` e `npm run lint` — exit 0 | §4.3 | ⬜ |
->
-> ### Bloqueios identificados
->
-> | ID | Bloqueio | Resolve em |
-> |----|----------|------------|
-> | C-15 | `expo-sqlite` não roda sous Jest — testes de repository exigem device ou jest-expo | Fase 1 (config de teste) |
-> | C-16 | Colisão chave dedup — definido: coalescer ("último vence", §3.3) | ✅ Já decidido |
-> | T-01 | Cobertura auditável — domain ≥90%, application ≥80% | Fase 1 |
->
-> ### Critérios de Aceite da Fase 1
->
-> - ✅ Dados persistidos no SQLite (não mais apenas em memória volátil)
-> - ✅ Outbox funciona com retry exponencial real (1s, 2s, 4s, 8s)
-> - ✅ Vistoria finalizada persiste no banco e mantém imutabilidade (RF-VIST-007)
-> - ✅ Geolocalização obrigatória validada no finalizar() (RF-VIST-004)
-> - ✅ Nenhuma regra de negócio violada (RF-VIST-001 a 004)
-> - ✅ Cobertura de teste mantida ou melhorada
-> - ✅ typecheck e lint com exit 0
->
-> ---
->
-> **Arquivos modificados hoje:**
-> - `chat_history/plano-do-dia.md` — plano oficial da sessão
-> - `src/context/VistoriaContext.tsx` — repositórios SQLite substituindo in-memory
-> - `src/adapters/repositories/*sqlite.ts` — ja existiam, agora conectados
->
-> *Anterior: `chat_history/plano-do-dia.md` (27/10) — Bloco C concluído, mas código
-> ainda usava repositórios in-memory. Nova sessão reativa a conexão SQLite.*
->
-> > ---
->
-> ## Sessão de 16/10/2026 — procedimento de correção (aplicado)
->
-> O conteúdo de 13/10 abaixo foi **preservado**, não substituído: por §8.2b um plano
-> não aplicado por completo não é deletado, e as Fases 1 a 5 continuam pendentes.
->
-> **Motivo:** a verificação do estado real encontrou documentação que **afirmava o
-> que não era verdade** — e um buraco de contrato em `Evidencia`.
->
-> Procedimento único, executado nesta sessão:
->
-> | # | Passo | Status |
-> |---|-------|--------|
-> | 1 | `node` 22.23.3 + `npm ci` (ambiente não existia) | ✅ |
-> | 2 | RED: `evidencia.vo.spec.ts` novo + 3 testes de cópia defensiva | ✅ 5 falhas comportamentais |
-> | 3 | GREEN: `Evidencia.criar` exige hash + clona `timestamp`; `ItemChecklist` copia na construção e na leitura | ✅ |
-> | 4 | Comentário RF-VIST-001 corrigido (não havia guarda) | ✅ |
-> | 5 | 4 gates | ✅ 178 testes · coverage · typecheck · lint |
-> | 6 | `rastreabilidade.md` vira fonte única; `PENDENTE:` em artefatos-fantasma; duplicatas C-01/C-05 removidas | ✅ |
-> | 7 | `documento-software.md` sem coluna de status; correções de texto e de números | ✅ |
->
-> **O que a verificação encontrou, e a documentação dizia o contrário:**
->
-> - `Evidencia` aceitava `hash` ausente enquanto o DDL exige `hash NOT NULL`
-> - `ItemChecklist.evidencias` devolvia o array interno — a "cópia defensiva" que o
->   Lote 6 declarou estar em `Vistoria`, `Ocorrencia`, `ItemChecklist` e
->   `Geolocalizacao` **não existia** em `ItemChecklist`
-> - `RF-GRV-001`, `RF-GRV-002`, `RF-SYNC-001`, `RF-SYNC-002` estavam `⬜` com
->   implementação e teste prontos
-> - `RF-VIST-001` era dada como PASS em `documento-software.md` **sem nenhuma guarda**
-> - `RF-VIST-007` tinha texto de uma regra e implementação de outra
-> - C-01 e C-05 apareciam duplicados em §7, um como resolvido e outro como aberto
-> - 29 fontes e 33 specs citadas como se existissem
->
-> **Pendências abertas por esta sessão:** C-10 (guarda de RF-VIST-001), C-11
-> (RF-SYNC-005/006/007 com coluna e sem código), C-12 (RF-EVI-001 parcial), C-13
-> (RNF19 sem gate).
->
-> **Decisões do responsável:** `rastreabilidade.md` §1 como fonte única de status ·
-> marcar alvo em vez de apagar · RF-VIST-001 só corrigir a afirmação, sem implementar
-> a guarda · corrigir o `hash` da `Evidencia` com TDD.
->
-> > ---
->
-> ## Sessão de 16/10/2026 — quarto bloco: correções A1, D-F, C1, B2
->
-> Revisão adversarial do passo 1 encontrou **quatro defeitos no meu próprio
-> trabalho**. Um deles era da mesma classe que eu dizia ter prevenido.
->
-> | ID | Defeito | Correção |
-> |----|---------|----------|
-> | **A1** | Transação aninhada zerava o buffer da externa e confirmava o próprio conteúdo — **a primeira escrita sumia sem erro nem rastro** | Guarda que lança antes de qualquer efeito colateral |
-> | **D-F** | `executar` devolvia sempre `alteracoes: 1`, então `descartarSincronizados(): Promise<number>` era trivialmente verdadeiro | `definirAlteracoes()` programável, default 1 |
-> | **C1** | A porta nunca tinha sido confrontada com a API real do SDK | `ExpoSQLiteExecutor` escrito para o `tsc` verificar |
-> | **B2** | A porta não executa DDL, e alguém ia adicionar `executarScript` ao bater na parede no passo 4 | Decisão registrada no docblock da porta |
->
-> **A1 — o RED expôs perda de dado:**
-> ```
-> recusa transação aninhada           → Received promise resolved instead of rejected
-> a recusa não apaga o que a externa…  → Array [ - "INSERT A" ]
-> não confirma nada da aninhada…      → Array [ - "INSERT A", + "INSERT ANINHADO" ]
-> ```
->
-> **D-F — RED comportamental em três passos:** primeiro o símbolo faltando
-> (`TS2339`), depois o método declarado **sem uso** (`Expected 3 / 0 / 7`,
-> `Received 1`), só então o comportamento. Das cinco asserções, **três são RED e
-> duas são guardas** — marcadas como guardas no arquivo, não contadas como
-> descoberta.
->
-> **C1 — o compilador confrontou a porta com o SDK, e ela não precisou mudar.**
-> Verificado que o gate é real: com um erro deliberado, `tsc` acusou
-> `TS2339: Property 'campoQueNaoExiste' does not exist on type 'SQLiteRunResult'`
-> e saiu com `exit 2`. Restaurado, `exit 0`.
->
-> **Erro meu encontrado no B2:** o docblock da porta afirmava que `SqlParam` "não
-> tem `Date` nem `boolean`". Tem `boolean` — o SQLite tem esse tipo. O que a porta
-> de fato exclui são os **tipos de blob** (`Uint8Array`/`ArrayBuffer`), que é a
-> proteção real da §1.4, e `Date`, que não é tipo de bind e força conversão ISO
-> explícita. Corrigido.
->
-> **Erro meu de verificação:** um comando meu acusou "VIOLACAO" na pureza de
-> `domain`/`application`. Era o comando — `from './x'` não casa com `from '\.\.'`,
-> então o `grep -v` devolvia justamente as linhas relativas. Refeito: 21 imports,
-> todos relativos, zero externos.
->
-> **Ponto cego registrado:** `src/infra` não está no `coverageThreshold`, então o
-> `ExpoSQLiteExecutor` está sem teste **e** sem gate de cobertura. Coerente com o
-> C-15, mas agora é um arquivo, não uma ausência.
->
-> Gates: **206 testes, 20 suítes**, coverage · typecheck · lint com `exit 0`.
-> Bundle iOS reconstruído: **0 arquivos com rastro de `expo-sqlite`**.
->
-> ---
->
-> ## Sessão de 16/10/2026 — terceiro bloco: Fase 1, passo 1
->
-> Bundle verificado antes de começar: `npx expo export --platform ios` com cache
-> limpo gerou **1500 módulos, 3,5 MB de bytecode Hermes**, `exit 0`. O
-> `babel.config.js` criado no bloco anterior não quebra o build. Saída foi para
-> `/tmp`, o repositório não foi tocado.
->
-> **Passo 1 da Fase 1 — porta `ISQLiteExecutor` e duplo com rollback real.**
-> Escolhido após o spike (C-15): o `expo-sqlite` não roda sob Jest, então o
-> mapeamento dos repositórios será testado contra um duplo de execução, e a
-> compatibilidade de SQL/DDL fica para verificação em dispositivo.
->
-> | Arquivo | Camada | Papel |
-> |---------|--------|-------|
-> | `src/adapters/repositories/sqlite-executor.interface.ts` | adapters | porta de 4 métodos |
-> | `__tests__/fakes/sqlite-executor.fake.ts` | teste | duplo com staging de transação |
-> | `__tests__/fakes/sqlite-executor.fake.spec.ts` | teste | 17 testes |
->
-> **Escopo deliberado:** o passo **não** contém código de produção sem teste. Como
-> a implementação real do `expo-sqlite` não tem como ser testada (C-15), ela fica
-> para o passo 4, junto de `openDatabaseSync` e das migrations. Por isso a porta
-> tem só 4 métodos: cada método a mais seria código a mais confiável só por leitura.
->
-> **Prova de não-vacuidade, executada:** removido o staging do duplo para que ele
-> escrevesse direto no log confirmado. Os dois testes de rollback falharam
-> (`Expected 0, Received 1`) e os outros 15 seguiram verdes. Restaurado.
->
-> **Erro de processo meu, registrado:** no primeiro ciclo escrevi `consultar`,
-> `consultarUm` e `emTransacao` junto com `executar`, quando o §4.1 pede *código
-> mínimo para passar*. Os 15 testes seguintes passaram sem RED — não têm
-> demonstração de falha. O teste que importa (rollback) teve a demonstração feita.
->
-> **Armadilha de cobertura verificada:** um arquivo só de tipos não entra no
-> relatório do Istanbul. As médias de `src/adapters` ficaram **idênticas**
-> (94,12 · 85,00 · 97,06 · 97,40, 5 arquivos). Nenhuma exclusão foi necessária.
->
-> Gates: **197 testes, 20 suítes**, coverage · typecheck · lint com `exit 0`.
->
-> ---
->
-> ## Sessão de 16/10/2026 — segundo bloco: passo 1 e spike do SQLite
->
-> **Passo 1 — afirmações envelhecidas na tela.** `explore.tsx` exibia `92.6% Cobertura`
-> e `11 Suítes de Testes (33/33 passando)` — números de uma fase anterior, que
-> envelhecem em silêncio. Removidos: a tela passa a dizer que a cobertura está sob
-> gate e onde verificá-la, sem imprimir número fixo.
->
-> **Passo 2 — spike do `expo-sqlite`.** Pergunta: dá para exercitar o SQLite com
-> gate de cobertura? **Resposta: não, em nenhum dos dois projects.** E o caminho
-> até a resposta revelou dois defeitos que ninguém tinha visto:
->
-> | Defeito | Efeito | Correção |
-> |---------|--------|----------|
-> | **`babel.config.js` nunca existiu** | o project `ui` estava declarado desde 13/10 e **não conseguia rodar um único teste** — o `babel-jest` não aplicava o preset de Flow e a suíte morria em `@react-native/jest-preset/jest/setup.js` | arquivo canônico do Expo criado; `__tests__/infra/ui-project.saude.spec.tsx` prova que o project roda |
-> | **`expo-modules-core` não estava içado** | dependência declarada pelo próprio `expo`, presente em `node_modules/expo/node_modules/` e ausente do topo; o `setup.js` do jest-expo não a resolve | declarada explicitamente em `devDependencies`, na versão que o `expo` pede |
->
-> Nenhum dos dois era visível porque o project `ui` tinha **0 testes** — um project
-> de teste sem teste é indistinguível de um que funciona.
->
-> Resultado do spike: `core` não parseia o ESM do `expo-sqlite`; `ui` roda mas
-> `openDatabaseSync` falha com `NativeDatabase is not a constructor` (não há
-> SQLite nativo no ambiente de teste, e o jest-expo não traz mock). Registrado
-> como **C-15**, com as implicações para o desenho da Fase 1.
->
-> Novo: **C-14** — o RNTL não renderiza por conflito de peer-dependência
-> (`test-renderer@^1` pede `react@^19.3.0`, o projeto tem `19.2.3`).
->
-> Gates: **180 testes, 19 suítes**, coverage · typecheck · lint com `exit 0`.
->
-> ---
->
-> # Plano do Dia — SindiFlow — sessão de 13/10/2026 (preservado)
+**Data:** 20/11/2026  
+**Fase:** Sprint 0 — Estabilização do boot, composição e limpeza do auth antigo  
+**Objetivo:** fazer o app voltar a iniciar, remover o modo demo do caminho de produção e deixar uma base verificável para o próximo bloco.
 
-**Data:** 13/10/2026
-**Fase executada:** Fase 0 (conformidade) + Fase 0.5, Blocos A e B (contratos e domínio)
-**Não executado:** Bloco C, Fases 1 a 5 — o app segue mock
-**Plano anterior:** `chat_history/plano-do-dia-2026-09-29.md` (arquivado, não aplicado por completo)
+**Decisão de autenticação:** o login Google será mantido, mas com SDK nativo e Supabase como backend — sem navegador. O fluxo é `Google nativo → idToken → supabase.auth.signInWithIdToken()`.
 
 ---
 
-> ## ⚠️ O QUE ESTE PLANO **NÃO** COBRE
->
-> Este arquivo registra o que foi **feito hoje**: Fase 0 e Fase 0.5 (Blocos A e B).
-> **Todo o restante continua sem implementação.**
->
-> | Etapa | Situação |
-> |-------|----------|
-> | Fase 0 — conformidade | ✅ feita |
-> | Fase 0.5 · Bloco A (lotes 1–4) | ✅ feito |
-> | Fase 0.5 · Bloco B (lotes 5–10) | ✅ feito |
-> | Fase 0.5 · **Bloco C** (UX da auditoria) | ⬜ **não iniciado, nem definido como lote** |
-> | **Fase 1** — `expo-sqlite` | ⬜ **não feita** |
-> | **Fase 2** — gateways reais | ⬜ **não feita** |
-> | **Fase 3** — Supabase | ⬜ **não feita** |
-> | **Fase 4** — auth | ⬜ **não feita** |
-> | **Fase 5** — notificações | ⬜ **não feita** |
->
-> O app **continua mock**: persistência em `Map`, todos os gateways `*.fake.ts`,
-> sem auth, sem Supabase. Nenhuma dependência nativa foi exercitada em dispositivo —
-> os testes rodam em Node com fakes.
+## Check-in §8
+
+O plano anterior de 29/09/2026 foi substituído por decisão do responsável nesta data. O novo plano começa com todos os itens em `⬜` e será atualizado conforme a execução.
+
+Legenda: `✅ concluído · 🟡 em andamento · ⬜ não iniciado`
 
 ---
 
-## 🎯 Objetivo do Dia
+## Plano de execução
 
-Deixar o projeto **auditável contra `sindiflow-obrigacoes.md`** antes de escrever a
-primeira linha de infraestrutura real. Nenhuma regra de negócio muda nesta fase.
-
-**Mudança de rumo:** a decisão **D-11** ("100% mock") foi **revogada** (D-12). A
-apresentação era a razão de tudo estar em mock, e essa razão saiu. A partir de hoje os
-`*.fake.ts` e `*.inmemory.ts` são **substituídos**, não preservados.
-
----
-
-## 📋 Plano de Execução
-
-Legenda: `✅ concluído · ⬜ não iniciado`
-
-| # | Passo | Obrigação | Status |
-|---|-------|-----------|--------|
-| 0.1 | Instalar `expo-sqlite`, `expo-file-system`, `expo-network`, `expo-image-picker`, `expo-location`, `expo-secure-store`, `expo-crypto` + `jest-expo` + RNTL | §1.2–1.4 | ✅ |
-| 0.2 | Baseline `npm test` antes de mexer em qualquer config | §4.1 | ✅ 15 suítes / 54 testes verdes |
-| 0.3 | `jest.config.js`: 2 projects + `coverageThreshold` 90/80 | **T-01** | ✅ |
-| 0.4 | Remover artefatos web | **T-03**, §1.1 | ✅ |
-| 0.5 | Alinhar a lei ao Expo SDK 57 e registrar K-05 | §9 | ✅ lei v1.2.0 |
-| 0.6 | Este arquivo | **§8** | ✅ |
-| 0.7 | Resolver D-06 | §3.1, §3.2 | ✅ D-06 + D-12 |
-| 0.8 | Corrigir `explore.tsx` | — | ✅ |
-| 0.9 | `test` · `coverage` · `typecheck` · `lint` · `grep web` | §4.3 | ✅ |
-| 0.10 | Relatório da sessão | §8 | ✅ `chat_history/2026-10-13.md` |
+| # | Bloco | Camada | Teste primeiro | Status |
+|---|-------|--------|----------------|--------|
+| 1 | Baseline: instalar dependências e rodar os gates | — | — | ✅ |
+| 1.5 | Harness confiável: imports, tipos, mocks e duplicatas | Testes | — | ✅ |
+| 2 | RED do boot: composition root e provider sem demo | Infra / Adapters | Sim | ✅ |
+| 3 | GREEN do boot: remover crash, seed e `limpar()` | Infra / Adapters | — | ✅ |
+| 4 | Google: remover caminho browser-based e preparar adapter nativo | Adapters | Sim | 🟡 |
+| 5 | Fechamento: gates, plano e mensagem de commit | — | — | 🟡 |
 
 ---
 
-## Fase 0.5 — Bloco A e Bloco B ✅ concluídos (13/10/2026)
+## Bloco 1 — Baseline
 
-**Bloco A** (contratos e domínio) ✅ · **Bloco B** (lotes 5 a 10) ✅
-**166 testes, 17 suítes, 4 gates verdes.** Resolve **C-01** e **C-05**.
+**Objetivo:** saber exatamente o que está quebrado antes de corrigir.
 
-| Lote | Conteúdo | Status |
-|------|----------|--------|
-| 1 | `OutboxEvent` como modelo único; `ItemOutbox` removido | ✅ |
-| 2 | Backoff real: teto, `FALHA_MAXIMA` terminal, `resetar()`, filtro por prazo | ✅ |
-| 3 | `sincronizarItem(): Promise<void>` + `ErroSincronizacao.transitorio` | ✅ |
-| 4 | `Vistoria.finalizada` imutável (RF-VIST-007) | ✅ |
-| 5 | GPS: `Number.isFinite` fecha o `NaN`; precisão configurável | ✅ |
-| 6 | Imutabilidade: cópias defensivas, `Date` clonado, `resolver()` terminal | ✅ |
-| 7 | §1.3: `CriarVistoria` e `AnexarFoto` enfileiram | ✅ |
-| 8 | `expo-image-manipulator`; câmera discriminada; rede tri-estado | ✅ |
-| 9 | DDL: `updated_at`, `hash`, `chave_dedup`, `data_ultima_tentativa` | ✅ |
-| 10 | `src/adapters/` no gate (T-02); `presentation.html` movido; doc corrigida | ✅ |
+Comandos:
 
-### Correções de integridade do Bloco A (achadas por revisão adversarial)
-- RF-VIST-007 era burlado na **reidratação** do banco: só `finalizar()` bloqueava os itens
-- `resetar()` sem guarda apagava a assinatura §3.3 de um evento SINCRONIZADO
-- `registrarFalha` aceitava evento nunca despachado e queimava tentativas
-- `iniciarProcessamento()` saía da porta: com SQLite o `PROCESSANDO` nunca seria gravado
-- Despacho concorrente abortava o lote e queimava tentativas (duplo toque no botão)
-- Causa da falha silenciada após dead-letter
+```bash
+npm ci
+npm test
+npm run coverage
+npm run typecheck
+npm run lint
+```
+
+Regras:
+
+- Não alterar código antes de registrar a linha de base.
+- Se `npm ci` falhar por lockfile, parar e pedir decisão antes de mexer no `package-lock.json`.
+- Registrar os erros reais, incluindo os que já são esperados por inspeção estática.
+
+**Saída:** lista objetiva de falhas dos quatro gates.
+
+**Resultado em 20/11/2026:**
+
+- `npm test`: 13 suites falharam / 28 passaram; 8 testes falharam / 291 passaram.
+- `npm run typecheck`: 30 erros em 10 arquivos.
+- `npm run lint`: 23 problemas (14 erros, 9 warnings).
+- Cobertura: `domain` branches 89,47% (< 90%) e `adapters` branches 52,9% (< 60%).
+- A maioria das suítes vermelhas falha antes de executar por erro de import/tipo/mock, não por comportamento ausente.
 
 ---
 
-## 🚧 Bloqueios para a próxima sessão
+## Bloco 1.5 — Harness confiável
+
+**Objetivo:** fazer o vermelho restante representar comportamento real, não erro de teste.
+
+Correções:
+
+- imports com profundidade errada em `__tests__/infra/db/*` e `__tests__/application/autenticar-usuario.usecase.spec.ts`;
+- tipo inválido em `usuario.repository.sqlite.spec.ts`;
+- mock de `upsert()` no `sync-gateway.supabase.spec.ts`;
+- seed do outbox antes de `marcarSincronizado` ou remoção da suíte duplicada;
+- consolidação das suítes duplicadas de ocorrência/outbox;
+- remoção do fake SQLite de `src/`, mantendo os duplos em `__tests__/fakes/`;
+- testes obsoletos de demo removidos de `gestao-vistoria-papeis.spec.ts`.
+
+**Saída:** suítes compilam e os vermelhos restantes são de comportamento real.
+
+---
+
+## Bloco 2 — RED do boot
+
+**Objetivo:** escrever o teste que reproduz o crash atual antes da correção.
+
+Testes a criar:
+
+- `composition root` não semeia dados, não limpa tabelas e não depende de efeito colateral no escopo do módulo;
+- provider renderiza sem crash quando não há usuário demo automático;
+- estado de rede vem do serviço real, não de um `setOnline` manual.
+
+Camadas: `infra` para composição; `adapters` para o provider/contexto; nenhum import de Expo/SQLite em `domain` ou `application`.
+
+**Saída:** teste falhando pelo motivo certo — crash no boot, seed indevido ou dependência não injetada.
+
+---
+
+## Bloco 3 — GREEN do boot
+
+**Objetivo:** fazer o app iniciar sem crash e sem demo no fluxo normal.
+
+Correções, na ordem:
+
+1. Remover a chamada `AutenticarUsuarioUseCase.obterPerfisDemonstracao()` do caminho de produção.
+2. Remover `popularMockInicial()` do boot normal.
+3. Remover `vistoriaRepo.limpar()`, `ocorrenciaRepo.limpar()` e `outboxRepo.limpar()`.
+4. Extrair a composição para `src/infra/composition-root.ts` ou `src/adapters/context/`, sem abrir banco/instanciar tudo no escopo do módulo.
+5. Derivar `isOnline` de `NetworkServiceReal`; remover `networkService.setOnline(false)`.
+6. Remover o fallback de credenciais Supabase `https://exemplo.supabase.co`; sem env, falhar com mensagem clara.
+7. Ajustar telas que assumem `usuarioLogado` sempre presente para suportar o estado nulo.
+
+Regra para demonstração:
+
+- Se ainda for necessária para as telas, a demo fica atrás de `__DEV__ && EXPO_PUBLIC_DEMO_MODE=1`.
+- O seed deve ser idempotente (`INSERT OR IGNORE`) e gravar no SQLite, nunca apagar tabelas.
+- O fluxo normal de produção não pode criar vistoria, ocorrência ou usuário demo sozinho.
+
+**Saída:** app inicia sem crash, não apaga dados e não cria dados demo no boot.
+
+---
+
+## Bloco 4 — Google sem navegador
+
+**Objetivo:** remover a implementação browser-based e preparar o caminho nativo + Supabase.
+
+Decisão:
+
+- Manter o requisito de login Google.
+- Remover `expo-auth-session` e `expo-web-browser` do caminho de código.
+- Manter a porta `AuthGateway` no domínio.
+- O adapter Google usa SDK nativo e entrega o `idToken` ao `AutenticarUsuarioUseCase`.
+- O use case troca o token por sessão Supabase com `signInWithIdToken`.
+- O login exige rede; a sessão fica no `SecureStore` e permite uso offline por até 7 dias.
+
+Biblioteca:
+
+- Preferência: `react-native-nitro-google-signin`.
+- Fallback: `@react-native-google-signin/google-signin`, se o Nitro não validar em React Native 0.88.1.
+- A escolha final depende de spike em development build; não é possível validar em Expo Go.
+
+Se o spike não couber hoje:
+
+- Deixar `AuthGatewayGoogle` como adapter explícito de “não configurado”, sem browser e sem simular login.
+- Não declarar o Google pronto até o fluxo funcionar em Android/iOS com ID token aceito pelo Supabase.
+
+**Saída:** nenhum caminho de browser no código; contrato e adapter prontos para o spike nativo.
+
+---
+
+## Bloco 5 — Fechamento
+
+- Rodar `npm test`, `npm run typecheck` e `npm run lint` nos arquivos tocados.
+- Atualizar este plano com os status reais.
+- Preparar a mensagem de commit; **não commitar** — §4.4.
+- Registrar pendências: Google nativo em device, sync real, RF-VIST-001, docs e cobertura.
+
+---
+
+## Bloco 4 — Google (status atual)
+
+- ✅ `AuthGateway` e `GoogleSignInGateway` separados; `AutenticarUsuarioUseCase` com `metodo: 'email' | 'google'`.
+- ✅ `AuthGatewaySupabase` usa `signInWithIdToken`, `SecureStore` e validação estrita de role/condomínio.
+- ✅ `SupabaseAuthStorage` chunked (480 code points) para evitar limite do Keychain.
+- ✅ Adapter nativo `GoogleSignInGatewayNative` com `react-native-nitro-google-signin` (`GoogleOneTapSignIn`).
+- ✅ `app.json`: package/bundle id `com.sindiflow.app`, plugin Nitro com placeholder `iosUrlScheme`, `newArchEnabled` removido (SDK 58).
+- ✅ `expo-auth-session` removido das dependências.
+- ✅ `expo-doctor`: 20/20 checks passando.
+- ⬜ Desenvolvimento build e login real em device: pendente de Android SDK, Google Cloud SHA-1 e env reais.
+- ⬜ Compatibilidade do Nitro com RN 0.88.1: não verificada em build nativo.
+
+## Bloco 5 — Fechamento (resultados)
+
+- `npm test`: 43 suites / 338 testes, todos passando.
+- `npm run typecheck`: 0 erros.
+- `npm run lint`: 0 problemas.
+- `npm run coverage`: gates de `domain` (90%), `application` (80%), `adapters` (70%/60%) e `infra` (70%/60%) atendidos.
+- `npm ci`/`npm install`: dependências atualizadas para SDK 58 via `expo install --fix`.
+- Android prebuild (`npx expo prebuild --platform android --no-install --clean`): sucesso; `react-native-nitro-google-signin` autolinkado.
+
+## Fora de escopo hoje
+
+- Login Google real em device/development build.
+- `SyncGatewaySupabase` em produção.
+- Migrações SQLite completas.
+- RF-VIST-001, RF-VIST-005/006.
+- Limpeza geral de README/rastreabilidade.
+- Novas telas ou polish.
+
+---
+
+## Critérios de aceite do dia
+
+- [ ] `npm ci` executado e baseline registrado.
+- [ ] Teste de boot escrito antes da correção.
+- [ ] App inicia sem crash.
+- [ ] Nenhum `limpar()`/seed demo no boot de produção.
+- [ ] `setOnline` removido do caminho real.
+- [ ] `expo-auth-session`/`expo-web-browser` fora do código.
+- [ ] `plano-do-dia.md` atualizado.
+- [ ] Mensagem de commit pronta; commit pendente — ação do usuário.
+
+---
+
+## Bloqueios e riscos
 
 | ID | Bloqueio | Resolve em |
 |----|----------|------------|
-| D-12 | **Todos os adapters são fake e toda persistência é `Map`.** Fase 1 passo 2b implementou `OutboxRepositorySQLite`, `VistoriaRepositorySQLite`, `OcorrenciaRepositorySQLite` sobre `ISQLiteExecutor`. Falta: `openDatabaseSync` + migrations (`PRAGMA user_version`) e wire nos use cases | **Fase 1 (em andamento)** |
-| C-16 | **Colisão da chave de dedup.** Decidido: coalescer ("último vence", §3.3) | ✅ decidido |
-| Supabase | **Não existe projeto Supabase.** `chat_history/2026-09-07.md` registra "nada definido: URL, key, schema, RLS". A Fase 3 fica bloqueada | **Fase 3** |
-| C-15 | **`expo-sqlite` não roda sob Jest.** Checklist de dispositivo em `docs/verificacao-dispositivo-sqlite.md` | **dispositivo** |
-| T-02 | Repositórios in-memory sem teste | ✅ resolvido na Fase 0.5 |
-| C-01..C-09 | 9 cenários de sync/auth sem regra definida (`docs/documento-software.md` §1.6) | Fase 3 / Fase 4 |
+| B-01 | `node_modules` ausente; gates ainda não executados | Bloco 1 |
+| B-02 | `AutenticarUsuarioUseCase.obterPerfisDemonstracao()` não existe no código | Bloco 3 |
+| B-03 | Repositórios SQLite não têm `limpar()`; o boot atual chama esses métodos | Bloco 3 |
+| B-04 | `NetworkServiceReal` não tem `setOnline()` | Bloco 3 |
+| B-05 | `AuthGatewayGoogle` atual usa API incompatível e importa `expo-web-browser` | Bloco 4 |
+| B-06 | Google nativo exige development build, Google Cloud e provider configurado no Supabase | Próximo bloco |
+| B-07 | Compatibilidade do Nitro com React Native 0.88.1 precisa de spike | Bloco 4 / próximo |
+| B-08 | Supabase sem URL/key/schema/RLS confirmados | Configuração externa |
+| B-09 | Lei §7 ainda diz Expo SDK 57, enquanto §1.1 e o projeto usam SDK 58 | Revisão formal da lei |
 
 ---
 
-## 📎 Próximas fases (planejadas, fora do escopo de hoje)
+## Mensagem de commit prevista
 
-| Fase | Conteúdo | Obrigação |
-|------|----------|-----------|
-| **1** | `src/infra/db/` (open + migrations por `PRAGMA user_version`) e `src/adapters/repositories/*.sqlite.ts`. Interfaces viram `Promise` | §1.2 |
-| | ✅ Passo 2b concluído: `OutboxRepositorySQLite`, `VistoriaRepositorySQLite`, `OcorrenciaRepositorySQLite` + specs (258 testes, 24 suítes) | |
-| | ⬽ Falta: `openDatabaseSync` + migrations (`PRAGMA user_version`) e wire nos use cases | |
-| **2** | Gateways reais: `expo-image-picker`, `expo-location` (por sessão, §1.4), `expo-network`, `expo-file-system` (`File`/`Paths`, **nunca base64**) | §1.3, §1.4 |
-| **2** | Gateways reais: `expo-image-picker`, `expo-location` (por sessão, §1.4), `expo-network`, `expo-file-system` (`File`/`Paths`, **nunca base64**) | §1.3, §1.4 |
-| **3** | `src/infra/supabase/`, retry exponencial usando a entidade `OutboxEvent` (hoje órfã), `sync_log`, last-write-wins com `updated_at` | §1.3, §3.3 |
-| **4** | `Usuario` + sessão de 7 dias no `SecureStore`, convite por e-mail, aviso 1 dia antes, bloqueio total ao expirar | RF01–RF04 |
-| **5** | Notificação imediata para ALTA e alerta de dados órfãos há 30 dias | §3.2, §3.3 |
+```text
+feat(auth): native Google login with Supabase and stabilized boot
+
+- extract composition root and remove module-scope side effects
+- remove demo profile bootstrap and destructive seed from production boot
+- derive connectivity from expo-network
+- remove browser-based Google auth path and expo-auth-session
+- add native Google Sign-In gateway (react-native-nitro-google-signin)
+- add SecureStore-backed Supabase session storage with chunking
+- persist and rehydrate checklist items in VistoriaRepositorySQLite
+- add config and device-id adapters; boot with placeholders in dev
+- configure Expo SDK 58 app.json for Nitro Google Sign-In
+- update law §7 to Expo SDK 58 / React Native 0.88.1
+
+Revisado conforme obrigações.md §4.2
+```
+
+**Commit pendente — ação do usuário.**
 
 ---
 
-*Criado em 13/10/2026. Fase 0 concluída no mesmo dia. O plano de 29/09/2026 foi arquivado em `plano-do-dia-2026-09-29.md` — conforme `sindiflow-obrigacoes.md` §8, plano não aplicado por completo não é deletado.*
+## Referências
+
+- **Obrigações:** `agent_tools/sindiflow-obrigacoes.md` v1.3.0
+- **Rastreabilidade:** `docs/rastreabilidade.md`
+- **Documento de software:** `docs/documento-software.md`
+- **Plano da fase:** `chat_history/presentation-06-10-26.md`
+- **Auditoria recente:** `chat_history/2026-11-10.md`
+
+---
+
+*Plano criado em 20/11/2026. Substitui o plano de 29/09/2026 por decisão do responsável. Execução ainda não iniciada.*

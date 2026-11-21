@@ -65,6 +65,11 @@ export class OutboxEvent {
   readonly tabela: string;
   readonly operacao: OperacaoOutbox;
   /**
+   * Registro afetado pela escrita lógica. Exposto porque o repositório precisa
+   * reidratar o evento sem depender de parsing de `chaveDedup`.
+   */
+  readonly idRegistro: string;
+  /**
    * RF-SYNC-007 — chave de deduplicação, derivada de `tabela:operacao:idRegistro`.
    *
    * É **derivada, nunca recebida**: nenhum chamador pode esquecê-la e nenhum
@@ -103,6 +108,7 @@ export class OutboxEvent {
     this.id = props.id;
     this.tabela = props.tabela;
     this.operacao = props.operacao;
+    this.idRegistro = props.idRegistro;
     this.chaveDedup = `${props.tabela}:${props.operacao}:${props.idRegistro}`;
     this._payload = { ...props.payload };
     this.usuarioId = props.usuarioId;

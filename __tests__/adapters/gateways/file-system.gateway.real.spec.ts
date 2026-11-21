@@ -1,46 +1,78 @@
 /**
  * Testes para FileSystemGateway (FA 2.2)
  *
- * Testa operações de arquivo: salvar, ler, verificar existência, remover,
- * criar diretório. Conformidade com §1.4: nunca base64 na SQLite.
- * Mockamos `expo-file-system` pois não roda em ambiente de teste Jest.
+ * Usa a API nova do `expo-file-system` (SDK 58): `File`, `Directory` e `Paths`.
+ * As classes são substituídas por implementações em memória porque o módulo
+ * nativo não roda no Jest.
  */
 jest.mock('expo-file-system', () => {
-  const arquivos: Map<string, string> = new Map();
-  const diretorios: Set<string> = new Set();
-  return {
-    documentDirectory: 'file:///data/user/0/com.sindiflow/files/',
-    WritingStyle: { Base64: 'base64' },
-    EncodingType: { UTF8: 'utf8' },
-    writeAsStringAsync: jest.fn(async (uri: string, content: string) => {
-      arquivos.set(uri, content);
-    }),
-    readAsStringAsync: jest.fn(async (uri: string) => {
-      const content = arquivos.get(uri);
-      if (content === undefined) {
-        const erro: any = new Error('File does not exist');
-        erro.code = 'E_NOENT';
-        throw erro;
+  const arquivos = new Map<string, string>();
+  const diretorios = new Set<string>();
+
+  class File {
+    constructor(private readonly caminho: string) {}
+
+    get uri(): string {
+      return this.caminho;
+    }
+
+    get exists(): boolean {
+      return arquivos.has(this.caminho);
+    }
+
+    async write(conteudo: string): Promise<void> {
+      arquivos.set(this.caminho, conteudo);
+    }
+
+    async text(): Promise<string> {
+      const conteudo = arquivos.get(this.caminho);
+      if (conteudo === undefined) {
+        throw new Error('File does not exist');
       }
-      return content;
-    }),
-    deleteAsync: jest.fn(async (uri: string) => {
-      arquivos.delete(uri);
-    }),
-    getInfoAsync: jest.fn(async (uri: string) => {
-      const existe = arquivos.has(uri) || diretorios.has(uri);
-      return { exists: existe, isDirectory: diretorios.has(uri) };
-    }),
-    makeDirectoryAsync: jest.fn(async (uri: string, { intermediates }: any) => {
-      diretorios.add(uri);
-      if (intermediates) {
-        // Criar diretórios pais implicitamente
-        const partes = uri.split('/').filter(Boolean);
+      return conteudo;
+    }
+
+    delete(): void {
+      arquivos.delete(this.caminho);
+    }
+  }
+
+  class Directory {
+    constructor(private readonly caminho: string) {}
+
+    get uri(): string {
+      return this.caminho;
+    }
+
+    get exists(): boolean {
+      return diretorios.has(this.caminho);
+    }
+
+    create(options?: { intermediates?: boolean; idempotent?: boolean }): void {
+      if (diretorios.has(this.caminho) && !options?.idempotent) {
+        throw new Error('Directory already exists');
+      }
+      diretorios.add(this.caminho);
+      if (options?.intermediates) {
+        const partes = this.caminho.split('/').filter(Boolean);
         for (let i = 1; i <= partes.length; i++) {
-          diretorios.add(partes.slice(0, i).join('/'));
+          diretorios.add(`${partes.slice(0, i).join('/')}/`);
         }
       }
-    }),
+    }
+
+    delete(): void {
+      diretorios.delete(this.caminho);
+    }
+  }
+
+  return {
+    File,
+    Directory,
+    Paths: {
+      document: new Directory('file:///data/user/0/com.sindiflow/files/'),
+      cache: new Directory('file:///data/user/0/com.sindiflow/cache/'),
+    },
     __arquivos: arquivos,
     __diretorios: diretorios,
     __reset: () => {
@@ -54,15 +86,14 @@ import * as FileSystem from 'expo-file-system';
 import { IFileSystemGateway } from '../../../src/domain/interfaces/file-system.gateway.interface';
 import { FileSystemGateway } from '../../../src/adapters/gateways/file-system.gateway.real';
 
-const mockWriteAsStringAsync = FileSystem.writeAsStringAsync as jest.Mock;
-const mockReadAsStringAsync = FileSystem.readAsStringAsync as jest.Mock;
-const mockDeleteAsync = FileSystem.deleteAsync as jest.Mock;
-const mockGetInfoAsync = FileSystem.getInfoAsync as jest.Mock;
-const mockMakeDirectoryAsync = FileSystem.makeDirectoryAsync as jest.Mock;
+const mockFileSystem = FileSystem as unknown as {
+  __arquivos: Map<string, string>;
+  __diretorios: Set<string>;
+  __reset: () => void;
+};
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  (FileSystem as any).__reset();
+  mockFileSystem.__reset();
 });
 
 describe('FileSystemGateway', () => {
@@ -72,54 +103,49 @@ describe('FileSystemGateway', () => {
     gateway = new FileSystemGateway();
   });
 
-  it('deve salvar e ler um arquivo', async () => {
+  it('salva e lê um arquivo', async () => {
     const uri = 'file:///Documentos/sindiflow/ev-123.jpg';
     const conteudo = 'dados-do-arquivo';
 
     await gateway.salvarArquivo(uri, conteudo);
-    const lido = await gateway.lerArquivo(uri);
 
-    expect(lido).toBe(conteudo);
-    expect(mockWriteAsStringAsync).toHaveBeenCalledWith(uri, conteudo);
-    expect(mockReadAsStringAsync).toHaveBeenCalledWith(uri, expect.anything());
+    await expect(gateway.lerArquivo(uri)).resolves.toBe(conteudo);
+    expect(mockFileSystem.__arquivos.get(uri)).toBe(conteudo);
   });
 
-  it('deve retornar true quando o arquivo existe', async () => {
+  it('retorna true quando o arquivo existe', async () => {
     const uri = 'file:///Documentos/sindiflow/ev-456.jpg';
     await gateway.salvarArquivo(uri, 'conteudo-qualquer');
 
-    const existe = await gateway.arquivoExiste(uri);
-    expect(existe).toBe(true);
-    expect(mockGetInfoAsync).toHaveBeenCalledWith(uri, expect.anything());
+    await expect(gateway.arquivoExiste(uri)).resolves.toBe(true);
   });
 
-  it('deve retornar false quando o arquivo não existe', async () => {
-    const uri = 'file:///Documentos/sindiflow/inexistente.jpg';
-    const existe = await gateway.arquivoExiste(uri);
-    expect(existe).toBe(false);
+  it('retorna false quando o arquivo não existe', async () => {
+    await expect(
+      gateway.arquivoExiste('file:///Documentos/sindiflow/inexistente.jpg')
+    ).resolves.toBe(false);
   });
 
-  it('deve remover um arquivo', async () => {
+  it('remove um arquivo e é idempotente quando ele já não existe', async () => {
     const uri = 'file:///Documentos/sindiflow/ev-remover.jpg';
     await gateway.salvarArquivo(uri, 'para-remover');
 
     await gateway.removerArquivo(uri);
+    await expect(gateway.arquivoExiste(uri)).resolves.toBe(false);
 
-    const existe = await gateway.arquivoExiste(uri);
-    expect(existe).toBe(false);
-    expect(mockDeleteAsync).toHaveBeenCalledWith(uri);
+    await expect(gateway.removerArquivo(uri)).resolves.toBeUndefined();
   });
 
-  it('deve criar um diretório', async () => {
+  it('cria diretório com intermediários e é idempotente', async () => {
     const uri = 'file:///Documentos/sindiflow/evidencias/';
-    await gateway.criarDiretorio(uri);
 
-    const existe = await gateway.arquivoExiste(uri);
-    expect(existe).toBe(true);
-    expect(mockMakeDirectoryAsync).toHaveBeenCalledWith(uri, { intermediates: true });
+    await gateway.criarDiretorio(uri);
+    await expect(gateway.arquivoExiste(uri)).resolves.toBe(true);
+
+    await expect(gateway.criarDiretorio(uri)).resolves.toBeUndefined();
   });
 
-  it('deve lançar erro ao ler arquivo inexistente', async () => {
+  it('lança erro ao ler arquivo inexistente', async () => {
     await expect(gateway.lerArquivo('file:///inexistente.jpg')).rejects.toThrow();
   });
 });

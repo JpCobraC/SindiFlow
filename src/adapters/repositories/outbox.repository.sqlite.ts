@@ -11,7 +11,6 @@ export type LinhaOutbox = {
   id: string;
   tabela: string;
   operacao: OperacaoOutbox;
-  idRegistro: string;
   payload_json: string;
   usuario_id: string;
   device_id: string;
@@ -235,8 +234,10 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
   }
 
   private hidratar(linha: LinhaOutbox): OutboxEvent {
-    const partes = linha.chave_dedup.split(':');
-    const idRegistro = partes.slice(2).join(':');
+    // `id_registro` não é uma coluna do DDL; a chave dedup é a fonte persistida.
+    // O formato é `tabela:operacao:idRegistro`, então `slice(2)` preserva ids
+    // que eventualmente contenham `:`.
+    const idRegistro = linha.chave_dedup.split(':').slice(2).join(':');
 
     return OutboxEvent.criar({
       id: linha.id,

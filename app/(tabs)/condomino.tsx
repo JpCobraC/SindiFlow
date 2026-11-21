@@ -17,7 +17,6 @@ import { StatusVistoria } from '@/src/domain/entities/vistoria.entity';
 export default function CondominoScreen() {
   const {
     usuarioLogado,
-    loginRapido,
     vistoriaAtiva,
     itensChecklist,
     comunicados,
@@ -88,13 +87,9 @@ export default function CondominoScreen() {
         <View style={styles.switchAlertCard}>
           <Text style={styles.switchAlertTitle}>Visualizando como morador/condômino</Text>
           <Text style={styles.switchAlertText}>
-            Você está conectado como {usuarioLogado?.nome}. Deseja ver a tela com a moradora Mariana Souza (Apto 402)?
+            Você está conectado como {usuarioLogado?.nome}. Esta tela é o portal do
+            condômino; as ações exclusivas de morador ficam indisponíveis para o seu perfil.
           </Text>
-          <TouchableOpacity
-            style={styles.switchAlertBtn}
-            onPress={() => loginRapido('CONDOMINO')}>
-            <Text style={styles.switchAlertBtnText}>Alternar para Mariana (Condômina) ➔</Text>
-          </TouchableOpacity>
         </View>
       )}
 

@@ -1,8 +1,8 @@
 ---
 name: sindiflow-obrigacoes
 description: Skill obrigatória para o projeto SindiFlow — aplica todas as obrigações técnicas, regras de Clean Architecture extrema, domínios, regras de negócio, TDD, e o mecanismo de auto-correção obrigatório. Use esta skill em TODA interação relacionada ao projeto SindiFlow.
-version: 1.3.0
-date: 2026-10-16
+version: 1.3.1
+date: 2026-11-20
 ---
 
 # OBRIGAÇÕES DE DESENVOLVIMENTO — SINDFLOW v1.0
@@ -266,7 +266,7 @@ Antes de **implementar**, **falar** ou **cogitar planejar**, o agente DEVE se pe
 - **Skill base**: `@skill_lazaro/SKILL.md` — Software Design Document Framework
 - **Documento de arquitetura**: `docs/documento-software.md`
 - **Histórico de planejamento**: `chat_history/2026-09-04.md`
-- **Stack técnica**: Expo SDK 57, expo-router, React Native 0.86, SQLite, Supabase
+- **Stack técnica**: Expo SDK 58, expo-router, React Native 0.88.1, SQLite, Supabase
 
 ---
 
@@ -288,8 +288,8 @@ Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
 
 ## 9. ÚLTIMA REVISÃO
 
-- **Data**: 16/10/2026
-- **Versão**: 1.3.0
+- **Data**: 20/11/2026
+- **Versão**: 1.3.1
 - **Próxima revisão**: Toda sexta-feira às 16h
 - **Proposta de alteração**: Issue marcada como `[OBRIGAÇÃO]`, requiere aprovação de 2 arquitetos
 
@@ -300,6 +300,7 @@ Antes de escrever qualquer código ou planejamento, o agente **DEVE**:
 | 1.1.0 | 04/09/2026 | §8 (Planos Diários) adicionado | — |
 | 1.2.0 | 13/10/2026 | §1.1 e §7: **Expo SDK 54 → Expo SDK 57**. O `package.json` estava em `expo@^57.0.27` / `react-native@0.86.3` desde antes desta sessão, enquanto a lei e o `AGENTS.md` apontavam para a v54. Rebaixar o código para a 54 seria trabalho destrutivo contra o código já escrito e testado; a lei foi alinhada ao código. Issue **K-05** em `docs/rastreabilidade.md` §7 | Aprovada pelo responsável do projeto em 13/10/2026 |
 | 1.3.0 | 16/10/2026 | **§4.4 nova — commit e autoria proibidos ao agente.** O agente não commita, não envia e não configura identidade git; prepara a mensagem e deixa a execução com o usuário. §4.2 passou a dizer que a frase é preparada pelo agente e executada pelo usuário. Origem: o agente commiteu e configurou a identidade do responsável sem autorização, em 16/10/2026 | Aprovada pelo responsável do projeto em 16/10/2026 |
+| 1.3.1 | 20/11/2026 | §7: **React Native 0.86 → 0.88.1**. O `package.json` usa `expo@^58.0.0` / `react-native@0.88.1`; a referência do §7 ainda apontava para a stack anterior. Issue **B-09** do plano de 20/11/2026 | Pendente de aprovação formal |
 
 ---
 

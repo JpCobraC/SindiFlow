@@ -1,12 +1,12 @@
 /**
- * SindiFlow — Interface de Autenticação
+ * SindiFlow — Interfaces de Autenticação
  * Camada: Domain (Interfaces/Ports)
  *
- * Contrato puro de domínio para autenticação. Nenhuma importação
- * de SDK Expo, Supabase ou bibliotecas externas.
+ * Contratos puros de domínio para autenticação e para a credencial nativa do
+ * Google. Nenhuma importação de SDK Expo, Supabase ou bibliotecas externas.
  *
- * Conformidade com §1.2: sessão de usuário armazenada em expo-secure-store,
- * nunca AsyncStorage.
+ * Conformidade com §1.2: a sessão é persistida pelo adapter de armazenamento
+ * seguro; o domínio só conhece o contrato.
  * Conformidade com §1.3: toda operação de escrita (criação/atualização de
  * usuário) passa pela fila de outbox.
  */
@@ -30,29 +30,24 @@ export interface SessaoUsuario {
 }
 
 /**
- * Resultado da autenticação.
- */
-export interface ResultadoAutenticacao {
-  sessao: SessaoUsuario;
-  /** Novo usuário cadastrado (convite aceito) ou null se já existia. */
-  usuarioNovo: boolean;
-}
-
-/**
- * Porta de autenticação — implementada por AuthGatewaySupabase e AuthGatewayGoogle.
+ * Porta de autenticação — implementada por `AuthGatewaySupabase`.
+ *
+ * O login social não pertence a esta porta: o adapter nativo do Google apenas
+ * entrega o `idToken`, e a troca dele por uma sessão Supabase é feita aqui em
+ * `loginComIdToken`. Assim, o caso de uso não depende de SDK de provedor.
  */
 export interface AuthGateway {
   /**
    * Autentica usuário por e-mail e senha (convite do síndico).
    * Lança erro se credenciais inválidas ou usuário não existe.
    */
-  loginPorEmail(email: string, senha: string): Promise<ResultadoAutenticacao>;
+  loginPorEmail(email: string, senha: string): Promise<SessaoUsuario>;
 
   /**
-   * Autentica usuário via provedor social (Google).
-   * Retorna null se o usuário cancelou o fluxo OAuth.
+   * Troca um ID token do Google por uma sessão Supabase.
+   * Lança erro se o token for inválido ou o provedor não estiver configurado.
    */
-  loginComProvedorSocial(provedor: 'google'): Promise<ResultadoAutenticacao | null>;
+  loginComIdToken(idToken: string): Promise<SessaoUsuario>;
 
   /**
    * Renova a sessão usando refresh token.
@@ -75,4 +70,21 @@ export interface AuthGateway {
    * Verifica se existe uma sessão válida (não expirada).
    */
   temSessaoValida(): Promise<boolean>;
+}
+
+/**
+ * Porta da credencial nativa do Google.
+ *
+ * Separada de `AuthGateway` de propósito: obter o `idToken` é responsabilidade
+ * do SDK nativo; trocá-lo por sessão é responsabilidade do backend. O caso de
+ * uso orquestra as duas portas sem conhecer nenhuma das implementações.
+ */
+export interface GoogleSignInGateway {
+  /**
+   * Abre o seletor de contas nativo e devolve o ID token do Google.
+   *
+   * Retorna `null` quando o usuário cancela o fluxo — cancelamento não é erro
+   * de infraestrutura e não deve virar retry.
+   */
+  obterIdToken(): Promise<string | null>;
 }

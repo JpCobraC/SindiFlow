@@ -17,7 +17,6 @@ import { StatusVistoria } from '@/src/domain/entities/vistoria.entity';
 export default function SindicoScreen() {
   const {
     usuarioLogado,
-    loginRapido,
     vistoriaAtiva,
     ocorrencias,
     comunicados,
@@ -124,15 +123,11 @@ export default function SindicoScreen() {
       {/* Alerta de Perfil quando não for síndico */}
       {!isSindico && (
         <View style={styles.switchAlertCard}>
-          <Text style={styles.switchAlertTitle}>Visualizando em modo de demonstração</Text>
+          <Text style={styles.switchAlertTitle}>Visualizando em modo somente leitura</Text>
           <Text style={styles.switchAlertText}>
-            Você está conectado como {usuarioLogado?.nome} ({usuarioLogado?.role}). Para exercer as atribuições exclusivas do Síndico:
+            Você está conectado como {usuarioLogado?.nome} ({usuarioLogado?.role}). As
+            atribuições exclusivas do síndico só ficam disponíveis para esse perfil.
           </Text>
-          <TouchableOpacity
-            style={styles.switchAlertBtn}
-            onPress={() => loginRapido('SINDICO')}>
-            <Text style={styles.switchAlertBtnText}>Alternar para Dr. Carlos (Síndico) ➔</Text>
-          </TouchableOpacity>
         </View>
       )}
 

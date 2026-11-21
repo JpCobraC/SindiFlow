@@ -2,62 +2,106 @@
  * SindiFlow — AutenticarUsuarioUseCase
  * Camada: Application (Use Cases)
  *
- * Orquestração de autenticação de usuário. Orquestra o `AuthGateway` (Supabase
- * Auth ou Google) e o `UsuarioRepository` (SQLite).
+ * Orquestra duas portas independentes:
+ * - `AuthGateway` (Supabase): e-mail/senha e troca do ID token do Google;
+ * - `GoogleSignInGateway` (nativo): obtenção do ID token.
+ *
+ * `usuarioNovo` é derivado do repositório local, nunca do provedor remoto: o
+ * Supabase não informa de forma confiável se a conta acabou de ser criada, e
+ * inferir isso do login fazia o `criadoEm` ser regravado a cada acesso.
  *
  * Conformidade com §2: depende apenas de interfaces do `domain/`.
- * Conformidade com §1.3: toda operação de escrita (criação/atualização de
- * usuário após login) passa pela fila de outbox via `IOutboxRepository`.
- * Conformidade com §3.3: sessão de 7 dias com expiração controlada.
+ * Conformidade com §1.3: toda escrita local de usuário gera evento na outbox
+ * (INSERT na primeira vez, UPDATE nas seguintes).
  */
 
 import {
   AuthGateway,
-  ResultadoAutenticacao,
+  GoogleSignInGateway,
   SessaoUsuario,
 } from '../../domain/interfaces/auth.gateway.interface';
 import {
-  UsuarioRepository,
   UsuarioDados,
+  UsuarioRepository,
 } from '../../domain/interfaces/usuario.repository.interface';
 import { IOutboxRepository } from '../../domain/interfaces/outbox.repository.interface';
-import { RoleUsuario, Usuario } from '../../domain/entities/usuario.entity';
+import { Usuario } from '../../domain/entities/usuario.entity';
+import { AutenticacaoCanceladaError } from '../../domain/errors/domain-errors';
 
-export interface AutenticarUsuarioInput {
-  email: string;
-  senha?: string;
-  role?: RoleUsuario;
-}
+export type AutenticarUsuarioInput =
+  | { metodo: 'email'; email: string; senha: string }
+  | { metodo: 'google' };
 
-/**
- * Sessão offline de 7 dias conforme decisão de 07/09/2026.
- */
-const SESSAO_OFFLINE_DIAS = 7;
+export type Relogio = () => Date;
 
 export class AutenticarUsuarioUseCase {
   constructor(
     private readonly authGateway: AuthGateway,
+    private readonly googleGateway: GoogleSignInGateway,
     private readonly usuarioRepo: UsuarioRepository,
-    private readonly outboxRepo: IOutboxRepository
+    private readonly outboxRepo: IOutboxRepository,
+    private readonly deviceId: string,
+    private readonly agora: Relogio = () => new Date()
   ) {}
 
   async executar(input: AutenticarUsuarioInput): Promise<Usuario> {
-    const emailNormalizado = input.email.trim().toLowerCase();
+    const sessao =
+      input.metodo === 'email'
+        ? await this.autenticarPorEmail(input.email, input.senha)
+        : await this.autenticarComGoogle();
 
-    // 1. Autentica via gateway (Supabase Auth por email ou Google social)
-    const resultado: ResultadoAutenticacao =
-      input.senha
-        ? await this.authGateway.loginPorEmail(emailNormalizado, input.senha)
-        : await this.authGateway.loginComProvedorSocial('google');
+    return this.persistirSessao(sessao);
+  }
 
-    if (!resultado) {
-      throw new Error('Falha na autenticação.');
+  /**
+   * Recupera a sessão persistida e devolve o usuário local correspondente.
+   * Retorna `null` quando não há sessão válida ou quando o usuário ainda não
+   * foi materializado no SQLite (sessão órfã).
+   */
+  async restaurarSessao(): Promise<Usuario | null> {
+    const sessao = await this.authGateway.obterSessaoSalva();
+    if (!sessao) return null;
+
+    const dados = await this.usuarioRepo.buscarPorId(sessao.id);
+    if (!dados) return null;
+
+    return this.mapearUsuario(dados);
+  }
+
+  async encerrarSessao(): Promise<void> {
+    await this.authGateway.logout();
+  }
+
+  private async autenticarPorEmail(
+    email: string,
+    senha: string
+  ): Promise<SessaoUsuario> {
+    const emailNormalizado = email.trim().toLowerCase();
+    if (!emailNormalizado) {
+      throw new Error('Informe o e-mail.');
+    }
+    if (!senha) {
+      throw new Error('Informe a senha.');
     }
 
-    const { sessao, usuarioNovo } = resultado;
+    return this.authGateway.loginPorEmail(emailNormalizado, senha);
+  }
 
-    // 2. Salva/atualiza usuário no SQLite (fonte da verdade offline)
-    const usuarioDados: UsuarioDados = {
+  private async autenticarComGoogle(): Promise<SessaoUsuario> {
+    const idToken = await this.googleGateway.obterIdToken();
+    if (!idToken) {
+      throw new AutenticacaoCanceladaError();
+    }
+
+    return this.authGateway.loginComIdToken(idToken);
+  }
+
+  private async persistirSessao(sessao: SessaoUsuario): Promise<Usuario> {
+    const agora = this.agora();
+    const existente = await this.usuarioRepo.buscarPorId(sessao.id);
+    const usuarioNovo = existente === null;
+
+    const dados: UsuarioDados = {
       id: sessao.id,
       nome: sessao.nome,
       email: sessao.email,
@@ -66,39 +110,41 @@ export class AutenticarUsuarioUseCase {
       unidade: sessao.unidade,
       registroProfissional: sessao.registroProfissional,
       ativo: true,
-      ultimoAcesso: new Date(),
-      criadoEm: usuarioNovo ? new Date() : undefined,
+      ultimoAcesso: agora,
+      criadoEm: existente?.criadoEm ?? agora,
     };
 
-    await this.usuarioRepo.salvar(usuarioDados);
+    await this.usuarioRepo.salvar(dados);
 
-    // 3. Enfileira na outbox se for usuário novo (criação) ou atualização
-    if (usuarioNovo) {
-      await this.outboxRepo.enfileirar({
-        tabela: 'users',
-        operacao: 'INSERT',
-        idRegistro: sessao.id,
-        payload: {
-          id: sessao.id,
-          email: sessao.email,
-          role: sessao.role,
-          condominio_id: sessao.condominioId,
-        },
-        usuarioId: sessao.id,
-        deviceId: 'expo-device-01',
-      });
-    }
+    await this.outboxRepo.enfileirar({
+      tabela: 'users',
+      operacao: usuarioNovo ? 'INSERT' : 'UPDATE',
+      idRegistro: sessao.id,
+      payload: {
+        id: sessao.id,
+        nome: sessao.nome,
+        email: sessao.email,
+        role: sessao.role,
+        condominio_id: sessao.condominioId,
+        ultimo_acesso: agora.toISOString(),
+      },
+      usuarioId: sessao.id,
+      deviceId: this.deviceId,
+    });
 
-    // 4. Retorna entidade Usuario do domínio
+    return this.mapearUsuario(dados);
+  }
+
+  private mapearUsuario(dados: UsuarioDados): Usuario {
     return new Usuario({
-      id: sessao.id,
-      nome: sessao.nome,
-      email: sessao.email,
-      role: sessao.role,
-      condominioId: sessao.condominioId,
-      unidade: sessao.unidade,
-      registroProfissional: sessao.registroProfissional,
-      ativo: true,
+      id: dados.id,
+      nome: dados.nome,
+      email: dados.email,
+      role: dados.role,
+      condominioId: dados.condominioId,
+      unidade: dados.unidade,
+      registroProfissional: dados.registroProfissional,
+      ativo: dados.ativo,
     });
   }
 }

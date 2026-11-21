@@ -86,7 +86,7 @@ export class OutboxRepositoryInMemory implements IOutboxRepository {
     return removidos;
   }
 
-  /** Limpeza total. Usado pelo seed de demonstração. */
+  /** Limpeza total. Usado em testes para isolar cenários. */
   limpar(): void {
     this.eventos.clear();
     this.sequencia = 0;

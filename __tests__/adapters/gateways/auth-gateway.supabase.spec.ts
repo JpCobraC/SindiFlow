@@ -1,48 +1,26 @@
 /**
  * Testes para AuthGatewaySupabase (FA 4.3)
  *
- * Mockamos @supabase/supabase-js pois não há ambiente de rede nos testes Jest.
- * Testa login por email, renovação de sessão, logout e obtenção de sessão salva.
+ * O gateway recebe um cliente Supabase já autenticado; a criação do cliente
+ * (e a escolha do armazenamento seguro) é responsabilidade da infraestrutura.
  */
-jest.mock('@supabase/supabase-js', () => {
-  return {
-    createClient: jest.fn(() => ({
-      auth: {
-        signInWithPassword: jest.fn(),
-        signInWithOAuth: jest.fn(),
-        refreshSession: jest.fn(),
-        signOut: jest.fn(),
-        getSession: jest.fn(),
-        onAuthStateChange: jest.fn(() => ({
-          data: { subscription: { unsubscribe: jest.fn() } },
-        })),
-      },
-      from: jest.fn(() => ({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            single: jest.fn(() => ({ data: null, error: null })),
-          })),
-        })),
-        insert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() => ({ data: null, error: null })),
-          })),
-        })),
-        upsert: jest.fn(() => ({
-          select: jest.fn(() => ({
-            single: jest.fn(() => ({ data: null, error: null })),
-          })),
-        })),
-      })),
-    })),
-  };
-});
-
-import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { AuthGatewaySupabase } from '../../../src/adapters/gateways/auth-gateway.supabase';
 import { SessaoUsuario } from '../../../src/domain/interfaces/auth.gateway.interface';
+import {
+  SessaoInvalidaError,
+  UsuarioSemCondominioError,
+} from '../../../src/domain/errors/domain-errors';
 
-const mockCreateClient = createClient as jest.Mock;
+const mockAuth = {
+  signInWithPassword: jest.fn(),
+  signInWithIdToken: jest.fn(),
+  refreshSession: jest.fn(),
+  signOut: jest.fn(),
+  getSession: jest.fn(),
+};
+
+const clienteFake = { auth: mockAuth } as unknown as SupabaseClient;
 
 function criarSessaoMock(overrides?: Partial<SessaoUsuario>): SessaoUsuario {
   const agora = new Date();
@@ -60,56 +38,53 @@ function criarSessaoMock(overrides?: Partial<SessaoUsuario>): SessaoUsuario {
   };
 }
 
+function criarSessaoSupabase(sessao: SessaoUsuario, metadata?: Record<string, unknown>) {
+  return {
+    access_token: sessao.accessToken,
+    refresh_token: sessao.refreshToken,
+    expires_at: Math.floor(sessao.expiraEm.getTime() / 1000),
+    user: {
+      id: sessao.id,
+      email: sessao.email,
+      user_metadata: {
+        nome: sessao.nome,
+        role: sessao.role,
+        condominio_id: sessao.condominioId,
+        ...metadata,
+      },
+    },
+  };
+}
+
 describe('AuthGatewaySupabase', () => {
   let gateway: AuthGatewaySupabase;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    gateway = new AuthGatewaySupabase(
-      'https://exemplo.supabase.co',
-      'anon-key-teste'
-    );
+    gateway = new AuthGatewaySupabase(clienteFake);
   });
 
-  it('deve criar o cliente Supabase com URL e anon key', () => {
-    expect(mockCreateClient).toHaveBeenCalledWith(
-      'https://exemplo.supabase.co',
-      'anon-key-teste'
-    );
-  });
-
-  it('loginPorEmail deve retornar sessão com sucesso', async () => {
+  it('loginPorEmail retorna a sessão mapeada', async () => {
     const sessao = criarSessaoMock();
-    const mockAuth = mockCreateClient().auth;
     mockAuth.signInWithPassword.mockResolvedValue({
       data: {
-        user: {
-          id: sessao.id,
-          email: sessao.email,
-          user_metadata: { nome: sessao.nome, role: sessao.role, condominio_id: sessao.condominioId },
-        },
-        session: {
-          access_token: sessao.accessToken,
-          refresh_token: sessao.refreshToken,
-          expires_at: Math.floor(sessao.expiraEm.getTime() / 1000),
-        },
+        user: criarSessaoSupabase(sessao).user,
+        session: criarSessaoSupabase(sessao),
       },
       error: null,
     });
 
     const resultado = await gateway.loginPorEmail('teste@exemplo.com', 'senha123');
 
-    expect(resultado.usuarioNovo).toBe(false);
-    expect(resultado.sessao.email).toBe('teste@exemplo.com');
-    expect(resultado.sessao.role).toBe('SINDICO');
+    expect(resultado.email).toBe('teste@exemplo.com');
+    expect(resultado.role).toBe('SINDICO');
     expect(mockAuth.signInWithPassword).toHaveBeenCalledWith({
       email: 'teste@exemplo.com',
       password: 'senha123',
     });
   });
 
-  it('loginPorEmail deve lançar erro quando credenciais inválidas', async () => {
-    const mockAuth = mockCreateClient().auth;
+  it('loginPorEmail lança erro quando credenciais são inválidas', async () => {
     mockAuth.signInWithPassword.mockResolvedValue({
       data: { user: null, session: null },
       error: { message: 'Invalid login credentials' },
@@ -117,41 +92,45 @@ describe('AuthGatewaySupabase', () => {
 
     await expect(
       gateway.loginPorEmail('teste@exemplo.com', 'senhaErrada')
-    ).rejects.toThrow();
+    ).rejects.toThrow('Invalid login credentials');
   });
 
-  it('loginComProvedorSocial deve retornar null quando usuário cancela', async () => {
-    const mockAuth = mockCreateClient().auth;
-    mockAuth.signInWithOAuth.mockResolvedValue({ data: null, error: null });
-
-    const resultado = await gateway.loginComProvedorSocial('google');
-
-    expect(resultado).toBeNull();
-    expect(mockAuth.signInWithOAuth).toHaveBeenCalledWith({
-      provider: 'google',
-      options: { redirectTo: expect.any(String) },
+  it('loginComIdToken troca o token nativo por uma sessão Supabase', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.signInWithIdToken.mockResolvedValue({
+      data: {
+        user: criarSessaoSupabase(sessao).user,
+        session: criarSessaoSupabase(sessao),
+      },
+      error: null,
     });
+
+    const resultado = await gateway.loginComIdToken('google-id-token');
+
+    expect(mockAuth.signInWithIdToken).toHaveBeenCalledWith({
+      provider: 'google',
+      token: 'google-id-token',
+    });
+    expect(resultado.id).toBe('usr-1');
   });
 
-  it('renovarSessao deve retornar nova sessão', async () => {
+  it('loginComIdToken lança erro quando o provedor rejeita o token', async () => {
+    mockAuth.signInWithIdToken.mockResolvedValue({
+      data: { user: null, session: null },
+      error: { message: 'Invalid token' },
+    });
+
+    await expect(gateway.loginComIdToken('token-invalido')).rejects.toThrow(
+      'Invalid token'
+    );
+  });
+
+  it('renovarSessao retorna a nova sessão', async () => {
     const novaSessao = criarSessaoMock({ id: 'usr-1' });
-    const mockAuth = mockCreateClient().auth;
     mockAuth.refreshSession.mockResolvedValue({
       data: {
-        session: {
-          access_token: novaSessao.accessToken,
-          refresh_token: novaSessao.refreshToken,
-          expires_at: Math.floor(novaSessao.expiraEm.getTime() / 1000),
-        },
-        user: {
-          id: novaSessao.id,
-          email: novaSessao.email,
-          user_metadata: {
-            nome: novaSessao.nome,
-            role: novaSessao.role,
-            condominio_id: novaSessao.condominioId,
-          },
-        },
+        session: criarSessaoSupabase(novaSessao),
+        user: criarSessaoSupabase(novaSessao).user,
       },
       error: null,
     });
@@ -162,8 +141,7 @@ describe('AuthGatewaySupabase', () => {
     expect(resultado.accessToken).toBe(novaSessao.accessToken);
   });
 
-  it('logout deve chamar signOut do Supabase', async () => {
-    const mockAuth = mockCreateClient().auth;
+  it('logout chama signOut do Supabase', async () => {
     mockAuth.signOut.mockResolvedValue({ error: null });
 
     await gateway.logout();
@@ -171,41 +149,66 @@ describe('AuthGatewaySupabase', () => {
     expect(mockAuth.signOut).toHaveBeenCalled();
   });
 
-  it('obterSessaoSalva deve retornar null quando não há sessão', async () => {
-    const mockAuth = mockCreateClient().auth;
+  it('obterSessaoSalva retorna null quando não há sessão', async () => {
     mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
 
-    const sessao = await gateway.obterSessaoSalva();
-
-    expect(sessao).toBeNull();
+    await expect(gateway.obterSessaoSalva()).resolves.toBeNull();
   });
 
-  it('temSessaoValida deve retornar false quando sessão expirada', async () => {
-    const sessaoExpirada = criarSessaoMock({
-      expiraEm: new Date(Date.now() - 1000), // já expirou
-    });
-    const mockAuth = mockCreateClient().auth;
+  it('obterSessaoSalva usa o usuário embutido na sessão', async () => {
+    const sessao = criarSessaoMock();
     mockAuth.getSession.mockResolvedValue({
-      data: {
-        session: {
-          access_token: sessaoExpirada.accessToken,
-          refresh_token: sessaoExpirada.refreshToken,
-          expires_at: Math.floor(sessaoExpirada.expiraEm.getTime() / 1000),
-        },
-        user: {
-          id: sessaoExpirada.id,
-          email: sessaoExpirada.email,
-          user_metadata: {
-            nome: sessaoExpirada.nome,
-            role: sessaoExpirada.role,
-            condominio_id: sessaoExpirada.condominioId,
-          },
-        },
-      },
+      data: { session: criarSessaoSupabase(sessao) },
       error: null,
     });
 
-    const valida = await gateway.temSessaoValida();
-    expect(valida).toBe(false);
+    const resultado = await gateway.obterSessaoSalva();
+
+    expect(resultado?.id).toBe('usr-1');
+    expect(resultado?.email).toBe('teste@exemplo.com');
+  });
+
+  it('obterSessaoSalva retorna null quando a sessão salva expirou', async () => {
+    const expirada = criarSessaoMock({ expiraEm: new Date(Date.now() - 1000) });
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(expirada) },
+      error: null,
+    });
+
+    // Uma sessão vencida não pode ser materializada no boot: o app deveria
+    // pedir novo login em vez de restaurar um token já inválido.
+    await expect(gateway.obterSessaoSalva()).resolves.toBeNull();
+  });
+
+  it('temSessaoValida retorna false quando a sessão expirou', async () => {
+    const expirada = criarSessaoMock({ expiraEm: new Date(Date.now() - 1000) });
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(expirada) },
+      error: null,
+    });
+
+    await expect(gateway.temSessaoValida()).resolves.toBe(false);
+  });
+
+  it('rejeita role desconhecida no metadata em vez de assumir um perfil', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(sessao, { role: 'SUPERADMIN' }) },
+      error: null,
+    });
+
+    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
+  });
+
+  it('rejeita usuário sem condomínio em vez de usar um id fixo de demonstração', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(sessao, { condominio_id: undefined }) },
+      error: null,
+    });
+
+    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(
+      UsuarioSemCondominioError
+    );
   });
 });

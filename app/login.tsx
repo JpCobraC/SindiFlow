@@ -27,7 +27,7 @@ import {
 import { useVistoria } from '@/src/context/VistoriaContext';
 
 export default function LoginScreen() {
-  const { fazerLogin, loginRapido } = useVistoria();
+  const { fazerLogin, fazerLoginGoogle } = useVistoria();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -58,26 +58,12 @@ export default function LoginScreen() {
   const handleLoginGoogle = async () => {
     setCarregando(true);
     try {
-      // loginComProvedorSocial é chamado pelo AuthGatewayGoogle
-      // via fazerLogin com role ou fluxo separado
-      // Por enquanto, usamos login rápido como fallback de demonstração
-      await loginRapido('CONDOMINO');
+      await fazerLoginGoogle();
     } catch (err: any) {
       Alert.alert(
         'Falha no login com Google',
         err?.message || 'Não foi possível concluir o login com Google.'
       );
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  const handleLoginRapido = (role: string) => {
-    setCarregando(true);
-    try {
-      loginRapido(role as any);
-    } catch (err: any) {
-      Alert.alert('Erro', err?.message || 'Falha ao alternar perfil.');
     } finally {
       setCarregando(false);
     }
@@ -159,30 +145,6 @@ export default function LoginScreen() {
                 {carregando ? 'Conectando...' : 'Entrar com Google'}
               </Text>
             </TouchableOpacity>
-          </View>
-
-          <View style={styles.demoRow}>
-            <Text style={styles.demoLabel}>Demonstração:</Text>
-            <View style={styles.demoButtons}>
-              <TouchableOpacity
-                style={styles.btnDemo}
-                onPress={() => handleLoginRapido('SINDICO')}
-              >
-                <Text style={styles.btnDemoText}>Síndico</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.btnDemo}
-                onPress={() => handleLoginRapido('INSPETOR')}
-              >
-                <Text style={styles.btnDemoText}>Inspetor</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.btnDemo}
-                onPress={() => handleLoginRapido('CONDOMINO')}
-              >
-                <Text style={styles.btnDemoText}>Condômino</Text>
-              </TouchableOpacity>
-            </View>
           </View>
 
           {carregando && (

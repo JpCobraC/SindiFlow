@@ -18,8 +18,8 @@ jest.mock('expo-sqlite', () => {
 });
 
 import { openDatabaseSync, SQLiteDatabase } from 'expo-sqlite';
-import { openSindiFlowDatabase } from '../../src/infra/db/sqlite-connection';
-import { SQLITE_SCHEMA_DDL } from '../../src/infra/db/sqlite-schema';
+import { openSindiFlowDatabase } from '../../../src/infra/db/sqlite-connection';
+import { SQLITE_SCHEMA_DDL } from '../../../src/infra/db/sqlite-schema';
 
 const mockExecSync = (openDatabaseSync as jest.Mock).mock.results?.[0]?.value?.execSync;
 

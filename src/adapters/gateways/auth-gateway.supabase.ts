@@ -4,32 +4,44 @@
  *
  * Implementação de `AuthGateway` usando Supabase Auth.
  *
- * Conformidade com §1.3: toda operação de escrita (criação/atualização de
- * usuário após login) passa pela fila de outbox — gerenciada pelo
- * `SincronizarOutboxUseCase` via `AutenticarUsuarioUseCase`.
+ * O login social chega aqui como `idToken` já obtido pelo SDK nativo do Google
+ * (`GoogleSignInGateway`) e é trocado por sessão via `signInWithIdToken`. Não
+ * existe navegador, deep link OAuth ou `signInWithOAuth` neste caminho.
  *
  * Conformidade com §1.1: 100% nativo, sem web/PWA/browser.
- * Conformidade com §2: fica em `adapters/`, depende apenas de `domain/`.
+ * Conformidade com §1.2: a sessão é persistida em `expo-secure-store` pelo
+ * `SupabaseAuthStorage` injetado.
+ * Conformidade com §2: fica em `adapters/`, depende de `domain/`.
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import {
+  Session,
+  SupabaseClient,
+  User,
+} from '@supabase/supabase-js';
 import {
   AuthGateway,
-  ResultadoAutenticacao,
+  RoleUsuario,
   SessaoUsuario,
 } from '../../domain/interfaces/auth.gateway.interface';
+import {
+  SessaoInvalidaError,
+  UsuarioSemCondominioError,
+} from '../../domain/errors/domain-errors';
+
+const ROLES_VALIDAS: ReadonlySet<RoleUsuario> = new Set([
+  'SINDICO',
+  'CONDOMINO',
+  'INSPETOR',
+  'ADMIN',
+]);
+
+const SETE_DIAS_MS = 7 * 24 * 60 * 60 * 1000;
 
 export class AuthGatewaySupabase implements AuthGateway {
-  private readonly client: SupabaseClient;
+  constructor(private readonly client: SupabaseClient) {}
 
-  constructor(supabaseUrl: string, supabaseAnonKey: string) {
-    this.client = createClient(supabaseUrl, supabaseAnonKey);
-  }
-
-  async loginPorEmail(
-    email: string,
-    senha: string
-  ): Promise<ResultadoAutenticacao> {
+  async loginPorEmail(email: string, senha: string): Promise<SessaoUsuario> {
     const { data, error } = await this.client.auth.signInWithPassword({
       email,
       password: senha,
@@ -42,19 +54,14 @@ export class AuthGatewaySupabase implements AuthGateway {
     return this.mapearSessao(data.session, data.user);
   }
 
-  async loginComProvedorSocial(
-    provedor: 'google'
-  ): Promise<ResultadoAutenticacao | null> {
-    const { data, error } = await this.client.auth.signInWithOAuth({
-      provider: provedor,
-      options: {
-        redirectTo: `${process.env.EXPO_PUBLIC_SCHEME ?? 'sindiflow'}://callback`,
-      },
+  async loginComIdToken(idToken: string): Promise<SessaoUsuario> {
+    const { data, error } = await this.client.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
     });
 
     if (error || !data.session || !data.user) {
-      // Usuário cancelou o fluxo OAuth ou erro de provedor
-      return null;
+      throw new Error(error?.message || 'Falha ao autenticar com o Google.');
     }
 
     return this.mapearSessao(data.session, data.user);
@@ -79,11 +86,15 @@ export class AuthGatewaySupabase implements AuthGateway {
   async obterSessaoSalva(): Promise<SessaoUsuario | null> {
     const { data, error } = await this.client.auth.getSession();
 
-    if (error || !data.session || !data.user) {
+    if (error || !data.session || !data.session.user) {
       return null;
     }
 
-    return this.mapearSessao(data.session, data.user);
+    if (this.sessaoExpirada(data.session)) {
+      return null;
+    }
+
+    return this.mapearSessao(data.session, data.session.user);
   }
 
   async temSessaoValida(): Promise<boolean> {
@@ -93,30 +104,57 @@ export class AuthGatewaySupabase implements AuthGateway {
     return sessao.expiraEm.getTime() > Date.now();
   }
 
-  private mapearSessao(
-    session: any,
-    user: any
-  ): ResultadoAutenticacao {
+  private sessaoExpirada(session: Session): boolean {
+    if (!session.expires_at) return false;
+    return session.expires_at * 1000 <= Date.now();
+  }
+
+  private mapearSessao(session: Session, user: User): SessaoUsuario {
+    const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
+
+    const email = user.email?.trim().toLowerCase();
+    if (!email) {
+      throw new SessaoInvalidaError('usuário sem e-mail.');
+    }
+
+    const condominioId = this.texto(metadata.condominio_id);
+    if (!condominioId) {
+      throw new UsuarioSemCondominioError();
+    }
+
     const expiraEm = session.expires_at
       ? new Date(session.expires_at * 1000)
-      : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      : new Date(Date.now() + SETE_DIAS_MS);
 
-    const sessao: SessaoUsuario = {
+    return {
       id: user.id,
-      nome: (user.user_metadata as any)?.nome || user.email?.split('@')[0] || 'Usuário',
-      email: user.email,
-      role: (user.user_metadata as any)?.role || 'CONDOMINO',
-      condominioId: (user.user_metadata as any)?.condominio_id || 'cond-1',
-      unidade: (user.user_metadata as any)?.unidade,
-      registroProfissional: (user.user_metadata as any)?.registroProfissional,
+      nome: this.texto(metadata.nome) ?? this.texto(metadata.full_name) ?? email.split('@')[0],
+      email,
+      role: this.mapearRole(metadata.role),
+      condominioId,
+      unidade: this.texto(metadata.unidade),
+      registroProfissional: this.texto(metadata.registroProfissional),
       expiraEm,
       accessToken: session.access_token,
       refreshToken: session.refresh_token,
     };
+  }
 
-    return {
-      sessao,
-      usuarioNovo: false, // O Supabase não informa se é novo usuário no login
-    };
+  private mapearRole(valor: unknown): RoleUsuario {
+    if (valor === undefined || valor === null || valor === '') {
+      return 'CONDOMINO';
+    }
+
+    if (typeof valor === 'string' && ROLES_VALIDAS.has(valor as RoleUsuario)) {
+      return valor as RoleUsuario;
+    }
+
+    throw new SessaoInvalidaError(`role desconhecida: ${String(valor)}.`);
+  }
+
+  private texto(valor: unknown): string | undefined {
+    if (typeof valor !== 'string') return undefined;
+    const limpo = valor.trim();
+    return limpo.length > 0 ? limpo : undefined;
   }
 }

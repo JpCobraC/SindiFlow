@@ -1,134 +1,237 @@
 /**
- * Testes para AutenticarUsuarioUseCase (FA 4.7)
+ * Testes do AutenticarUsuarioUseCase.
  *
- * Testa o use case com AuthGateway real (Supabase + Google) e UsuarioRepository,
- * substituindo o mock de usuários hardcoded.
- * TDD: teste escrito antes da implementação do use case.
+ * O caso de uso orquestra a porta de autenticação (Supabase), a porta nativa
+ * do Google e a persistência local. `usuarioNovo` é decidido pelo repositório
+ * local, nunca pelo provedor remoto — o Supabase não informa isso de forma
+ * confiável no login.
  */
-import { AutenticarUsuarioUseCase } from '../../../src/application/use-cases/autenticar-usuario.usecase';
-import { RoleUsuario, SessaoUsuario } from '../../../src/domain/interfaces/auth.gateway.interface';
+import { AutenticarUsuarioUseCase } from '../../src/application/use-cases/autenticar-usuario.usecase';
+import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
+import {
+  AuthGateway,
+  GoogleSignInGateway,
+  SessaoUsuario,
+} from '../../src/domain/interfaces/auth.gateway.interface';
+import {
+  UsuarioDados,
+  UsuarioRepository,
+} from '../../src/domain/interfaces/usuario.repository.interface';
+import { AutenticacaoCanceladaError } from '../../src/domain/errors/domain-errors';
 
-class AuthGatewayFake implements AuthGateway {
-  sessaoParaRetornar: SessaoUsuario | null = null;
-  erroParaLancar: Error | null = null;
-  chamadasLoginPorEmail: Array<{ email: string; senha: string }> = [];
-  chamadasLoginSocial: Array<string> = [];
+const AGORA = new Date('2026-11-20T12:00:00.000Z');
+const CRIADO_EM = new Date('2026-01-10T09:00:00.000Z');
 
-  async loginPorEmail(email: string, senha: string): Promise<ResultadoAutenticacaoFake> {
-    this.chamadasLoginPorEmail.push({ email, senha });
-    if (this.erroParaLancar) throw this.erroParaLancar;
-    if (!this.sessaoParaRetornar) throw new Error('Usuário não encontrado');
-    return { sessao: this.sessaoParaRetornar, usuarioNovo: false };
-  }
-
-  async loginComProvedorSocial(
-    provedor: 'google'
-  ): Promise<ResultadoAutenticacaoFake | null> {
-    this.chamadasLoginSocial.push(provedor);
-    if (this.erroParaLancar) throw this.erroParaLancar;
-    if (!this.sessaoParaRetornar) return null;
-    return { sessao: this.sessaoParaRetornar, usuarioNovo: false };
-  }
-
-  async renovarSessao(refreshToken: string): Promise<SessaoUsuario> {
-    if (this.erroParaLancar) throw this.erroParaLancar;
-    if (!this.sessaoParaRetornar) throw new Error('Sessão inválida');
-    return this.sessaoParaRetornar;
-  }
-
-  async logout(): Promise<void> {
-    // no-op
-  }
-
-  async obterSessaoSalva(): Promise<SessaoUsuario | null> {
-    return this.sessaoParaRetornar;
-  }
-
-  async temSessaoValida(): Promise<boolean> {
-    return this.sessaoParaRetornar !== null;
-  }
-}
-
-interface ResultadoAutenticacaoFake {
-  sessao: SessaoUsuario;
-  usuarioNovo: boolean;
-}
-
-interface AuthGateway {
-  loginPorEmail(email: string, senha: string): Promise<ResultadoAutenticacaoFake>;
-  loginComProvedorSocial(provedor: 'google'): Promise<ResultadoAutenticacaoFake | null>;
-  renovarSessao(refreshToken: string): Promise<SessaoUsuario>;
-  logout(): Promise<void>;
-  obterSessaoSalva(): Promise<SessaoUsuario | null>;
-  temSessaoValida(): Promise<boolean>;
-}
-
-class UsuarioRepositoryFake {
-  usuarios: Map<string, any> = new Map();
-
-  async salvar(usuario: any): Promise<void> {
-    this.usuarios.set(usuario.id, usuario);
-  }
-
-  async buscarPorId(id: string): Promise<any | null> {
-    return this.usuarios.get(id) ?? null;
-  }
-
-  async buscarPorEmail(email: string): Promise<any | null> {
-    for (const u of this.usuarios.values()) {
-      if (u.email === email) return u;
-    }
-    return null;
-  }
-
-  async listarPorCondominio(condominioId: string): Promise<any[]> {
-    return Array.from(this.usuarios.values()).filter(
-      (u) => u.condominioId === condominioId
-    );
-  }
-
-  async desativar(id: string): Promise<void> {
-    const u = this.usuarios.get(id);
-    if (u) u.ativo = false;
-  }
-
-  async reativar(id: string): Promise<void> {
-    const u = this.usuarios.get(id);
-    if (u) u.ativo = true;
-  }
-}
-
-function criarSessaoFake(overrides?: Partial<SessaoUsuario>): SessaoUsuario {
+function criarSessao(overrides?: Partial<SessaoUsuario>): SessaoUsuario {
   return {
     id: 'usr-1',
     nome: 'Usuário Teste',
     email: 'teste@exemplo.com',
-    role: 'SINDICO' as RoleUsuario,
+    role: 'SINDICO',
     condominioId: 'cond-1',
-    expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    accessToken: 'token-123',
-    refreshToken: 'token-456',
+    unidade: 'Apto 101',
+    expiraEm: new Date(AGORA.getTime() + 7 * 24 * 60 * 60 * 1000),
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
     ...overrides,
   };
 }
 
-describe('AutenticarUsuarioUseCase (FA 4.7)', () => {
-  let useCase: AutenticarUsuarioUseCase;
+function criarUsuarioDados(overrides?: Partial<UsuarioDados>): UsuarioDados {
+  return {
+    id: 'usr-1',
+    nome: 'Usuário Teste',
+    email: 'teste@exemplo.com',
+    role: 'SINDICO',
+    condominioId: 'cond-1',
+    unidade: 'Apto 101',
+    ativo: true,
+    ultimoAcesso: new Date('2026-11-01T10:00:00.000Z'),
+    criadoEm: CRIADO_EM,
+    ...overrides,
+  };
+}
+
+class AuthGatewayFake implements AuthGateway {
+  sessao = criarSessao();
+  erro: Error | null = null;
+
+  loginPorEmail = jest.fn(async (_email: string, _senha: string) => {
+    if (this.erro) throw this.erro;
+    return this.sessao;
+  });
+
+  loginComIdToken = jest.fn(async (_idToken: string) => {
+    if (this.erro) throw this.erro;
+    return this.sessao;
+  });
+
+  renovarSessao = jest.fn(async (_refreshToken: string) => this.sessao);
+  logout = jest.fn(async () => undefined);
+  obterSessaoSalva = jest.fn(async (): Promise<SessaoUsuario | null> => this.sessao);
+  temSessaoValida = jest.fn(async () => true);
+}
+
+class GoogleSignInGatewayFake implements GoogleSignInGateway {
+  idToken: string | null = 'google-id-token';
+
+  obterIdToken = jest.fn(async () => this.idToken);
+}
+
+class UsuarioRepositoryFake implements UsuarioRepository {
+  usuarios = new Map<string, UsuarioDados>();
+
+  salvar = jest.fn(async (usuario: UsuarioDados) => {
+    this.usuarios.set(usuario.id, usuario);
+  });
+
+  buscarPorId = jest.fn(async (id: string) => this.usuarios.get(id) ?? null);
+
+  buscarPorEmail = jest.fn(async (email: string) => {
+    for (const usuario of this.usuarios.values()) {
+      if (usuario.email === email) return usuario;
+    }
+    return null;
+  });
+
+  listarPorCondominio = jest.fn(async (condominioId: string) =>
+    Array.from(this.usuarios.values()).filter((u) => u.condominioId === condominioId)
+  );
+
+  desativar = jest.fn(async (id: string) => {
+    const usuario = this.usuarios.get(id);
+    if (usuario) usuario.ativo = false;
+  });
+
+  reativar = jest.fn(async (id: string) => {
+    const usuario = this.usuarios.get(id);
+    if (usuario) usuario.ativo = true;
+  });
+}
+
+describe('AutenticarUsuarioUseCase', () => {
   let authGateway: AuthGatewayFake;
+  let googleGateway: GoogleSignInGatewayFake;
   let usuarioRepo: UsuarioRepositoryFake;
+  let outboxRepo: OutboxRepositoryInMemory;
+  let useCase: AutenticarUsuarioUseCase;
 
   beforeEach(() => {
     authGateway = new AuthGatewayFake();
+    googleGateway = new GoogleSignInGatewayFake();
     usuarioRepo = new UsuarioRepositoryFake();
-    // O construtor do use case precisa ser adaptado para receber AuthGateway
-    // Por enquanto testamos com a interface atual (mock interno)
-    // Este teste será atualizado quando o use case for refatorado
+    outboxRepo = new OutboxRepositoryInMemory();
+    useCase = new AutenticarUsuarioUseCase(
+      authGateway,
+      googleGateway,
+      usuarioRepo,
+      outboxRepo,
+      'device-teste',
+      () => AGORA
+    );
   });
 
-  it('deve autenticar por email com sucesso quando gateway retorna sessão', async () => {
-    // Este teste valida a interface esperada do use case refatorado
-    // Por enquanto, apenas verificamos que a estrutura está definida
-    expect(authGateway).toBeDefined();
-    expect(usuarioRepo).toBeDefined();
+  it('autentica por e-mail, normaliza o e-mail e preserva criadoEm existente', async () => {
+    const existente = criarUsuarioDados();
+    await usuarioRepo.salvar(existente);
+
+    const usuario = await useCase.executar({
+      metodo: 'email',
+      email: '  Teste@Exemplo.com ',
+      senha: 'senha-123',
+    });
+
+    expect(authGateway.loginPorEmail).toHaveBeenCalledWith('teste@exemplo.com', 'senha-123');
+    expect(usuarioRepo.salvar).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'usr-1',
+        criadoEm: CRIADO_EM,
+        ultimoAcesso: AGORA,
+      })
+    );
+    expect(usuario.role).toBe('SINDICO');
+
+    // §1.3: a atualização de último acesso também é escrita local e precisa
+    // passar pela outbox — como UPDATE, não como INSERT.
+    const eventos = await outboxRepo.listarTodos();
+    expect(eventos).toHaveLength(1);
+    expect(eventos[0]).toMatchObject({
+      tabela: 'users',
+      operacao: 'UPDATE',
+      idRegistro: 'usr-1',
+      deviceId: 'device-teste',
+    });
+  });
+
+  it('cria usuário novo com criadoEm determinístico e enfileira INSERT na outbox', async () => {
+    await useCase.executar({
+      metodo: 'email',
+      email: 'teste@exemplo.com',
+      senha: 'senha-123',
+    });
+
+    expect(usuarioRepo.salvar).toHaveBeenCalledWith(
+      expect.objectContaining({ criadoEm: AGORA, ultimoAcesso: AGORA })
+    );
+
+    const eventos = await outboxRepo.listarTodos();
+    expect(eventos).toHaveLength(1);
+    expect(eventos[0]).toMatchObject({
+      tabela: 'users',
+      operacao: 'INSERT',
+      idRegistro: 'usr-1',
+      usuarioId: 'usr-1',
+    });
+  });
+
+  it('autentica com Google usando o idToken nativo e sem chamar login por e-mail', async () => {
+    await useCase.executar({ metodo: 'google' });
+
+    expect(googleGateway.obterIdToken).toHaveBeenCalledTimes(1);
+    expect(authGateway.loginComIdToken).toHaveBeenCalledWith('google-id-token');
+    expect(authGateway.loginPorEmail).not.toHaveBeenCalled();
+  });
+
+  it('trata cancelamento do Google como erro tipado e não persiste usuário', async () => {
+    googleGateway.idToken = null;
+
+    await expect(useCase.executar({ metodo: 'google' })).rejects.toBeInstanceOf(
+      AutenticacaoCanceladaError
+    );
+
+    expect(authGateway.loginComIdToken).not.toHaveBeenCalled();
+    expect(usuarioRepo.salvar).not.toHaveBeenCalled();
+  });
+
+  it('propaga erro do provedor sem salvar usuário', async () => {
+    authGateway.erro = new Error('credenciais inválidas');
+
+    await expect(
+      useCase.executar({ metodo: 'email', email: 'teste@exemplo.com', senha: 'errada' })
+    ).rejects.toThrow('credenciais inválidas');
+
+    expect(usuarioRepo.salvar).not.toHaveBeenCalled();
+  });
+
+  it('restaura sessão salva e devolve o usuário local', async () => {
+    await usuarioRepo.salvar(criarUsuarioDados());
+
+    const usuario = await useCase.restaurarSessao();
+
+    expect(authGateway.obterSessaoSalva).toHaveBeenCalledTimes(1);
+    expect(usuario?.id).toBe('usr-1');
+    expect(await outboxRepo.listarTodos()).toHaveLength(0);
+  });
+
+  it('devolve null quando não há sessão salva', async () => {
+    authGateway.obterSessaoSalva.mockResolvedValueOnce(null);
+
+    await expect(useCase.restaurarSessao()).resolves.toBeNull();
+  });
+
+  it('encerra a sessão no gateway', async () => {
+    await useCase.encerrarSessao();
+
+    expect(authGateway.logout).toHaveBeenCalledTimes(1);
   });
 });

@@ -13,7 +13,7 @@ export interface CriarVistoriaInput {
     titulo: string;
     categoria: string;
   }[];
-  deviceId?: string;
+  deviceId: string;
 }
 
 export class CriarVistoriaUseCase {
@@ -70,7 +70,7 @@ export class CriarVistoriaUseCase {
           data_criacao: vistoria.dataCriacao.toISOString(),
         },
         usuarioId: input.inspetorId,
-        deviceId: input.deviceId ?? 'expo-device-01',
+        deviceId: input.deviceId,
       });
     }
 

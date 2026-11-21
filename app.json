@@ -7,18 +7,18 @@
     "icon": "./assets/images/icon.png",
     "scheme": "sindiflow",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sindiflow.app"
     },
     "android": {
+      "package": "com.sindiflow.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "platforms": [
@@ -41,7 +41,6 @@
       ],
       "expo-font",
       "expo-image",
-      "expo-status-bar",
       "expo-sqlite",
       "expo-secure-store",
       [
@@ -57,16 +56,17 @@
           "locationWhenInUsePermission": "SindiFlow usa sua localização para registrar as coordenadas da vistoria, conforme norma de inspeção predial.",
           "locationAlwaysAndWhenInUsePermission": "SindiFlow precisa da localização para validar a presença física do inspetor na vistoria técnica (RF-VIST-004)."
         }
+      ],
+      [
+        "react-native-nitro-google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.placeholder"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    },
-    "extra": {
-      "EXPO_PUBLIC_SUPABASE_URL": "https://exemplo.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "anon-key-teste",
-      "EXPO_PUBLIC_GOOGLE_CLIENT_ID": ""
     }
   }
 }

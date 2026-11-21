@@ -1,11 +1,9 @@
-﻿import React from 'react';
+import React from 'react';
 import {
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { useVistoria } from '../../src/context/VistoriaContext';
@@ -20,19 +18,7 @@ export default function MetricasScreen() {
     outboxPendentes,
     auditLogs,
     isOnline,
-    reiniciarMock,
   } = useVistoria();
-
-  const handleReset = () => {
-    Alert.alert(
-      'Reiniciar Mock',
-      'Deseja restaurar o estado inicial da demonstração (50% checklist, 2 ocorrências, 3 outbox)?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Reiniciar', style: 'destructive', onPress: () => reiniciarMock() },
-      ]
-    );
-  };
 
   // Um item do checklist está "respondido" quando deixou de estar PENDENTE.
   // `ItemChecklist` não expõe um getter `respondido` — usar essa propriedade
@@ -78,11 +64,8 @@ export default function MetricasScreen() {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.title}>Auditoria & Conformidade</Text>
-              <Text style={styles.subtitle}>NBR 5674 / NBR 16747 — Métricas em Memória</Text>
+              <Text style={styles.subtitle}>NBR 5674 / NBR 16747 — Métricas do SQLite local</Text>
             </View>
-            <TouchableOpacity style={styles.btnReset} onPress={handleReset}>
-              <Text style={styles.btnResetText}>Reiniciar Mock</Text>
-            </TouchableOpacity>
           </View>
         </View>
 

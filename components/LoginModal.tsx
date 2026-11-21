@@ -19,26 +19,11 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
-  const { usuarioLogado, loginRapido, fazerLogin, fazerLogout, usuariosDisponiveis } =
-    useVistoria();
+  const { usuarioLogado, fazerLogin, fazerLogout } = useVistoria();
 
   const [emailInput, setEmailInput] = useState('');
   const [senhaInput, setSenhaInput] = useState('');
-  const [roleInput, setRoleInput] = useState<RoleUsuario>('SINDICO');
   const [erro, setErro] = useState<string | null>(null);
-
-  const handleSelectRole = async (role: RoleUsuario) => {
-    try {
-      if (Platform.OS !== 'web') {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }
-      await loginRapido(role);
-      setErro(null);
-      onClose();
-    } catch (e: any) {
-      setErro(e?.message || 'Erro ao alternar perfil');
-    }
-  };
 
   const handleCustomLogin = async () => {
     if (!emailInput.trim()) {
@@ -65,7 +50,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
 
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Autenticação & Perfis</Text>
+              <Text style={styles.title}>Conta & Perfil</Text>
               <Text style={styles.subtitle}>
                 Controle de Acesso Baseado em Papéis (RBAC - RF01/RF19)
               </Text>
@@ -112,58 +97,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
               </View>
             )}
 
-            {/* Seleção Rápida de Perfis em 1 Toque */}
-            <Text style={styles.sectionLabel}>ACESSO RÁPIDO PARA AVALIAÇÃO (1 TOQUE)</Text>
-            <Text style={styles.sectionHelp}>
-              Alterne instantaneamente para testar a experiência de cada tipo de usuário:
-            </Text>
-
-            {usuariosDisponiveis.map((u) => {
-              const isSelected = usuarioLogado?.role === u.role;
-              const roleStyles = getRoleStyle(u.role);
-
-              return (
-                <TouchableOpacity
-                  key={u.id}
-                  style={[
-                    styles.roleCard,
-                    isSelected && styles.roleCardSelected,
-                    { borderLeftColor: roleStyles.color, borderLeftWidth: 4 },
-                  ]}
-                  onPress={() => handleSelectRole(u.role)}
-                  activeOpacity={0.7}>
-                  <View style={styles.roleCardTop}>
-                    <View style={styles.roleTitleGroup}>
-                      <Text style={styles.roleCardName}>{u.nome}</Text>
-                      <View style={[styles.roleTag, { backgroundColor: roleStyles.bg }]}>
-                        <Text style={[styles.roleTagText, { color: roleStyles.color }]}>
-                          {getRoleLabel(u.role)}
-                        </Text>
-                      </View>
-                    </View>
-                    {isSelected && (
-                      <View style={styles.activeCheck}>
-                        <Text style={styles.activeCheckText}>ATIVO</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <Text style={styles.roleDesc}>{getRoleDescription(u.role)}</Text>
-
-                  <View style={styles.roleMeta}>
-                    <Text style={styles.roleMetaText}>📧 {u.email}</Text>
-                    {u.registroProfissional && (
-                      <Text style={styles.roleMetaText}>📜 {u.registroProfissional}</Text>
-                    )}
-                    {u.unidade && <Text style={styles.roleMetaText}>🏢 {u.unidade}</Text>}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-
             {/* Formulário Dinâmico de Login */}
             <View style={styles.formContainer}>
-              <Text style={styles.sectionLabel}>OU ACESSE COM OUTRAS CREDENCIAIS</Text>
+              <Text style={styles.sectionLabel}>ACESSE COM SUAS CREDENCIAIS</Text>
 
               <TextInput
                 style={styles.input}
@@ -209,19 +145,6 @@ function getRoleLabel(role: RoleUsuario): string {
       return 'Condômino / Morador';
     case 'ADMIN':
       return 'Administrador do Sistema';
-  }
-}
-
-function getRoleDescription(role: RoleUsuario): string {
-  switch (role) {
-    case 'SINDICO':
-      return 'Aprovação de laudos periciais NBR 5674, controle de SLAs críticos (24h/72h) e comunicados prediais oficiais.';
-    case 'INSPETOR':
-      return 'Execução de checklist técnico, registro de anomalias com evidência fotográfica privada e geolocalização mandante.';
-    case 'CONDOMINO':
-      return 'Consulta de laudos periciais homologados, abertura de ocorrências em áreas comuns e mural de avisos.';
-    default:
-      return 'Acesso integral à plataforma.';
   }
 }
 

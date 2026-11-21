@@ -12,6 +12,7 @@ describe('CriarVistoriaUseCase', () => {
     id: 'vist-100',
     condominioId: 'cond-1',
     inspetorId: 'user-1',
+    deviceId: 'device-teste',
     itens: [
       { id: 'item-1', titulo: 'Extintor Portaria', categoria: 'Incêndio' },
       { id: 'item-2', titulo: 'Bomba Subsolo', categoria: 'Hidráulica' },
@@ -46,6 +47,7 @@ describe('CriarVistoriaUseCase', () => {
     expect(pendentes[0].tabela).toBe('vistorias');
     expect(pendentes[0].operacao).toBe('INSERT');
     expect(pendentes[0].usuarioId).toBe('user-1');
+    expect(pendentes[0].deviceId).toBe('device-teste');
     expect(pendentes[0].payload.condominio_id).toBe('cond-1');
   });
 

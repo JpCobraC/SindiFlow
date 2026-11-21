@@ -1,3 +1,7 @@
+import {
+  ItemChecklist,
+  StatusItemChecklist,
+} from '../../domain/entities/item-checklist.entity';
 import { Vistoria, StatusVistoria } from '../../domain/entities/vistoria.entity';
 import { Geolocalizacao } from '../../domain/value-objects/geolocalizacao.vo';
 import { IVistoriaRepository } from '../../domain/interfaces/vistoria.repository.interface';
@@ -17,6 +21,16 @@ export type LinhaVistoria = {
   precisao: number | null;
   data_criacao: string;
   data_finalizacao: string | null;
+  updated_at: string;
+};
+
+export type LinhaItemChecklist = {
+  id: string;
+  vistoria_id: string;
+  titulo: string;
+  categoria: string;
+  status: StatusItemChecklist;
+  observacao: string | null;
   updated_at: string;
 };
 
@@ -67,6 +81,34 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
           agora,
         ]
       );
+
+      // O checklist é parte do agregado, mas mora em tabela própria. Antes
+      // desta gravação o repositório descartava os itens em silêncio: a
+      // vistoria voltava do banco sem checklist e `marcarItem` falhava com
+      // "item não encontrado" logo após o primeiro cold start.
+      for (const item of vistoria.itens) {
+        await tx.executar(
+          `INSERT INTO itens_checklist (
+            id, vistoria_id, titulo, categoria, status, observacao, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            vistoria_id = excluded.vistoria_id,
+            titulo = excluded.titulo,
+            categoria = excluded.categoria,
+            status = excluded.status,
+            observacao = excluded.observacao,
+            updated_at = excluded.updated_at`,
+          [
+            item.id,
+            vistoria.id,
+            item.titulo,
+            item.categoria,
+            item.status,
+            item.observacao ?? null,
+            agora,
+          ]
+        );
+      }
     });
   }
 
@@ -78,7 +120,8 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
 
     if (!linha) return null;
 
-    return this.hidratar(linha);
+    const itens = await this.carregarItens(linha.id);
+    return this.hidratar(linha, itens);
   }
 
   async listarPorCondominio(condominioId: string): Promise<Vistoria[]> {
@@ -87,10 +130,32 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
       [condominioId]
     );
 
-    return linhas.map((linha) => this.hidratar(linha));
+    return Promise.all(
+      linhas.map(async (linha) =>
+        this.hidratar(linha, await this.carregarItens(linha.id))
+      )
+    );
   }
 
-  private hidratar(linha: LinhaVistoria): Vistoria {
+  private async carregarItens(vistoriaId: string): Promise<ItemChecklist[]> {
+    const linhas = await this.executor.consultar<LinhaItemChecklist>(
+      'SELECT * FROM itens_checklist WHERE vistoria_id = ? ORDER BY rowid ASC',
+      [vistoriaId]
+    );
+
+    return linhas.map((linha) =>
+      ItemChecklist.criar({
+        id: linha.id,
+        vistoriaId: linha.vistoria_id,
+        titulo: linha.titulo,
+        categoria: linha.categoria,
+        status: linha.status,
+        observacao: linha.observacao ?? undefined,
+      })
+    );
+  }
+
+  private hidratar(linha: LinhaVistoria, itens: ItemChecklist[]): Vistoria {
     const geo =
       linha.latitude !== null && linha.longitude !== null
         ? Geolocalizacao.criar({
@@ -110,7 +175,7 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
       dataCriacao: new Date(linha.data_criacao),
       dataFinalizacao: linha.data_finalizacao ? new Date(linha.data_finalizacao) : undefined,
       geolocalizacao: geo,
-      itens: [], // itens carregados separadamente (tabela itens_checklist)
+      itens,
     });
   }
 }

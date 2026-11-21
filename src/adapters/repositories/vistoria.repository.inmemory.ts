@@ -16,7 +16,7 @@ export class VistoriaRepositoryInMemory implements IVistoriaRepository {
     return Array.from(this.vistorias.values()).filter((v) => v.condominioId === condominioId);
   }
 
-  /** Limpeza total. Usada pelo seed de demonstração. */
+  /** Limpeza total. Usada em testes para isolar cenários. */
   limpar(): void {
     this.vistorias.clear();
   }

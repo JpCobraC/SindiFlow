@@ -5,6 +5,41 @@ export class DomainError extends Error {
   }
 }
 
+/**
+ * Cancelamento explícito do fluxo de autenticação (ex.: seletor de contas do
+ * Google fechado pelo usuário). É distinto de falha de credencial: a UI deve
+ * voltar ao estado anterior sem alerta de erro.
+ */
+export class AutenticacaoCanceladaError extends DomainError {
+  constructor() {
+    super('Autenticação cancelada pelo usuário.');
+    this.name = 'AutenticacaoCanceladaError';
+  }
+}
+
+/**
+ * Sessão remota com dados que o domínio não consegue usar com segurança —
+ * por exemplo, `role` fora do enum de papéis.
+ */
+export class SessaoInvalidaError extends DomainError {
+  constructor(detalhe: string) {
+    super(`Sessão inválida: ${detalhe}`);
+    this.name = 'SessaoInvalidaError';
+  }
+}
+
+/**
+ * Usuário autenticado sem vínculo de condomínio. Cair num id fixo de
+ * demonstração esconderia um provisionamento incompleto e misturaria dados de
+ * condomínios diferentes.
+ */
+export class UsuarioSemCondominioError extends DomainError {
+  constructor() {
+    super('Usuário autenticado sem condomínio vinculado (metadata condominio_id ausente).');
+    this.name = 'UsuarioSemCondominioError';
+  }
+}
+
 export class GeolocalizacaoInvalidaError extends DomainError {
   constructor(message: string) {
     super(message);
