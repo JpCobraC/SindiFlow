@@ -67,6 +67,13 @@ export interface AuthGateway {
   obterSessaoSalva(): Promise<SessaoUsuario | null>;
 
   /**
+   * Recupera a sessão salva localmente ignorando a expiração do access token.
+   * Usado para tentar renovação via refresh token. Retorna null se não houver
+   * sessão alguma persistida.
+   */
+  obterSessaoSalvaBruta(): Promise<SessaoUsuario | null>;
+
+  /**
    * Verifica se existe uma sessão válida (não expirada).
    */
   temSessaoValida(): Promise<boolean>;

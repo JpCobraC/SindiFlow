@@ -41,6 +41,7 @@ export class AuthGatewayFake implements AuthGateway {
   renovarSessao = jest.fn(async (_refreshToken: string) => this.sessao);
   logout = jest.fn(async () => undefined);
   obterSessaoSalva = jest.fn(async (): Promise<SessaoUsuario | null> => this.sessao);
+  obterSessaoSalvaBruta = jest.fn(async (): Promise<SessaoUsuario | null> => this.sessao);
   temSessaoValida = jest.fn(async () => true);
 }
 

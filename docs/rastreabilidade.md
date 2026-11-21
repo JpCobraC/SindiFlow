@@ -336,6 +336,16 @@ implementação real (Fases 1 a 5) substitui os fakes. Ver `chat_history/2026-10
 
 Detalhamento de cada cenário em `docs/documento-software.md` §1.6 e §0.2.
 
+### Pendências abertas em 21/11/2026
+
+| ID | Pendência | Resolve em |
+|----|-----------|------------|
+| **I-4 / R-4** | **Health-check de UI (`__tests__/infra/ui-project.saude.spec.tsx`) removido.** O teste verificava o preset `jest-expo/ios` (`Platform.OS === 'ios'`), mas `react-native` é ESM e não carrega sob `core` (ts-jest + node). Reabilitar o projeto `ui` exige instalar `@react-native/jest-preset`, que tem conflito de peer-dependência documentado (RNTL 14 pede `test-renderer@^1`). Decisão: removido e documentado; reabilitar em sprint dedicada | sprint dedicada de infra de teste |
+| **C-02** | Política de estouro da fila | ⬜ (mantido) |
+| **C-03** | Sync com usuário revogado | ⬜ (mantido) |
+| **C-04** | Sessão expirada com rascunho local | ⬜ parcialmente (D-3 integrou refresh) |
+| **C-09** | Logout com itens pendentes na fila | ⬜ (mantido) |
+
 ---
 
 *Documento criado em 29/09/2026 na Fase 0, conforme decisão D-08. É a fonte de conferência manual da rastreabilidade do SindiFlow.*

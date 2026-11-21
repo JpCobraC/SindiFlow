@@ -15,40 +15,22 @@ import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 
 export default function OcorrenciasScreen() {
-  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes, cameraGateway } = useVistoria();
+  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes, anexarFoto } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [gravidade, setGravidade] = useState<GravidadeOcorrencia>(GravidadeOcorrencia.ALTA);
-  const [fotoUri, setFotoUri] = useState<string | null>(null);
 
-  const handleCapturarFoto = async () => {
+  const handleAnexarFoto = async (ocorrenciaId: string) => {
     try {
-      if (fotoUri) {
-        setFotoUri(null);
-      } else {
-        const resultado = await cameraGateway.capturarFoto({
-          larguraMaxima: 1080,
-          alturaMaxima: 1080,
-          qualidade: 0.8,
-        });
-
-        if (resultado.status === 'cancelado') {
-          // Cancelar é o caminho mais comum e não é erro (RNF02).
-          return;
-        }
-        if (resultado.status === 'erro') {
-          Alert.alert('Câmera Indisponível (RNF02)', resultado.mensagem);
-          return;
-        }
-        setFotoUri(resultado.foto.uri);
+      const evidencia = await anexarFoto({ ocorrenciaId });
+      if (evidencia) {
+        Alert.alert('Foto Anexada', 'Evidência fotográfica registrada e comprimida no armazenamento privado.');
       }
     } catch (err: any) {
-      Alert.alert(
-        'Câmera Indisponível (RNF02)',
-        err?.message || 'Falha ao solicitar ou acessar a câmera.'
-      );
+      if (err?.message?.includes('cancelada')) return;
+      Alert.alert('Aviso de Câmera', err?.message || 'Não foi possível capturar foto');
     }
   };
 
@@ -59,19 +41,15 @@ export default function OcorrenciasScreen() {
     }
 
     try {
-      const fotos = fotoUri ? [fotoUri] : [];
-
       const nova = await registrarOcorrencia({
         titulo: titulo.trim(),
         descricao: descricao.trim() || undefined,
         gravidade,
-        fotos,
       });
 
       setModalVisible(false);
       setTitulo('');
       setDescricao('');
-      setFotoUri(null);
 
       Alert.alert(
         '✓ Ocorrência Registrada com Sucesso!',
@@ -176,6 +154,12 @@ export default function OcorrenciasScreen() {
                       : 'Sem foto anexada'}
                   </Text>
                 </View>
+                <TouchableOpacity
+                  style={styles.attachBtn}
+                  onPress={() => handleAnexarFoto(oc.id)}
+                  activeOpacity={0.8}>
+                  <Text style={styles.attachBtnText}>Anexar foto</Text>
+                </TouchableOpacity>
                 <Text style={styles.dateText}>
                   {oc.dataCriacao ? new Date(oc.dataCriacao).toLocaleTimeString() : 'Agora'}
                 </Text>
@@ -261,19 +245,10 @@ export default function OcorrenciasScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Foto via CameraGateway */}
-            <TouchableOpacity
-              style={[
-                styles.cameraBtn,
-                fotoUri ? styles.cameraBtnOk : styles.cameraBtnPending,
-              ]}
-              onPress={handleCapturarFoto}>
-              <Text style={styles.cameraBtnText}>
-                {fotoUri
-                  ? '✓ Foto Capturada via CameraGateway (Toque p/ remover)'
-                  : '📷 Capturar Foto via CameraGateway (Obrigatória se ALTA)'}
-              </Text>
-            </TouchableOpacity>
+            {/* Foto anexada via AnexarFotoUseCase (hash + sandbox + outbox) */}
+            <Text style={styles.inputLabel}>
+              Fotos: anexe após salvar a ocorrência, pelo botão Anexar foto no cartão.
+            </Text>
 
             <View style={styles.modalActions}>
               <TouchableOpacity
@@ -510,6 +485,19 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 11,
     color: '#64748B',
+  },
+  attachBtn: {
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#3B4B70',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  attachBtnText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,

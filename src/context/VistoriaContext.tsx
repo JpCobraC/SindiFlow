@@ -174,6 +174,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setItensChecklist(ativa ? [...ativa.itens] : []);
       setOcorrencias([]);
 
+      const comunicadosCarregados = await app.casosDeUso.listarComunicados.executar(
+        usuario.condominioId
+      );
+      setComunicados([...comunicadosCarregados]);
+
       if (ativa) {
         await atualizarEstadoOcorrencias(app, ativa.id);
       }
@@ -187,6 +192,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setItensChecklist([]);
     setOcorrencias([]);
     setOutboxPendentes([]);
+    setComunicados([]);
   }, []);
 
   useEffect(() => {
@@ -553,7 +559,9 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       throw new Error('Apenas o síndico pode emitir comunicados prediais.');
     }
 
-    const novo = new Comunicado({
+    const app = exigirApp();
+
+    const novo = await app.casosDeUso.criarComunicado.executar({
       id: `com-${Date.now()}`,
       condominioId: usuarioLogado.condominioId,
       autorId: usuarioLogado.id,
@@ -561,9 +569,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       titulo,
       conteudo,
       fixado: false,
+      deviceId: app.deviceId,
     });
 
     setComunicados((prev) => [novo, ...prev]);
+    await atualizarEstadoOutbox(app);
     addLog('SUCESSO', `Comunicado emitido pelo síndico: "${titulo}".`);
   };
 

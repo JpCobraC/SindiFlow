@@ -50,36 +50,73 @@ describe('Usuario Entity', () => {
     expect(inspetor.registroProfissional).toBe('CREA 50692-SP');
   });
 
-  it('deve lançar erro se email for inválido ou campos obrigatórios faltarem', () => {
-    expect(() => {
-      new Usuario({
-        id: '',
-        nome: 'Teste',
-        email: 'invalido',
-        role: 'SINDICO',
-        condominioId: 'cond-1',
-      });
-    }).toThrow('ID do usuário é obrigatório.');
+  it('deve tratar role ADMIN como síndico e inspetor simultaneamente', () => {
+    const admin = new Usuario({
+      id: 'usr-admin-1',
+      nome: 'Admin',
+      email: 'admin@solar.com',
+      role: 'ADMIN',
+      condominioId: 'cond-solar',
+    });
 
+    expect(admin.isSindico()).toBe(true);
+    expect(admin.isInspetor()).toBe(true);
+    expect(admin.podeAprovarVistoria()).toBe(true);
+    expect(admin.podePreencherChecklist()).toBe(true);
+    expect(admin.podeVisualizarLaudo('RASCUNHO')).toBe(true);
+  });
+
+  it('deve gerenciar ativo/desativar/ativar', () => {
+    const usuario = new Usuario({
+      id: 'usr-1',
+      nome: 'Teste',
+      email: 'teste@solar.com',
+      role: 'SINDICO',
+      condominioId: 'cond-solar',
+    });
+
+    expect(usuario.ativo).toBe(true);
+    usuario.desativar();
+    expect(usuario.ativo).toBe(false);
+    usuario.ativar();
+    expect(usuario.ativo).toBe(true);
+  });
+
+  it('deve validar campos obrigatórios restantes', () => {
     expect(() => {
       new Usuario({
         id: '1',
-        nome: '',
+        nome: 'Teste',
         email: 'teste@email.com',
         role: 'SINDICO',
-        condominioId: 'cond-1',
+        condominioId: '',
       });
-    }).toThrow('Nome do usuário é obrigatório.');
+    }).toThrow('Condomínio ID é obrigatório.');
 
     expect(() => {
       new Usuario({
         id: '1',
         nome: 'Teste',
-        email: 'emailsemarroba.com',
-        role: 'SINDICO',
+        email: 'teste@email.com',
+        role: undefined as any,
         condominioId: 'cond-1',
       });
-    }).toThrow('Email inválido.');
+    }).toThrow('Papel (Role) do usuário é obrigatório.');
+  });
+
+  it('deve permitir condômino visualizar laudo finalizado', () => {
+    const condomino = new Usuario({
+      id: 'usr-condomino-1',
+      nome: 'Mariana',
+      email: 'mariana@solar.com',
+      role: 'CONDOMINO',
+      condominioId: 'cond-solar',
+    });
+
+    expect(condomino.podeVisualizarLaudo('FINALIZADA')).toBe(true);
+    expect(condomino.podeVisualizarLaudo('APROVADA')).toBe(true);
+    expect(condomino.podeVisualizarLaudo('RASCUNHO')).toBe(false);
   });
 });
+
 

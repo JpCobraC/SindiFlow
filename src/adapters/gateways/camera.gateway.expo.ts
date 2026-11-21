@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import { Directory, File, Paths } from 'expo-file-system';
 import {
   CapturaFotoOptions,
   FotoCapturada,
@@ -92,30 +92,16 @@ export class CameraGatewayExpo implements ICameraGateway {
       let tamanhoFinalBytes = asset.fileSize ?? 320000;
 
       try {
-        const docDir = (FileSystem as any).documentDirectory || (FileSystem as any).Paths?.document?.uri;
-        if (docDir) {
-          const pastaPrivada = `${docDir}evidencias/`;
+        const pastaPrivada = new Directory(Paths.document, 'evidencias');
+        pastaPrivada.create({ intermediates: true, idempotent: true });
 
-          if ((FileSystem as any).makeDirectoryAsync) {
-            await (FileSystem as any).makeDirectoryAsync(pastaPrivada, { intermediates: true });
-          }
+        const arquivoDestino = new File(pastaPrivada, `evi_${hash.substring(0, 16)}.jpg`);
 
-          const arquivoDestino = `${pastaPrivada}evi_${hash.substring(0, 16)}.jpg`;
+        await new File(uriProcessada).copy(arquivoDestino, { overwrite: true });
+        uriDestinoFinal = arquivoDestino.uri;
 
-          if ((FileSystem as any).copyAsync) {
-            await (FileSystem as any).copyAsync({
-              from: uriProcessada,
-              to: arquivoDestino,
-            });
-            uriDestinoFinal = arquivoDestino;
-
-            if ((FileSystem as any).getInfoAsync) {
-              const info = await (FileSystem as any).getInfoAsync(arquivoDestino);
-              if (info.exists && info.size) {
-                tamanhoFinalBytes = info.size;
-              }
-            }
-          }
+        if (arquivoDestino.exists && arquivoDestino.size) {
+          tamanhoFinalBytes = arquivoDestino.size;
         }
       } catch {
         uriDestinoFinal = uriProcessada;

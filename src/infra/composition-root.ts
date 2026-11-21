@@ -15,11 +15,14 @@ import { AprovarVistoriaUseCase } from '../application/use-cases/aprovar-vistori
 import { AutenticarUsuarioUseCase } from '../application/use-cases/autenticar-usuario.usecase';
 import { CapturarLocalizacaoUseCase } from '../application/use-cases/capturar-localizacao.usecase';
 import { ClassificarItemChecklistUseCase } from '../application/use-cases/classificar-item.usecase';
+import { CriarComunicadoUseCase } from '../application/use-cases/criar-comunicado.usecase';
 import { CriarVistoriaUseCase } from '../application/use-cases/criar-vistoria.usecase';
 import { DevolverVistoriaUseCase } from '../application/use-cases/devolver-vistoria.usecase';
+import { ListarComunicadosUseCase } from '../application/use-cases/listar-comunicados.usecase';
 import { FinalizarVistoriaUseCase } from '../application/use-cases/finalizar-vistoria.usecase';
 import { RegistrarOcorrenciaUseCase } from '../application/use-cases/registrar-ocorrencia.usecase';
 import { SincronizarOutboxUseCase } from '../application/use-cases/sincronizar-outbox.usecase';
+import { ComunicadoRepositorySQLite } from '../adapters/repositories/comunicado.repository.sqlite';
 import { OcorrenciaRepositorySQLite } from '../adapters/repositories/ocorrencia.repository.sqlite';
 import { OutboxRepositorySQLite } from '../adapters/repositories/outbox.repository.sqlite';
 import { UsuarioRepositorySQLite } from '../adapters/repositories/usuario.repository.sqlite';
@@ -51,10 +54,13 @@ export interface AplicacaoComposta {
     ocorrencia: OcorrenciaRepositorySQLite;
     outbox: OutboxRepositorySQLite;
     usuario: UsuarioRepositorySQLite;
+    comunicado: ComunicadoRepositorySQLite;
   };
   casosDeUso: {
     autenticarUsuario: AutenticarUsuarioUseCase;
+    criarComunicado: CriarComunicadoUseCase;
     criarVistoria: CriarVistoriaUseCase;
+    listarComunicados: ListarComunicadosUseCase;
     classificarItem: ClassificarItemChecklistUseCase;
     finalizarVistoria: FinalizarVistoriaUseCase;
     registrarOcorrencia: RegistrarOcorrenciaUseCase;
@@ -78,6 +84,7 @@ export function comporAplicacao(portas: PortasAplicacao): AplicacaoComposta {
   const ocorrenciaRepo = new OcorrenciaRepositorySQLite(portas.executor);
   const outboxRepo = new OutboxRepositorySQLite(portas.executor);
   const usuarioRepo = new UsuarioRepositorySQLite(portas.executor);
+  const comunicadoRepo = new ComunicadoRepositorySQLite(portas.executor);
 
   return {
     deviceId: portas.deviceId,
@@ -86,6 +93,7 @@ export function comporAplicacao(portas: PortasAplicacao): AplicacaoComposta {
       ocorrencia: ocorrenciaRepo,
       outbox: outboxRepo,
       usuario: usuarioRepo,
+      comunicado: comunicadoRepo,
     },
     casosDeUso: {
       autenticarUsuario: new AutenticarUsuarioUseCase(
@@ -96,6 +104,8 @@ export function comporAplicacao(portas: PortasAplicacao): AplicacaoComposta {
         portas.deviceId
       ),
       criarVistoria: new CriarVistoriaUseCase(vistoriaRepo, outboxRepo),
+      criarComunicado: new CriarComunicadoUseCase(comunicadoRepo, outboxRepo),
+      listarComunicados: new ListarComunicadosUseCase(comunicadoRepo),
       classificarItem: new ClassificarItemChecklistUseCase(vistoriaRepo, outboxRepo),
       finalizarVistoria: new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo),
       registrarOcorrencia: new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo),

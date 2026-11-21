@@ -30,15 +30,46 @@ jest.mock('expo-crypto', () => ({
   },
 }));
 
-const mockMakeDirectoryAsync = jest.fn();
-const mockCopyAsync = jest.fn();
-const mockGetInfoAsync = jest.fn();
-jest.mock('expo-file-system', () => ({
-  documentDirectory: 'file:///data/user/0/com.sindiflow/files/',
-  makeDirectoryAsync: (path: string, opts: any) => mockMakeDirectoryAsync(path, opts),
-  copyAsync: (opts: any) => mockCopyAsync(opts),
-  getInfoAsync: (path: string) => mockGetInfoAsync(path),
-}));
+const mockDirectoryCreate = jest.fn();
+const mockFileCopy = jest.fn();
+const MOCK_FILE_SIZE = 215000;
+jest.mock('expo-file-system', () => {
+  class File {
+    uri: string;
+    exists = true;
+    size = MOCK_FILE_SIZE;
+    constructor(...parts: any[]) {
+      this.uri = parts
+        .map((p: any) => (typeof p === 'string' ? p : (p && p.uri) || ''))
+        .join('/')
+        .replace(/([^:/])\/{2,}/g, '$1/');
+    }
+    async copy(dest: any) {
+      mockFileCopy({ from: this.uri, to: dest && dest.uri });
+    }
+  }
+  class Directory {
+    uri: string;
+    exists = true;
+    constructor(...parts: any[]) {
+      let u = parts
+        .map((p: any) => (typeof p === 'string' ? p : (p && p.uri) || ''))
+        .join('/')
+        .replace(/([^:/])\/{2,}/g, '$1/');
+      if (!u.endsWith('/')) u += '/';
+      this.uri = u;
+    }
+    create(opts: any) {
+      mockDirectoryCreate(this.uri, opts);
+    }
+  }
+  const documentDir = new Directory('file:///data/user/0/com.sindiflow/files/');
+  return {
+    File,
+    Directory,
+    Paths: { document: documentDir },
+  };
+});
 
 import { CameraGatewayExpo } from '../../src/adapters/gateways/camera.gateway.expo';
 
@@ -56,9 +87,8 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
     }));
 
     mockDigestStringAsync.mockResolvedValue('sha256_pericial_hash_456');
-    mockMakeDirectoryAsync.mockResolvedValue(undefined);
-    mockCopyAsync.mockResolvedValue(undefined);
-    mockGetInfoAsync.mockResolvedValue({ exists: true, size: 215000 });
+    mockDirectoryCreate.mockImplementation(() => undefined);
+    mockFileCopy.mockImplementation(() => undefined);
   });
 
   it('deve verificar permissão existente através do ImagePicker', async () => {
@@ -125,11 +155,11 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
     expect(mockDigestStringAsync).toHaveBeenCalled();
 
     // 4. Armazenamento seguro no diretório privado do aplicativo (sem galeria)
-    expect(mockMakeDirectoryAsync).toHaveBeenCalledWith(
+    expect(mockDirectoryCreate).toHaveBeenCalledWith(
       'file:///data/user/0/com.sindiflow/files/evidencias/',
-      { intermediates: true }
+      expect.objectContaining({ intermediates: true })
     );
-    expect(mockCopyAsync).toHaveBeenCalledWith(
+    expect(mockFileCopy).toHaveBeenCalledWith(
       expect.objectContaining({
         from: 'file:///data/user/0/com.sindiflow/cache/raw_camera.jpg_compressed.jpg',
         to: expect.stringContaining('file:///data/user/0/com.sindiflow/files/evidencias/evi_'),
@@ -142,6 +172,101 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
       expect(resultado.foto.largura).toBe(1080);
       expect(resultado.foto.tamanhoBytes).toBe(215000);
       expect(resultado.foto.hash).toBe('sha256_pericial_hash_456');
+    }
+  });
+
+  it('deve redimensionar pela altura quando a imagem é mais alta que larga', async () => {
+    mockLaunchCameraAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///data/user/0/com.sindiflow/cache/raw_camera.jpg',
+          width: 1080,
+          height: 1920,
+          fileSize: 4200000,
+          fileName: 'evidencia_02.jpg',
+        },
+      ],
+    });
+
+    const resultado = await gateway.capturarFoto({
+      larguraMaxima: 1080,
+      alturaMaxima: 1080,
+      qualidade: 0.8,
+    });
+
+    expect(mockManipulateAsync).toHaveBeenCalledWith(
+      'file:///data/user/0/com.sindiflow/cache/raw_camera.jpg',
+      [{ resize: { height: 1080 } }],
+      expect.objectContaining({ format: 'jpeg' })
+    );
+    expect(resultado.status).toBe('sucesso');
+  });
+
+  it('deve manter o asset original quando a manipulação falha', async () => {
+    mockManipulateAsync.mockRejectedValueOnce(new Error('manipulação indisponível'));
+    mockLaunchCameraAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///data/user/0/com.sindiflow/cache/raw_camera.jpg',
+          width: 3840,
+          height: 2160,
+          fileSize: 4200000,
+          fileName: 'evidencia_03.jpg',
+        },
+      ],
+    });
+
+    const resultado = await gateway.capturarFoto({
+      larguraMaxima: 1080,
+      alturaMaxima: 1080,
+      qualidade: 0.8,
+    });
+
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status === 'sucesso') {
+      expect(resultado.foto.uri).toContain('files/evidencias/');
+    }
+  });
+
+  it('deve manter o uri processado quando a cópia para o sandbox falha', async () => {
+    mockFileCopy.mockImplementationOnce(() => {
+      throw new Error('falha de cópia');
+    });
+    mockLaunchCameraAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///data/user/0/com.sindiflow/cache/raw_camera.jpg',
+          width: 3840,
+          height: 2160,
+          fileSize: 4200000,
+          fileName: 'evidencia_04.jpg',
+        },
+      ],
+    });
+
+    const resultado = await gateway.capturarFoto({
+      larguraMaxima: 1080,
+      alturaMaxima: 1080,
+      qualidade: 0.8,
+    });
+
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status === 'sucesso') {
+      expect(resultado.foto.uri).toContain('raw_camera.jpg_compressed.jpg');
+    }
+  });
+
+  it('deve reportar erro quando a câmera lança exceção', async () => {
+    mockLaunchCameraAsync.mockRejectedValueOnce(new Error('câmera indisponível'));
+
+    const resultado = await gateway.capturarFoto();
+
+    expect(resultado.status).toBe('erro');
+    if (resultado.status === 'erro') {
+      expect(resultado.mensagem).toBe('câmera indisponível');
     }
   });
 

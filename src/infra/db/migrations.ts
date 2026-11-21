@@ -14,7 +14,7 @@ import { SQLiteDatabase } from 'expo-sqlite';
 /**
  * Versão atual do schema. Incrementar a cada mudança estrutural no DDL.
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * Executa migrations pendentes no banco.

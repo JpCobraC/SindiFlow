@@ -97,6 +97,16 @@ export class AuthGatewaySupabase implements AuthGateway {
     return this.mapearSessao(data.session, data.session.user);
   }
 
+  async obterSessaoSalvaBruta(): Promise<SessaoUsuario | null> {
+    const { data, error } = await this.client.auth.getSession();
+
+    if (error || !data.session || !data.session.user) {
+      return null;
+    }
+
+    return this.mapearSessao(data.session, data.session.user);
+  }
+
   async temSessaoValida(): Promise<boolean> {
     const sessao = await this.obterSessaoSalva();
     if (!sessao) return false;

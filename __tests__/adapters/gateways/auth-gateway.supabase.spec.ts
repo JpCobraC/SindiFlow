@@ -155,6 +155,19 @@ describe('AuthGatewaySupabase', () => {
     await expect(gateway.obterSessaoSalva()).resolves.toBeNull();
   });
 
+  it('obterSessaoSalvaBruta retorna a sessão mesmo quando o access token expirou', async () => {
+    const expirada = criarSessaoMock({ expiraEm: new Date(Date.now() - 1000) });
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(expirada) },
+      error: null,
+    });
+
+    const resultado = await gateway.obterSessaoSalvaBruta();
+
+    expect(resultado?.id).toBe('usr-1');
+    expect(resultado?.expiraEm.getTime()).toBeLessThan(Date.now());
+  });
+
   it('obterSessaoSalva usa o usuário embutido na sessão', async () => {
     const sessao = criarSessaoMock();
     mockAuth.getSession.mockResolvedValue({
@@ -210,5 +223,95 @@ describe('AuthGatewaySupabase', () => {
     await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(
       UsuarioSemCondominioError
     );
+  });
+
+  it('renovarSessao lança erro quando o refresh falha', async () => {
+    mockAuth.refreshSession.mockResolvedValue({
+      data: { session: null, user: null },
+      error: { message: 'refresh token inválido' },
+    });
+
+    await expect(gateway.renovarSessao('token-invalido')).rejects.toThrow(
+      'refresh token inválido'
+    );
+  });
+
+  it('obterSessaoSalvaBruta retorna null quando não há sessão', async () => {
+    mockAuth.getSession.mockResolvedValue({ data: { session: null }, error: null });
+
+    await expect(gateway.obterSessaoSalvaBruta()).resolves.toBeNull();
+  });
+
+  it('obterSessaoSalva retorna null quando getSession retorna erro', async () => {
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'erro de rede' },
+    });
+
+    await expect(gateway.obterSessaoSalva()).resolves.toBeNull();
+  });
+
+  it('temSessaoValida retorna true para sessão válida', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(sessao) },
+      error: null,
+    });
+
+    await expect(gateway.temSessaoValida()).resolves.toBe(true);
+  });
+
+  it('rejeita sessão de usuário sem e-mail', async () => {
+    const sessao = criarSessaoMock();
+    const supabase = criarSessaoSupabase(sessao);
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: { ...supabase, user: { ...supabase.user, email: null } } },
+      error: null,
+    });
+
+    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
+  });
+
+  it('rejeita role não-string no metadata', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(sessao, { role: 42 }) },
+      error: null,
+    });
+
+    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
+  });
+
+  it('usa o prefixo do e-mail como nome quando não há metadata de nome', async () => {
+    const sessao = criarSessaoMock();
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: criarSessaoSupabase(sessao, { nome: undefined, full_name: undefined }) },
+      error: null,
+    });
+
+    const resultado = await gateway.obterSessaoSalva();
+    expect(resultado?.nome).toBe('teste');
+  });
+
+  it('usa fallback de 7 dias quando session.expires_at é nulo', async () => {
+    const sessao = criarSessaoMock();
+    const supabase = criarSessaoSupabase(sessao);
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: { ...supabase, expires_at: null } },
+      error: null,
+    });
+
+    const resultado = await gateway.obterSessaoSalva();
+    expect(resultado).not.toBeNull();
+    expect(resultado!.expiraEm.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it('obterSessaoSalvaBruta retorna null quando getSession retorna erro', async () => {
+    mockAuth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: 'erro' },
+    });
+
+    await expect(gateway.obterSessaoSalvaBruta()).resolves.toBeNull();
   });
 });

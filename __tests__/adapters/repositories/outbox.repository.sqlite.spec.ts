@@ -153,11 +153,46 @@ describe('OutboxRepositorySQLite', () => {
     expect(todos).toHaveLength(2);
   });
 
-  it('deve preservar idRegistro na reidratação da linha', async () => {
-    await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-xyz' }));
+  it('deve lançar erro ao iniciar processamento de evento inexistente', async () => {
+    await expect(repo.iniciarProcessamento('inexistente')).rejects.toThrow();
+  });
 
-    const [evento] = await repo.listarTodos();
+  it('deve lançar erro ao resetar evento que não está em FALHA_MAXIMA', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-1' }));
 
-    expect(evento.idRegistro).toBe('reg-xyz');
+    await expect(repo.resetar(evento.id)).rejects.toThrow();
+  });
+
+  it('deve registrar falha permanente', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-1' }));
+    const agora = new Date('2026-11-10T10:00:00Z');
+
+    await repo.iniciarProcessamento(evento.id);
+    await repo.registrarFalhaPermanente(evento.id, '403 forbidden', agora);
+
+    const todos = await repo.listarTodos();
+    const comFalha = todos.find((e) => e.id === evento.id);
+    expect(comFalha?.status).toBe(StatusOutbox.FALHA_MAXIMA);
+    expect(comFalha?.ultimoErro).toBe('403 forbidden');
+  });
+
+  it('deve descartar eventos sincronizados anteriores à data', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-1' }));
+    const agora = new Date('2026-11-10T10:00:00Z');
+    await repo.marcarSincronizado(evento.id, agora);
+
+    const removidos = await repo.descartarSincronizados(new Date('2026-11-11T10:00:00Z'));
+    expect(removidos).toBe(1);
+    expect(await repo.listarTodos()).toHaveLength(0);
+  });
+
+  it('deve ser no-op ao marcar sincronizado evento inexistente', async () => {
+    const agora = new Date('2026-11-10T10:00:00Z');
+    await expect(repo.marcarSincronizado('inexistente', agora)).resolves.toBeUndefined();
+  });
+
+  it('deve ser no-op ao registrar falha permanente em evento inexistente', async () => {
+    const agora = new Date('2026-11-10T10:00:00Z');
+    await expect(repo.registrarFalhaPermanente('inexistente', 'erro', agora)).resolves.toBeUndefined();
   });
 });

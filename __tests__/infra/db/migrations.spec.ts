@@ -26,8 +26,8 @@ describe('runMigrations', () => {
     jest.clearAllMocks();
   });
 
-  it('deve definir SCHEMA_VERSION como 1', () => {
-    expect(SCHEMA_VERSION).toBe(1);
+  it('deve definir SCHEMA_VERSION como 2', () => {
+    expect(SCHEMA_VERSION).toBe(2);
   });
 
   it('deve aplicar migration quando o banco está na versão 0', () => {
@@ -38,9 +38,9 @@ describe('runMigrations', () => {
   });
 
   it('não deve reapply migration quando já está na versão atual', () => {
-    // Simular banco já na versão 1
+    // Simular banco já na versão 2
     const db = openDatabaseSync('test.db');
-    (db as any).getFirstSync = jest.fn(() => ({ user_version: 1 }));
+    (db as any).getFirstSync = jest.fn(() => ({ user_version: 2 }));
     runMigrations(db);
     const execSync = (db as any).execSync;
     expect(execSync).not.toHaveBeenCalledWith(

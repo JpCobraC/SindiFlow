@@ -60,17 +60,36 @@ export class AutenticarUsuarioUseCase {
    */
   async restaurarSessao(): Promise<Usuario | null> {
     const sessao = await this.authGateway.obterSessaoSalva();
-    if (!sessao) return null;
+    if (sessao) {
+      const dados = await this.usuarioRepo.buscarPorId(sessao.id);
+      if (!dados) {
+        await this.authGateway.logout();
+        return null;
+      }
+      return this.mapearUsuario(dados);
+    }
 
-    const dados = await this.usuarioRepo.buscarPorId(sessao.id);
-    if (!dados) {
-      // Sessão órfã: o usuário não existe mais no SQLite. Limpa o SecureStore
-      // para evitar loop de "sessão inválida" em todo cold start.
+    // Sessao pode estar expirada (access token vencido) mas ainda renovavel.
+    const bruta = await this.authGateway.obterSessaoSalvaBruta();
+    if (!bruta) return null;
+
+    if (!bruta.refreshToken) {
       await this.authGateway.logout();
       return null;
     }
 
-    return this.mapearUsuario(dados);
+    try {
+      const renovada = await this.authGateway.renovarSessao(bruta.refreshToken);
+      const dados = await this.usuarioRepo.buscarPorId(renovada.id);
+      if (!dados) {
+        await this.authGateway.logout();
+        return null;
+      }
+      return this.mapearUsuario(dados);
+    } catch {
+      await this.authGateway.logout();
+      return null;
+    }
   }
 
   async encerrarSessao(): Promise<void> {

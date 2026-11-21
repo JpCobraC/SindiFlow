@@ -69,6 +69,7 @@ class AuthGatewayFake implements AuthGateway {
   renovarSessao = jest.fn(async (_refreshToken: string) => this.sessao);
   logout = jest.fn(async () => undefined);
   obterSessaoSalva = jest.fn(async (): Promise<SessaoUsuario | null> => this.sessao);
+  obterSessaoSalvaBruta = jest.fn(async (): Promise<SessaoUsuario | null> => this.sessao);
   temSessaoValida = jest.fn(async () => true);
 }
 
@@ -221,6 +222,44 @@ describe('AutenticarUsuarioUseCase', () => {
     expect(authGateway.obterSessaoSalva).toHaveBeenCalledTimes(1);
     expect(usuario?.id).toBe('usr-1');
     expect(await outboxRepo.listarTodos()).toHaveLength(0);
+  });
+
+  it('renova a sessão expirada usando o refresh token e devolve o usuário', async () => {
+    // obterSessaoSalva retorna null (expirada), mas a sessão bruta existe.
+    const sessaoExpirada = criarSessao({ expiraEm: new Date(AGORA.getTime() - 1000) });
+    authGateway.obterSessaoSalva.mockResolvedValueOnce(null);
+    authGateway.obterSessaoSalvaBruta.mockResolvedValueOnce(sessaoExpirada);
+    const sessaoRenovada = criarSessao({ accessToken: 'novo-access-token' });
+    authGateway.renovarSessao.mockResolvedValueOnce(sessaoRenovada);
+
+    await usuarioRepo.salvar(criarUsuarioDados());
+
+    const usuario = await useCase.restaurarSessao();
+
+    expect(authGateway.obterSessaoSalvaBruta).toHaveBeenCalledTimes(1);
+    expect(authGateway.renovarSessao).toHaveBeenCalledWith('refresh-token');
+    expect(usuario?.id).toBe('usr-1');
+    expect(await outboxRepo.listarTodos()).toHaveLength(0);
+  });
+
+  it('limpa a sessão quando a renovação falha', async () => {
+    const sessaoExpirada = criarSessao({ expiraEm: new Date(AGORA.getTime() - 1000) });
+    authGateway.obterSessaoSalva.mockResolvedValueOnce(null);
+    authGateway.obterSessaoSalvaBruta.mockResolvedValueOnce(sessaoExpirada);
+    authGateway.renovarSessao.mockRejectedValueOnce(new Error('refresh inválido'));
+
+    await expect(useCase.restaurarSessao()).resolves.toBeNull();
+    expect(authGateway.logout).toHaveBeenCalledTimes(1);
+  });
+
+  it('limpa a sessão quando a sessão bruta não tem refresh token', async () => {
+    const sessaoSemRefresh = criarSessao({ refreshToken: undefined, expiraEm: new Date(AGORA.getTime() - 1000) });
+    authGateway.obterSessaoSalva.mockResolvedValueOnce(null);
+    authGateway.obterSessaoSalvaBruta.mockResolvedValueOnce(sessaoSemRefresh);
+
+    await expect(useCase.restaurarSessao()).resolves.toBeNull();
+    expect(authGateway.logout).toHaveBeenCalledTimes(1);
+    expect(authGateway.renovarSessao).not.toHaveBeenCalled();
   });
 
   it('devolve null quando não há sessão salva', async () => {

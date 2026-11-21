@@ -119,8 +119,20 @@ CREATE INDEX IF NOT EXISTS idx_outbox_status_tentativas ON outbox_events(status,
 CREATE INDEX IF NOT EXISTS idx_outbox_readiness
   ON outbox_events(status, data_ultima_tentativa, proximo_retry_ms);
 
--- 6. Log de Auditoria de Sincronização (§3.3)
-CREATE TABLE IF NOT EXISTS sync_log (
+-- 7. Tabela de Comunicados Prediais (RF16 - mural do síndico)
+CREATE TABLE IF NOT EXISTS comunicados (
+  id TEXT PRIMARY KEY NOT NULL,
+  condominio_id TEXT NOT NULL,
+  autor_id TEXT NOT NULL,
+  autor_nome TEXT NOT NULL,
+  titulo TEXT NOT NULL,
+  conteudo TEXT NOT NULL,
+  data_criacao TEXT NOT NULL,
+  fixado INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_comunicados_condominio ON comunicados(condominio_id);
   id TEXT PRIMARY KEY NOT NULL,
   outbox_id TEXT,
   status TEXT NOT NULL,

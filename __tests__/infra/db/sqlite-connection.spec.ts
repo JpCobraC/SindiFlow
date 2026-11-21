@@ -18,8 +18,9 @@ jest.mock('expo-sqlite', () => {
 });
 
 import { openDatabaseSync, SQLiteDatabase } from 'expo-sqlite';
-import { openSindiFlowDatabase } from '../../../src/infra/db/sqlite-connection';
+import { openSindiFlowDatabase, createSindiFlowExecutor } from '../../../src/infra/db/sqlite-connection';
 import { SQLITE_SCHEMA_DDL } from '../../../src/infra/db/sqlite-schema';
+import { ExpoSQLiteExecutor } from '../../../src/infra/db/expo-sqlite.executor';
 
 const mockExecSync = (openDatabaseSync as jest.Mock).mock.results?.[0]?.value?.execSync;
 
@@ -39,9 +40,21 @@ describe('openSindiFlowDatabase', () => {
     expect(execSync).toHaveBeenCalledWith(SQLITE_SCHEMA_DDL);
   });
 
-  it('deve retornar uma instância de SQLiteDatabase', () => {
-    const db = openSindiFlowDatabase();
-    expect(db).toBeDefined();
-    expect(typeof db.execSync).toBe('function');
+  it('deve abrir o banco com nome customizado', () => {
+    openSindiFlowDatabase('custom.db');
+    expect(openDatabaseSync).toHaveBeenCalledWith('custom.db');
+  });
+
+  it('deve propagar erro quando a abertura do banco falha', () => {
+    (openDatabaseSync as jest.Mock).mockImplementationOnce(() => {
+      throw new Error('Falha ao abrir SQLite');
+    });
+
+    expect(() => openSindiFlowDatabase()).toThrow('Falha ao abrir SQLite');
+  });
+
+  it('createSindiFlowExecutor deve retornar um ExpoSQLiteExecutor', () => {
+    const executor = createSindiFlowExecutor();
+    expect(executor).toBeInstanceOf(ExpoSQLiteExecutor);
   });
 });

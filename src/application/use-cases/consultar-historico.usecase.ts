@@ -1,5 +1,5 @@
 import { StatusItemChecklist } from '../../domain/entities/item-checklist.entity';
-import { GravidadeOcorrencia } from '../../domain/entities/ocorrencia.entity';
+import { GravidadeOcorrencia, Ocorrencia } from '../../domain/entities/ocorrencia.entity';
 import { StatusVistoria, Vistoria } from '../../domain/entities/vistoria.entity';
 import { IOcorrenciaRepository } from '../../domain/interfaces/ocorrencia.repository.interface';
 import { IVistoriaRepository } from '../../domain/interfaces/vistoria.repository.interface';
@@ -22,7 +22,12 @@ export class ConsultarHistoricoUseCase {
 
   async executar(condominioId: string): Promise<MetricasHistorico> {
     const vistorias = await this.vistoriaRepo.listarPorCondominio(condominioId);
-    const todasOcorrencias = await this.ocorrenciaRepo.listarTodas();
+
+    const ocorrenciasDoCondominio: Ocorrencia[] = [];
+    for (const vistoria of vistorias) {
+      const ocorrenciasDaVistoria = await this.ocorrenciaRepo.listarPorVistoria(vistoria.id);
+      ocorrenciasDoCondominio.push(...ocorrenciasDaVistoria);
+    }
 
     const vistoriasFinalizadas = vistorias.filter((v) => v.status === StatusVistoria.FINALIZADA).length;
     const vistoriasEmAndamento = vistorias.filter(
@@ -45,7 +50,7 @@ export class ConsultarHistoricoUseCase {
 
     const taxaConformidade = totalItensAvaliados > 0 ? (totalItensOk / totalItensAvaliados) * 100 : 100;
 
-    const ocorrenciasCriticas = todasOcorrencias.filter(
+    const ocorrenciasCriticas = ocorrenciasDoCondominio.filter(
       (o) => o.gravidade === GravidadeOcorrencia.ALTA
     ).length;
 
@@ -53,7 +58,7 @@ export class ConsultarHistoricoUseCase {
       totalVistorias: vistorias.length,
       vistoriasFinalizadas,
       vistoriasEmAndamento,
-      totalOcorrencias: todasOcorrencias.length,
+      totalOcorrencias: ocorrenciasDoCondominio.length,
       ocorrenciasCriticas,
       taxaConformidade: Math.round(taxaConformidade * 10) / 10,
       vistorias,

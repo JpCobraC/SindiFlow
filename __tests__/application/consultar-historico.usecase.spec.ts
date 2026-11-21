@@ -54,6 +54,10 @@ describe('ConsultarHistoricoUseCase', () => {
     const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
     const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
 
+    const item = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    const vistoria = Vistoria.criar({ id: 'v-1', condominioId: 'cond-1', inspetorId: 'user-1', itens: [item] });
+    await vistoriaRepo.salvar(vistoria);
+
     await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-1', vistoriaId: 'v-1', titulo: 'Fissura', gravidade: GravidadeOcorrencia.ALTA, fotos: ['file:///foto.jpg'] }));
     await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-2', vistoriaId: 'v-1', titulo: 'Pintura', gravidade: GravidadeOcorrencia.BAIXA }));
 
@@ -75,5 +79,27 @@ describe('ConsultarHistoricoUseCase', () => {
     const resultado = await useCase.executar('cond-1');
 
     expect(resultado.totalVistorias).toBe(0);
+  });
+
+  it('deve ignorar ocorrências de vistorias de outro condomínio', async () => {
+    const vistoriaRepo = new VistoriaRepositoryInMemory();
+    const ocorrenciaRepo = new OcorrenciaRepositoryInMemory();
+    const useCase = new ConsultarHistoricoUseCase(vistoriaRepo, ocorrenciaRepo);
+
+    const item1 = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    const vistoria1 = Vistoria.criar({ id: 'v-1', condominioId: 'cond-1', inspetorId: 'user-1', itens: [item1] });
+    await vistoriaRepo.salvar(vistoria1);
+
+    const item2 = ItemChecklist.criar({ id: 'i-2', vistoriaId: 'v-2', titulo: 'Bomba', categoria: 'Hidráulica' });
+    const vistoria2 = Vistoria.criar({ id: 'v-2', condominioId: 'cond-2', inspetorId: 'user-1', itens: [item2] });
+    await vistoriaRepo.salvar(vistoria2);
+
+    await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-1', vistoriaId: 'v-1', titulo: 'Ocorrência cond-1', gravidade: GravidadeOcorrencia.BAIXA }));
+    await ocorrenciaRepo.salvar(Ocorrencia.criar({ id: 'oc-2', vistoriaId: 'v-2', titulo: 'Ocorrência cond-2', gravidade: GravidadeOcorrencia.ALTA, fotos: ['file:///f.jpg'] }));
+
+    const resultado = await useCase.executar('cond-1');
+
+    expect(resultado.totalOcorrencias).toBe(1);
+    expect(resultado.ocorrenciasCriticas).toBe(0);
   });
 });

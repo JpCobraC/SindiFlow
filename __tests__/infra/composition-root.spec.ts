@@ -70,6 +70,7 @@ describe('comporAplicacao', () => {
     await expect(app.repositorios.ocorrencia.listarTodas()).resolves.toEqual([]);
     await expect(app.repositorios.outbox.listarTodos()).resolves.toEqual([]);
     await expect(app.repositorios.usuario.buscarPorId('usr-1')).resolves.toBeNull();
+    await expect(app.repositorios.comunicado.listarPorCondominio('cond-1')).resolves.toEqual([]);
   });
 
   it('injeta as portas de auth e Google no caso de uso de login', async () => {
