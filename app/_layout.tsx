@@ -17,7 +17,7 @@ export const unstable_settings = {
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { usuarioLogado, isCarregando, erroBoot } = useVistoria();
   const segments = useSegments();
-  const naTelaDeLogin = segments[0] === 'login';
+  const naTelaDeLogin = (segments[0] as string) === 'login';
 
   if (isCarregando) {
     return (
@@ -42,11 +42,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!usuarioLogado && !naTelaDeLogin) {
-    return <Redirect href="/login" />;
+    return <Redirect href={'/login' as any} />;
   }
 
   if (usuarioLogado && naTelaDeLogin) {
-    return <Redirect href="/(tabs)" />;
+    return <Redirect href={'/(tabs)' as any} />;
   }
 
   return <>{children}</>;

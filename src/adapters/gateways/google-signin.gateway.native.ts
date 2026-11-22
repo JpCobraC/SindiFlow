@@ -14,12 +14,50 @@
  * deep link OAuth.
  */
 
-import {
-  GoogleOneTapSignIn,
-  isCancelledResponse,
-  isSuccessResponse,
-} from 'react-native-nitro-google-signin';
 import { GoogleSignInGateway } from '../../domain/interfaces/auth.gateway.interface';
+
+type GoogleOneTapSignInType = {
+  checkPlayServices: () => Promise<void>;
+  presentExplicitSignIn: () => Promise<any>;
+  configure: (config: { webClientId: string; iosClientId?: string }) => void;
+};
+
+interface NitroModuloCarregado {
+  GoogleOneTapSignIn: GoogleOneTapSignInType;
+  isCancelledResponse: (resposta: any) => boolean;
+  isSuccessResponse: (resposta: any) => boolean;
+}
+
+/**
+ * Carrega `react-native-nitro-google-signin` sob demanda.
+ *
+ * O Expo Go não contém bibliotecas nativas C++/TurboModules de terceiros
+ * compiladas em seu binário pré-construído. O carregamento sob demanda impede que
+ * o app quebre durante a inicialização (boot) no Expo Go quando o módulo ainda
+ * não foi compilado via Development Build (`npx expo run:android`).
+ */
+function carregarModuloNitro(): NitroModuloCarregado {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const nitro = require('react-native-nitro-google-signin');
+    if (!nitro || !nitro.GoogleOneTapSignIn) {
+      throw new Error('GoogleOneTapSignIn não exportado.');
+    }
+    return {
+      GoogleOneTapSignIn: nitro.GoogleOneTapSignIn,
+      isCancelledResponse:
+        nitro.isCancelledResponse ?? ((r: any) => r?.type === 'cancelled'),
+      isSuccessResponse:
+        nitro.isSuccessResponse ??
+        ((r: any) => r?.type === 'success' && r?.data != null),
+    };
+  } catch (err: any) {
+    throw new Error(
+      'Google Sign-In nativo (NitroModules) requer Development Build (npx expo run:android). ' +
+      'No Expo Go, utilize o login por e-mail e senha.'
+    );
+  }
+}
 
 export class GoogleSignInGatewayNative implements GoogleSignInGateway {
   private configurado = false;
@@ -30,7 +68,10 @@ export class GoogleSignInGatewayNative implements GoogleSignInGateway {
   ) {}
 
   async obterIdToken(): Promise<string | null> {
-    this.configurar();
+    const { GoogleOneTapSignIn, isCancelledResponse, isSuccessResponse } =
+      carregarModuloNitro();
+
+    this.configurar(GoogleOneTapSignIn);
 
     // No iOS resolve imediatamente; no Android garante que o Credential
     // Manager existe antes de abrir o seletor de contas.
@@ -49,7 +90,7 @@ export class GoogleSignInGatewayNative implements GoogleSignInGateway {
     return resposta.data.idToken;
   }
 
-  private configurar(): void {
+  private configurar(GoogleOneTapSignIn: GoogleOneTapSignInType): void {
     if (this.configurado) return;
 
     const webClientId = this.webClientId.trim();
