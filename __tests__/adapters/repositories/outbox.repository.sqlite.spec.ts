@@ -137,7 +137,7 @@ describe('OutboxRepositorySQLite', () => {
     const dados2 = criarDadosOutbox({ idRegistro: 'reg-dup' });
 
     const evento1 = await repo.enfileirar(dados1);
-    const evento2 = await repo.enfileirar(dados2);
+    await repo.enfileirar(dados2);
 
     const todos = await repo.listarTodos();
     // Dedup: deve haver apenas 1 evento (o segundo atualiza o primeiro)

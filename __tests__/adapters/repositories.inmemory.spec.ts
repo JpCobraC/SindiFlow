@@ -4,7 +4,7 @@ import {
   GravidadeOcorrencia,
   Ocorrencia,
 } from '../../src/domain/entities/ocorrencia.entity';
-import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
+import { ItemChecklist } from '../../src/domain/entities/item-checklist.entity';
 import { Vistoria } from '../../src/domain/entities/vistoria.entity';
 import { ItemChecklistDeOutraVistoriaError } from '../../src/domain/errors/domain-errors';
 

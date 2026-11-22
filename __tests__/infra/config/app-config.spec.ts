@@ -8,14 +8,6 @@ import {
   ConfiguracaoAusenteError,
 } from '../../../src/infra/config/app-config';
 
-const envCompleto = {
-  NODE_ENV: 'test',
-  EXPO_PUBLIC_SUPABASE_URL: 'https://projeto.supabase.co',
-  EXPO_PUBLIC_SUPABASE_ANON_KEY: 'anon-key-real',
-  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: '123.apps.googleusercontent.com',
-  EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: '456.apps.googleusercontent.com',
-} as NodeJS.ProcessEnv;
-
 describe('carregarConfiguracao', () => {
   const nodeEnvOriginal = process.env.NODE_ENV;
 

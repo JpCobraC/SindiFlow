@@ -30,6 +30,7 @@ export interface VistoriaProps {
   itens?: ItemChecklist[];
   parecerTecnico?: string;
   motivoDevolucao?: string;
+  devolvidoPor?: string;
   aprovadoPor?: string;
   dataAprovacao?: Date;
 }
@@ -45,6 +46,7 @@ export class Vistoria {
   private _itens: ItemChecklist[];
   private _parecerTecnico?: string;
   private _motivoDevolucao?: string;
+  private _devolvidoPor?: string;
   private _aprovadoPor?: string;
   private _dataAprovacao?: Date;
 
@@ -55,6 +57,7 @@ export class Vistoria {
     this._status = props.status || StatusVistoria.RASCUNHO;
     this._parecerTecnico = props.parecerTecnico;
     this._motivoDevolucao = props.motivoDevolucao;
+    this._devolvidoPor = props.devolvidoPor;
     this._aprovadoPor = props.aprovadoPor;
     this._dataAprovacao = props.dataAprovacao ? new Date(props.dataAprovacao.getTime()) : undefined;
     // Cópias defensivas: `readonly` num `Date` não protege — `dataCriacao
@@ -157,6 +160,10 @@ export class Vistoria {
     return this._motivoDevolucao;
   }
 
+  public get devolvidoPor(): string | undefined {
+    return this._devolvidoPor;
+  }
+
   public get aprovadoPor(): string | undefined {
     return this._aprovadoPor;
   }
@@ -190,6 +197,7 @@ export class Vistoria {
     }
     this._status = StatusVistoria.DEVOLVIDA;
     this._motivoDevolucao = motivo.trim();
+    this._devolvidoPor = responsavelId;
     for (const item of this._itens) {
       item.desbloquearEdicao();
     }

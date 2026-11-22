@@ -9,7 +9,7 @@
  * Conformidade com §1.2: sessão em expo-secure-store, nunca AsyncStorage.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,

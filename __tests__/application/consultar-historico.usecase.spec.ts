@@ -1,7 +1,7 @@
 import { ConsultarHistoricoUseCase } from '../../src/application/use-cases/consultar-historico.usecase';
 import { VistoriaRepositoryInMemory } from '../../src/adapters/repositories/vistoria.repository.inmemory';
 import { OcorrenciaRepositoryInMemory } from '../../src/adapters/repositories/ocorrencia.repository.inmemory';
-import { Vistoria, StatusVistoria } from '../../src/domain/entities/vistoria.entity';
+import { Vistoria } from '../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
 import { Ocorrencia, GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
 import { Geolocalizacao } from '../../src/domain/value-objects/geolocalizacao.vo';

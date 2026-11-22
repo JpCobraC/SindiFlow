@@ -47,7 +47,7 @@ function getUserVersion(db: SQLiteDatabase): number {
  *
  * Adicionar novas migrations aqui como blocos condicionais por versão.
  */
-function applyMigrations(db: SQLiteDatabase, fromVersion: number): void {
+function applyMigrations(_db: SQLiteDatabase, _fromVersion: number): void {
   // Migration 0 → 1: schema inicial já é criado pelo DDL em sqlite-connection.ts.
   // Nenhuma ação adicional necessária na versão 1.
   // Exemplo futuro:

@@ -5,7 +5,6 @@ import { OcorrenciaRepositorySQLite } from '../../../src/adapters/repositories/o
 import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { Ocorrencia } from '../../../src/domain/entities/ocorrencia.entity';
 import { GravidadeOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';
-import { StatusOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';
 
 function criarOcorrenciaDeTeste(props?: Partial<{
   id: string;

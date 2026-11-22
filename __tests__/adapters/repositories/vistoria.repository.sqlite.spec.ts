@@ -9,7 +9,6 @@ import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { Vistoria } from '../../../src/domain/entities/vistoria.entity';
 import { StatusVistoria } from '../../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../../src/domain/entities/item-checklist.entity';
-import { Geolocalizacao } from '../../../src/domain/value-objects/geolocalizacao.vo';
 
 function criarVistoriaDeTeste(props?: Partial<{
   id: string;
@@ -140,12 +139,6 @@ describe('VistoriaRepositorySQLite', () => {
   });
 
   it('deve persistir geolocalização na reidratação', async () => {
-    const geo = Geolocalizacao.criar({
-      latitude: -23.55052,
-      longitude: -46.633308,
-      precisao: 5.0,
-    });
-
     const vistoria = criarVistoriaDeTeste({
       id: 'vist-geo',
       condominioId: 'cond-1',

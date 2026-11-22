@@ -322,4 +322,16 @@ describe('Vistoria Entity', () => {
       vistoria.finalizar(Geolocalizacao.criar({ latitude: 1, longitude: 1, timestamp: T0 }), T0)
     ).toThrow(ItemCriticoSemObservacaoError);
   });
+
+  it('deve armazenar responsavelId ao devolver a vistoria', () => {
+    const item = ItemChecklist.criar({ id: 'i-1', vistoriaId: 'v-1', titulo: 'Extintor', categoria: 'Incêndio' });
+    item.marcarStatus(StatusItemChecklist.OK);
+    const vistoria = Vistoria.criar({ id: 'v-1', condominioId: 'cond-1', inspetorId: 'user-1', itens: [item] });
+    vistoria.finalizar(Geolocalizacao.criar({ latitude: 1, longitude: 1 }));
+
+    vistoria.devolver('motivo da devolução', 'sindico-1');
+
+    expect(vistoria.devolvidoPor).toBe('sindico-1');
+    expect(vistoria.motivoDevolucao).toBe('motivo da devolução');
+  });
 });

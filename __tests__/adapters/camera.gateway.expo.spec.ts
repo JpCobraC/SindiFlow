@@ -80,7 +80,7 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
     jest.clearAllMocks();
     gateway = new CameraGatewayExpo();
 
-    mockManipulateAsync.mockImplementation(async (uri: string, actions: any[]) => ({
+    mockManipulateAsync.mockImplementation(async (uri: string) => ({
       uri: `${uri}_compressed.jpg`,
       width: 1080,
       height: 608,

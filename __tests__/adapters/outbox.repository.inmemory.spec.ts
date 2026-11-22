@@ -196,7 +196,7 @@ describe('OutboxRepositoryInMemory (Adapters)', () => {
       recente.iniciarProcessamento();
       recente.marcarSincronizado(T0);
 
-      const pendente = await repo.enfileirar(dados({ id: 'out-pendente' }));
+      await repo.enfileirar(dados({ id: 'out-pendente' }));
 
       const removidos = await repo.descartarSincronizados(T0);
 
