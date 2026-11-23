@@ -47,11 +47,48 @@ function getUserVersion(db: SQLiteDatabase): number {
  *
  * Adicionar novas migrations aqui como blocos condicionais por versão.
  */
-function applyMigrations(_db: SQLiteDatabase, _fromVersion: number): void {
+function applyMigrations(db: SQLiteDatabase, fromVersion: number): void {
   // Migration 0 → 1: schema inicial já é criado pelo DDL em sqlite-connection.ts.
-  // Nenhuma ação adicional necessária na versão 1.
-  // Exemplo futuro:
-  // if (fromVersion < 2) {
-  //   db.execSync('ALTER TABLE vistorias ADD COLUMN nova_coluna TEXT');
-  // }
+  // Migration 1 → 2: tabelas comunicados, users e sync_log
+  if (fromVersion < 2) {
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS sync_log (
+        id TEXT PRIMARY KEY NOT NULL,
+        outbox_id TEXT,
+        status TEXT NOT NULL,
+        mensagem TEXT,
+        executado_em TEXT NOT NULL,
+        FOREIGN KEY (outbox_id) REFERENCES outbox_events(id) ON DELETE SET NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_sync_log_executado ON sync_log(executado_em);
+
+      CREATE TABLE IF NOT EXISTS comunicados (
+        id TEXT PRIMARY KEY NOT NULL,
+        condominio_id TEXT NOT NULL,
+        autor_id TEXT NOT NULL,
+        autor_nome TEXT NOT NULL,
+        titulo TEXT NOT NULL,
+        conteudo TEXT NOT NULL,
+        data_criacao TEXT NOT NULL,
+        fixado INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_comunicados_condominio ON comunicados(condominio_id);
+
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY NOT NULL,
+        nome TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL CHECK(role IN ('SINDICO', 'CONDOMINO', 'INSPETOR', 'ADMIN')),
+        condominio_id TEXT NOT NULL,
+        unidade TEXT,
+        registro_profissional TEXT,
+        ativo INTEGER NOT NULL DEFAULT 1,
+        ultimo_acesso TEXT,
+        criado_em TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_condominio ON users(condominio_id);
+    `);
+  }
 }

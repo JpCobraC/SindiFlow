@@ -119,6 +119,18 @@ CREATE INDEX IF NOT EXISTS idx_outbox_status_tentativas ON outbox_events(status,
 CREATE INDEX IF NOT EXISTS idx_outbox_readiness
   ON outbox_events(status, data_ultima_tentativa, proximo_retry_ms);
 
+-- 6. Log de Auditoria de Sincronização (§3.3)
+CREATE TABLE IF NOT EXISTS sync_log (
+  id TEXT PRIMARY KEY NOT NULL,
+  outbox_id TEXT,
+  status TEXT NOT NULL,
+  mensagem TEXT,
+  executado_em TEXT NOT NULL,
+  FOREIGN KEY (outbox_id) REFERENCES outbox_events(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_log_executado ON sync_log(executado_em);
+
 -- 7. Tabela de Comunicados Prediais (RF16 - mural do síndico)
 CREATE TABLE IF NOT EXISTS comunicados (
   id TEXT PRIMARY KEY NOT NULL,
@@ -133,13 +145,21 @@ CREATE TABLE IF NOT EXISTS comunicados (
 );
 
 CREATE INDEX IF NOT EXISTS idx_comunicados_condominio ON comunicados(condominio_id);
+
+-- 8. Tabela de Usuários (Sessão & Perfil local)
+CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY NOT NULL,
-  outbox_id TEXT,
-  status TEXT NOT NULL,
-  mensagem TEXT,
-  executado_em TEXT NOT NULL,
-  FOREIGN KEY (outbox_id) REFERENCES outbox_events(id) ON DELETE SET NULL
+  nome TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL CHECK(role IN ('SINDICO', 'CONDOMINO', 'INSPETOR', 'ADMIN')),
+  condominio_id TEXT NOT NULL,
+  unidade TEXT,
+  registro_profissional TEXT,
+  ativo INTEGER NOT NULL DEFAULT 1,
+  ultimo_acesso TEXT,
+  criado_em TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_sync_log_executado ON sync_log(executado_em);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_condominio ON users(condominio_id);
 `;
