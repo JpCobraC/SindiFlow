@@ -41,18 +41,18 @@ export default function SyncScreen() {
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              {isOnline ? 'Online — rede real' : 'Offline — operando local'} • SQLite local
+              {isOnline ? 'Conectado à internet' : 'Modo offline ativo'}
             </Text>
           </View>
           <View style={styles.outboxPill}>
-            <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+            <Text style={styles.outboxPillText}>{outboxPendentes.length} pendente(s)</Text>
           </View>
         </View>
 
         {/* Header */}
-        <Text style={styles.title}>Motor Outbox & Resiliência</Text>
+        <Text style={styles.title}>Sincronização de Dados</Text>
         <Text style={styles.subtitle}>
-          Padrão transacional local com retry exponencial para áreas subterrâneas
+          Seus dados são salvos no celular e sincronizados automaticamente com a nuvem
         </Text>
 
         {/* Painel de Conectividade */}
@@ -123,9 +123,9 @@ export default function SyncScreen() {
           ))
         )}
 
-        {/* Logs de Auditoria do Domínio */}
+        {/* Histórico Recente de Atividades */}
         <Text style={[styles.sectionTitle, { marginTop: 24 }]}>
-          Logs de Auditoria do Domínio ({auditLogs.length})
+          Histórico Recente de Atividades ({auditLogs.length})
         </Text>
         <View style={styles.logContainer}>
           {auditLogs.slice(0, 8).map((log) => (

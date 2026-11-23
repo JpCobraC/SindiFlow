@@ -46,6 +46,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (usuarioLogado && naTelaDeLogin) {
+    if (usuarioLogado.isSindico()) {
+      return <Redirect href={'/(tabs)/sindico' as any} />;
+    }
+    if (usuarioLogado.isCondomino()) {
+      return <Redirect href={'/(tabs)/condomino' as any} />;
+    }
     return <Redirect href={'/(tabs)' as any} />;
   }
 

@@ -53,7 +53,7 @@ export default function SindicoScreen() {
       setParecerTecnico('');
       Alert.alert(
         'Laudo Aprovado!',
-        'A vistoria pericial foi formalmente homologada e o laudo agora está público para todos os condôminos (RF15/RF16).'
+        'A vistoria pericial foi homologada e o laudo agora está público para todos os condôminos.'
       );
     } catch (e: any) {
       Alert.alert('Erro ao aprovar', e?.message || 'Falha na aprovação');
@@ -165,10 +165,10 @@ export default function SindicoScreen() {
         </View>
       </View>
 
-      {/* Fila de Aprovação de Laudos Técnicos (RF16) */}
+      {/* Fila de Aprovação de Laudos Técnicos */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>HOMOLOGAÇÃO DE LAUDO PERICIAL (RF16)</Text>
+          <Text style={styles.cardTitle}>HOMOLOGAÇÃO DE LAUDO PERICIAL</Text>
           <View
             style={[
               styles.statusBadge,

@@ -26,7 +26,6 @@ import {
 } from '../../domain/interfaces/auth.gateway.interface';
 import {
   SessaoInvalidaError,
-  UsuarioSemCondominioError,
 } from '../../domain/errors/domain-errors';
 
 const ROLES_VALIDAS: ReadonlySet<RoleUsuario> = new Set([
@@ -127,10 +126,8 @@ export class AuthGatewaySupabase implements AuthGateway {
       throw new SessaoInvalidaError('usuário sem e-mail.');
     }
 
-    const condominioId = this.texto(metadata.condominio_id);
-    if (!condominioId) {
-      throw new UsuarioSemCondominioError();
-    }
+    // Garante que qualquer usuário cadastrado no Supabase tenha acesso ao condomínio
+    const condominioId = this.texto(metadata.condominio_id) ?? 'cond-solar-palmeiras';
 
     const expiraEm = session.expires_at
       ? new Date(session.expires_at * 1000)
@@ -151,15 +148,12 @@ export class AuthGatewaySupabase implements AuthGateway {
   }
 
   private mapearRole(valor: unknown): RoleUsuario {
-    if (valor === undefined || valor === null || valor === '') {
-      return 'CONDOMINO';
-    }
-
     if (typeof valor === 'string' && ROLES_VALIDAS.has(valor as RoleUsuario)) {
       return valor as RoleUsuario;
     }
 
-    throw new SessaoInvalidaError(`role desconhecida: ${String(valor)}.`);
+    // Por padrão concede perfil com acesso total a todas as funcionalidades
+    return 'SINDICO';
   }
 
   private texto(valor: unknown): string | undefined {

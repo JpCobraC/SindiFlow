@@ -130,10 +130,10 @@ export default function CondominoScreen() {
         </View>
       </View>
 
-      {/* Consulta de Laudo Técnico Homologado (RF15) */}
+      {/* Consulta de Laudo Técnico Homologado */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>LAUDO TÉCNICO DE SEGURANÇA PREDIAL (RF15)</Text>
+          <Text style={styles.cardTitle}>LAUDO TÉCNICO DE SEGURANÇA PREDIAL</Text>
           <View
             style={[
               styles.badge,
@@ -205,9 +205,9 @@ export default function CondominoScreen() {
             <Text style={styles.lockIcon}>🔒</Text>
             <Text style={styles.lockTitle}>Laudo em Elaboração / Auditoria</Text>
             <Text style={styles.lockDesc}>
-              De acordo com a norma NBR 5674 e os requisitos de governança do SindiFlow (RF15),
+              De acordo com a norma NBR 5674 e as regras de governança do condomínio,
               o laudo técnico pericial só é disponibilizado para visualização dos moradores após a
-              finalização com GPS pelo perito e a formal aprovação técnica do Síndico.
+              finalização com GPS pelo perito e a aprovação técnica do Síndico.
             </Text>
           </View>
         )}

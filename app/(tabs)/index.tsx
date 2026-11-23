@@ -56,11 +56,11 @@ export default function VistoriaScreen() {
         precisao: geo.precisao,
       });
       Alert.alert(
-        '✓ GPS Capturado com Sucesso (RF-VIST-004)',
-        `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros\n⚙️ Provedor: Expo Location Nativo`
+        '✓ GPS Capturado com Sucesso',
+        `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros`
       );
     } catch (err: any) {
-      Alert.alert('Falha na Localização (RNF02)', err?.message || 'Não foi possível capturar o GPS.');
+      Alert.alert('Falha na Localização', err?.message || 'Não foi possível capturar o GPS.');
     } finally {
       setCapturandoGps(false);
     }
@@ -77,11 +77,11 @@ export default function VistoriaScreen() {
       const ev = await anexarFoto({ itemId });
       if (ev) {
         const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
-        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}\nOrigem: Câmera Nativa Expo`);
+        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}`);
       }
     } catch (err: any) {
       if (err?.message?.includes('cancelada')) return;
-      Alert.alert('Falha na Câmera (RNF02)', err?.message || 'Não foi possível capturar a foto.');
+      Alert.alert('Falha na Câmera', err?.message || 'Não foi possível capturar a foto.');
     } finally {
       setAnexandoFotoId(null);
     }
@@ -94,7 +94,6 @@ export default function VistoriaScreen() {
     }
 
     if (novoStatus === StatusItemChecklist.CRITICO) {
-      // RF-VIST-003: Item CRITICO exige justificativa
       setSelectedItemId(id);
       setJustificativa('');
       setModalVisible(true);
@@ -104,7 +103,7 @@ export default function VistoriaScreen() {
     try {
       await marcarItem(id, novoStatus);
     } catch (err: any) {
-      Alert.alert('Bloqueio de Domínio', err?.message || 'Falha ao classificar item');
+      Alert.alert('Atenção', err?.message || 'Falha ao classificar item');
     }
   };
 
@@ -184,17 +183,17 @@ export default function VistoriaScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Banner de Status Mock, Conectividade & Modo de Hardware */}
+        {/* Banner de Status & Conectividade */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              {isOnline ? 'Online' : 'Offline Subsolo'} • 📷📍 Expo Nativo
+              {isOnline ? 'Online — Sincronizado' : 'Modo Offline Ativo'}
             </Text>
           </View>
           <View style={styles.bannerActions}>
             <View style={styles.outboxPill}>
-              <Text style={styles.outboxPillText}>{outboxPendentes.length} Outbox</Text>
+              <Text style={styles.outboxPillText}>{outboxPendentes.length} pendente(s)</Text>
             </View>
           </View>
         </View>
@@ -216,13 +215,13 @@ export default function VistoriaScreen() {
 
           <Text style={styles.title}>Edifício Solar das Palmeiras</Text>
           <Text style={styles.subtitle}>
-            Vistoria Preventiva Mensal • NBR 5674 • Inspetor: Carlos E. (CREA 12345)
+            Vistoria Preventiva Periódica • NBR 5674
           </Text>
 
           {/* Barra de Progresso com Regra dos 80% */}
           <View style={styles.progressContainer}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressLabel}>Progresso do Checklist (RF-VIST-002)</Text>
+              <Text style={styles.progressLabel}>Progresso do Checklist</Text>
               <Text style={styles.progressValue}>{percentual}%</Text>
             </View>
             <View style={styles.progressBar}>
@@ -236,22 +235,22 @@ export default function VistoriaScreen() {
             </View>
             <Text style={styles.progressNotice}>
               {aptoParaFinalizar
-                ? '✓ Cobertura ≥80% atingida — Apto para finalização'
-                : '⚠ Bloqueio RF-VIST-002: É obrigatório responder ≥80% dos itens'}
+                ? '✓ Cobertura mínima de 80% atingida — Pronto para finalizar'
+                : '⚠ É obrigatório responder pelo menos 80% dos itens'}
             </Text>
           </View>
         </View>
 
-        {/* Card de Geolocalização da Sessão (RF-VIST-004 / §1.4) */}
+        {/* Card de Geolocalização da Sessão */}
         <View style={styles.geoCard}>
           <View style={styles.geoCardHeader}>
-            <Text style={styles.geoTitle}>📍 Sessão de Geolocalização (RF-VIST-004)</Text>
+            <Text style={styles.geoTitle}>📍 Localização GPS da Vistoria</Text>
             <TouchableOpacity
               style={styles.geoRefreshBtn}
               onPress={handleObterGPS}
               disabled={isFinalizada || capturandoGps}>
               <Text style={styles.geoRefreshText}>
-                {capturandoGps ? 'Lendo GPS...' : 'Testar / Atualizar GPS'}
+                {capturandoGps ? 'Lendo GPS...' : 'Atualizar GPS'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -396,8 +395,8 @@ export default function VistoriaScreen() {
           disabled={isFinalizada}>
           <Text style={styles.finalizeBtnText}>
             {isFinalizada
-              ? '✓ Vistoria Concluída no Domínio'
-              : 'Finalizar Vistoria com GPS Mandatório (RF-VIST-004)'}
+              ? '✓ Vistoria Concluída'
+              : 'Finalizar Vistoria com GPS'}
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -408,8 +407,7 @@ export default function VistoriaScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Justificativa Obrigatória</Text>
             <Text style={styles.modalSubtitle}>
-              Conforme a regra RF-VIST-003, qualquer item marcado como CRÍTICO exige justificativa
-              técnica antes de ser confirmado no agregado.
+              Qualquer item classificado como CRÍTICO exige justificativa técnica detalhando a anomalia.
             </Text>
 
             <TextInput

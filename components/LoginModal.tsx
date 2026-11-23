@@ -50,9 +50,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
 
           <View style={styles.header}>
             <View>
-              <Text style={styles.title}>Conta & Perfil</Text>
+              <Text style={styles.title}>Minha Conta</Text>
               <Text style={styles.subtitle}>
-                Controle de Acesso Baseado em Papéis (RBAC - RF01/RF19)
+                Perfil e informações de acesso
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

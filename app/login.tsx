@@ -2,8 +2,7 @@
  * SindiFlow — Tela de Login
  * Camada: UI (App/Expo Router)
  *
- * Tela de autenticação com Supabase Auth (e-mail/senha via convite do síndico)
- * e Sign in with Google.
+ * Tela de autenticação com Supabase Auth (e-mail/senha).
  *
  * Conformidade com §1.1: 100% nativo, sem web/PWA/browser.
  * Conformidade com §1.2: sessão em expo-secure-store, nunca AsyncStorage.
@@ -27,7 +26,7 @@ import {
 import { useVistoria } from '@/src/context/VistoriaContext';
 
 export default function LoginScreen() {
-  const { fazerLogin, fazerLoginGoogle } = useVistoria();
+  const { fazerLogin } = useVistoria();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -55,20 +54,6 @@ export default function LoginScreen() {
     }
   };
 
-  const handleLoginGoogle = async () => {
-    setCarregando(true);
-    try {
-      await fazerLoginGoogle();
-    } catch (err: any) {
-      Alert.alert(
-        'Falha no login com Google',
-        err?.message || 'Não foi possível concluir o login com Google.'
-      );
-    } finally {
-      setCarregando(false);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
@@ -84,7 +69,7 @@ export default function LoginScreen() {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Entrar</Text>
             <Text style={styles.cardSubtitle}>
-              Acesse sua conta do condomínio Edifício Solar das Palmeiras.
+              Digite seu e-mail e senha cadastrados no sistema.
             </Text>
 
             <View style={styles.inputGroup}>
@@ -113,40 +98,6 @@ export default function LoginScreen() {
               />
             </View>
 
-            {/* Acesso rápido / Preenchimento de teste */}
-            <View style={styles.quickAccessContainer}>
-              <Text style={styles.quickAccessLabel}>Preencher conta de teste:</Text>
-              <View style={styles.quickAccessButtons}>
-                <TouchableOpacity
-                  style={styles.quickBtn}
-                  onPress={() => {
-                    setEmail('sindico@solar.com');
-                    setSenha('12345678');
-                  }}
-                >
-                  <Text style={styles.quickBtnText}>👔 Síndico</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quickBtn}
-                  onPress={() => {
-                    setEmail('inspetor@solar.com');
-                    setSenha('12345678');
-                  }}
-                >
-                  <Text style={styles.quickBtnText}>🔍 Inspetor</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.quickBtn}
-                  onPress={() => {
-                    setEmail('condomino@solar.com');
-                    setSenha('12345678');
-                  }}
-                >
-                  <Text style={styles.quickBtnText}>🏠 Condômino</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
             <TouchableOpacity
               style={styles.btnLogin}
               onPress={handleLogin}
@@ -154,29 +105,6 @@ export default function LoginScreen() {
             >
               <Text style={styles.btnLoginText}>
                 {carregando ? 'Entrando...' : 'Entrar'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>ou</Text>
-            <View style={styles.divider} />
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Entrar com Google</Text>
-            <Text style={styles.cardSubtitle}>
-              Continue com sua conta do Google.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.btnGoogle}
-              onPress={handleLoginGoogle}
-              disabled={carregando}
-            >
-              <Text style={styles.btnGoogleText}>
-                {carregando ? 'Conectando...' : 'Entrar com Google'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -257,33 +185,6 @@ const styles = StyleSheet.create({
     color: '#F0F6FC',
     fontSize: 14,
   },
-  quickAccessContainer: {
-    marginBottom: 16,
-  },
-  quickAccessLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    marginBottom: 6,
-    fontWeight: '600',
-  },
-  quickAccessButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  quickBtn: {
-    flex: 1,
-    backgroundColor: '#161B22',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    borderRadius: 6,
-    paddingVertical: 6,
-    alignItems: 'center',
-  },
-  quickBtnText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
-  },
   btnLogin: {
     backgroundColor: '#0284C7',
     borderRadius: 8,
@@ -295,61 +196,6 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 14,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 16,
-  },
-  divider: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#30363D',
-  },
-  dividerText: {
-    fontSize: 12,
-    color: '#64748B',
-    marginHorizontal: 8,
-  },
-  btnGoogle: {
-    backgroundColor: '#0E1322',
-    borderWidth: 1,
-    borderColor: '#30363D',
-    borderRadius: 8,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  btnGoogleText: {
-    color: '#F8FAFC',
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  demoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  demoLabel: {
-    fontSize: 12,
-    color: '#94A3B8',
-    marginRight: 8,
-  },
-  demoButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  btnDemo: {
-    backgroundColor: '#1E293B',
-    borderWidth: 1,
-    borderColor: '#3B4B70',
-    borderRadius: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  btnDemoText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    fontWeight: '700',
   },
   loadingContainer: {
     marginTop: 16,

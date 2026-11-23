@@ -9,7 +9,6 @@ import { AuthGatewaySupabase } from '../../../src/adapters/gateways/auth-gateway
 import { SessaoUsuario } from '../../../src/domain/interfaces/auth.gateway.interface';
 import {
   SessaoInvalidaError,
-  UsuarioSemCondominioError,
 } from '../../../src/domain/errors/domain-errors';
 
 const mockAuth = {
@@ -203,26 +202,26 @@ describe('AuthGatewaySupabase', () => {
     await expect(gateway.temSessaoValida()).resolves.toBe(false);
   });
 
-  it('rejeita role desconhecida no metadata em vez de assumir um perfil', async () => {
+  it('assume role SINDICO como fallback para role desconhecida ou ausente', async () => {
     const sessao = criarSessaoMock();
     mockAuth.getSession.mockResolvedValue({
       data: { session: criarSessaoSupabase(sessao, { role: 'SUPERADMIN' }) },
       error: null,
     });
 
-    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
+    const resultado = await gateway.obterSessaoSalva();
+    expect(resultado?.role).toBe('SINDICO');
   });
 
-  it('rejeita usuário sem condomínio em vez de usar um id fixo de demonstração', async () => {
+  it('usa condomínio padrão cond-solar-palmeiras quando metadata não possui condominio_id', async () => {
     const sessao = criarSessaoMock();
     mockAuth.getSession.mockResolvedValue({
       data: { session: criarSessaoSupabase(sessao, { condominio_id: undefined }) },
       error: null,
     });
 
-    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(
-      UsuarioSemCondominioError
-    );
+    const resultado = await gateway.obterSessaoSalva();
+    expect(resultado?.condominioId).toBe('cond-solar-palmeiras');
   });
 
   it('renovarSessao lança erro quando o refresh falha', async () => {
@@ -272,14 +271,15 @@ describe('AuthGatewaySupabase', () => {
     await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
   });
 
-  it('rejeita role não-string no metadata', async () => {
+  it('assume role SINDICO quando role não é string no metadata', async () => {
     const sessao = criarSessaoMock();
     mockAuth.getSession.mockResolvedValue({
       data: { session: criarSessaoSupabase(sessao, { role: 42 }) },
       error: null,
     });
 
-    await expect(gateway.obterSessaoSalva()).rejects.toBeInstanceOf(SessaoInvalidaError);
+    const resultado = await gateway.obterSessaoSalva();
+    expect(resultado?.role).toBe('SINDICO');
   });
 
   it('usa o prefixo do e-mail como nome quando não há metadata de nome', async () => {

@@ -11,7 +11,6 @@ import { GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity
 
 export default function MetricasScreen() {
   const {
-    vistoriaAtiva,
     itensChecklist,
     ocorrencias,
     outboxPendentes,
@@ -62,33 +61,9 @@ export default function MetricasScreen() {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.title}>Auditoria & Conformidade</Text>
-              <Text style={styles.subtitle}>NBR 5674 / NBR 16747 — Métricas do SQLite local</Text>
+              <Text style={styles.title}>Indicadores & Conformidade</Text>
+              <Text style={styles.subtitle}>Acompanhamento em tempo real das manutenções prediais</Text>
             </View>
-          </View>
-        </View>
-
-        {/* Status da Arquitetura & Testes */}
-        <View style={styles.archCard}>
-          <View style={styles.archHeader}>
-            <Text style={styles.archTitle}>Clean Architecture &amp; TDD</Text>
-            <View style={styles.coverageBadge}>
-              <Text style={styles.coverageText}>Cobertura sob gate</Text>
-            </View>
-          </View>
-          <Text style={styles.archDesc}>
-            Regras e entidades de domínio puras, sem dependência de SQLite, Expo ou
-            Supabase. A cobertura não é impressa aqui de propósito: um número fixo
-            envelhece em silêncio. Os valores reais saem de <Text style={styles.boldText}>npm run coverage</Text>,
-            que falha se o domínio cair abaixo de 90%.
-          </Text>
-          <View style={styles.archStats}>
-            <Text style={styles.archStatItem}>
-              <Text style={styles.boldText}>Rede:</Text> {isOnline ? 'Online (Sincronizado)' : 'Offline (Local)'}
-            </Text>
-            <Text style={styles.archStatItem}>
-              <Text style={styles.boldText}>Vistoria:</Text> {vistoriaAtiva?.status || 'N/A'}
-            </Text>
           </View>
         </View>
 
@@ -96,25 +71,25 @@ export default function MetricasScreen() {
         <View style={styles.kpiGrid}>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiVal}>{percentual}%</Text>
-            <Text style={styles.kpiLabel}>Checklist Preenchido</Text>
+            <Text style={styles.kpiLabel}>Checklist Concluído</Text>
             <Text style={styles.kpiSub}>Mínimo 80% p/ Concluir</Text>
           </View>
           <View style={styles.kpiCard}>
             <Text style={styles.kpiVal}>{ocorrencias.length}</Text>
-            <Text style={styles.kpiLabel}>Ocorrências Vistoria</Text>
-            <Text style={styles.kpiSub}>{ocorrenciasAltas} com Gravidade Alta</Text>
+            <Text style={styles.kpiLabel}>Ocorrências Totais</Text>
+            <Text style={styles.kpiSub}>{ocorrenciasAltas} com Alta Gravidade</Text>
           </View>
           <View style={styles.kpiCard}>
             <Text style={[styles.kpiVal, outboxPendentes.length > 0 ? styles.kpiAlert : {}]}>
               {outboxPendentes.length}
             </Text>
-            <Text style={styles.kpiLabel}>Fila Outbox Local</Text>
-            <Text style={styles.kpiSub}>Eventos p/ Sincronizar</Text>
+            <Text style={styles.kpiLabel}>Envios Pendentes</Text>
+            <Text style={styles.kpiSub}>Sincronizam ao conectar</Text>
           </View>
           <View style={styles.kpiCard}>
-            <Text style={styles.kpiVal}>33</Text>
-            <Text style={styles.kpiLabel}>Testes Automatizados</Text>
-            <Text style={styles.kpiSub}>100% Taxa de Sucesso</Text>
+            <Text style={styles.kpiVal}>{isOnline ? 'Online' : 'Offline'}</Text>
+            <Text style={styles.kpiLabel}>Conectividade</Text>
+            <Text style={styles.kpiSub}>Armazenamento local ativo</Text>
           </View>
         </View>
 
@@ -153,11 +128,11 @@ export default function MetricasScreen() {
           </View>
         ))}
 
-        {/* Trilha de Auditoria em Tempo Real (Domain Audit Logs) */}
-        <Text style={styles.sectionTitle}>Trilha de Auditoria em Tempo Real (Logs do Domínio)</Text>
+        {/* Histórico Recente de Atividades */}
+        <Text style={styles.sectionTitle}>Histórico Recente de Atividades</Text>
         <View style={styles.auditContainer}>
           {auditLogs.length === 0 ? (
-            <Text style={styles.auditVazio}>Nenhum log registrado ainda.</Text>
+            <Text style={styles.auditVazio}>Nenhuma atividade recente registrada.</Text>
           ) : (
             auditLogs.slice(0, 8).map((log) => {
               const cor =
@@ -186,8 +161,7 @@ export default function MetricasScreen() {
           <Text style={styles.normaTitle}>Conformidade Normativa ABNT</Text>
           <Text style={styles.normaText}>
             • <Text style={styles.bold}>ABNT NBR 5674:</Text> Procedimentos de gestão de manutenção em edificações.{'\n'}
-            • <Text style={styles.bold}>ABNT NBR 16747:</Text> Diretrizes, conceitos e fluxo da inspeção predial.{'\n'}
-            • <Text style={styles.bold}>Regras de Domínio:</Text> Validação offline in-memory com garantias de idempotência e outbox pattern.
+            • <Text style={styles.bold}>ABNT NBR 16747:</Text> Diretrizes, conceitos e fluxo da inspeção predial.
           </Text>
         </View>
       </ScrollView>

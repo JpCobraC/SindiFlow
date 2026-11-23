@@ -53,12 +53,12 @@ export default function OcorrenciasScreen() {
 
       Alert.alert(
         '✓ Ocorrência Registrada com Sucesso!',
-        `Severidade: ${nova.gravidade}\n⏱️ SLA Calculado: ${nova.slaHoras} horas\n⚡ Evento INSERT enfileirado na Outbox em memória!`
+        `Severidade: ${nova.gravidade}\nPrazo de Resolução: ${nova.slaHoras} horas.`
       );
     } catch (err: any) {
       Alert.alert(
-        'Bloqueio de Domínio (§3.2)',
-        err?.message || 'Falha na validação de invariantes da ocorrência.'
+        'Atenção',
+        err?.message || 'Falha ao salvar a ocorrência.'
       );
     }
   };
@@ -66,16 +66,16 @@ export default function OcorrenciasScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Banner Mock */}
+        {/* Banner de Conectividade */}
         <View style={styles.mockBanner}>
           <View style={styles.mockBannerLeft}>
             <View style={[styles.networkDot, isOnline ? styles.dotOnline : styles.dotOffline]} />
             <Text style={styles.mockBannerText}>
-              ⚡ 100% Mock In-Memory ({isOnline ? 'Online Wi-Fi' : 'Offline Subsolo G2'})
+              {isOnline ? 'Online — Sincronizado' : 'Modo Offline Ativo'}
             </Text>
           </View>
           <View style={styles.outboxPill}>
-            <Text style={styles.outboxPillText}>{outboxPendentes.length} na Outbox</Text>
+            <Text style={styles.outboxPillText}>{outboxPendentes.length} pendente(s)</Text>
           </View>
         </View>
 
@@ -84,7 +84,7 @@ export default function OcorrenciasScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Ocorrências & Anomalias</Text>
             <Text style={styles.subtitle}>
-              Matriz de SLA (24h, 72h, 7d) e fotos salvas via FileSystem
+              Registro de chamados, manutenções e fotos de vistorias
             </Text>
           </View>
           <TouchableOpacity style={styles.addBtn} onPress={() => setModalVisible(true)}>
