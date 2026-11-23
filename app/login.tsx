@@ -113,6 +113,40 @@ export default function LoginScreen() {
               />
             </View>
 
+            {/* Acesso rápido / Preenchimento de teste */}
+            <View style={styles.quickAccessContainer}>
+              <Text style={styles.quickAccessLabel}>Preencher conta de teste:</Text>
+              <View style={styles.quickAccessButtons}>
+                <TouchableOpacity
+                  style={styles.quickBtn}
+                  onPress={() => {
+                    setEmail('sindico@solar.com');
+                    setSenha('12345678');
+                  }}
+                >
+                  <Text style={styles.quickBtnText}>👔 Síndico</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickBtn}
+                  onPress={() => {
+                    setEmail('inspetor@solar.com');
+                    setSenha('12345678');
+                  }}
+                >
+                  <Text style={styles.quickBtnText}>🔍 Inspetor</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.quickBtn}
+                  onPress={() => {
+                    setEmail('condomino@solar.com');
+                    setSenha('12345678');
+                  }}
+                >
+                  <Text style={styles.quickBtnText}>🏠 Condômino</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity
               style={styles.btnLogin}
               onPress={handleLogin}
@@ -222,6 +256,33 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: '#F0F6FC',
     fontSize: 14,
+  },
+  quickAccessContainer: {
+    marginBottom: 16,
+  },
+  quickAccessLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 6,
+    fontWeight: '600',
+  },
+  quickAccessButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickBtn: {
+    flex: 1,
+    backgroundColor: '#161B22',
+    borderWidth: 1,
+    borderColor: '#30363D',
+    borderRadius: 6,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  quickBtnText: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '700',
   },
   btnLogin: {
     backgroundColor: '#0284C7',
