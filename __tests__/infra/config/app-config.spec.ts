@@ -10,9 +10,21 @@ import {
 
 describe('carregarConfiguracao', () => {
   const nodeEnvOriginal = process.env.NODE_ENV;
+  const supabaseUrlOriginal = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKeyOriginal = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
   afterEach(() => {
     process.env.NODE_ENV = nodeEnvOriginal;
+    if (supabaseUrlOriginal === undefined) {
+      delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+    } else {
+      process.env.EXPO_PUBLIC_SUPABASE_URL = supabaseUrlOriginal;
+    }
+    if (supabaseAnonKeyOriginal === undefined) {
+      delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    } else {
+      process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = supabaseAnonKeyOriginal;
+    }
     jest.restoreAllMocks();
   });
 
@@ -61,7 +73,34 @@ describe('carregarConfiguracao', () => {
       ConfiguracaoAusenteError
     );
     expect(() => carregarConfiguracao({} as NodeJS.ProcessEnv)).toThrow(
-      /EXPO_PUBLIC_SUPABASE_URL.*EXPO_PUBLIC_SUPABASE_ANON_KEY.*EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/
+      /EXPO_PUBLIC_SUPABASE_URL.*EXPO_PUBLIC_SUPABASE_ANON_KEY/
     );
+  });
+
+  it('em produção aceita apenas credenciais do Supabase sem EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID', () => {
+    process.env.NODE_ENV = 'production';
+
+    const config = carregarConfiguracao({
+      NODE_ENV: 'production',
+      EXPO_PUBLIC_SUPABASE_URL: 'https://projeto.supabase.co',
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: 'anon-key-real',
+    } as NodeJS.ProcessEnv);
+
+    expect(config.supabaseUrl).toBe('https://projeto.supabase.co');
+    expect(config.supabaseAnonKey).toBe('anon-key-real');
+    expect(config.googleWebClientId).toBe('placeholder.apps.googleusercontent.com');
+    expect(config.usandoPlaceholders).toBe(false);
+  });
+
+  it('lê process.env com notação literal quando chamado sem argumentos', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://nativo.supabase.co';
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'anon-nativo';
+
+    const config = carregarConfiguracao();
+
+    expect(config.supabaseUrl).toBe('https://nativo.supabase.co');
+    expect(config.supabaseAnonKey).toBe('anon-nativo');
+    expect(config.usandoPlaceholders).toBe(false);
   });
 });

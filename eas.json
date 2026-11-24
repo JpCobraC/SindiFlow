@@ -18,6 +18,10 @@
       }
     },
     "production": {
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://csuhowrxbrkorrpslfur.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_sbkv_AdwdzXfXtiPbrk3VQ_bRrnu44C"
+      },
       "android": {
         "buildType": "app-bundle"
       }

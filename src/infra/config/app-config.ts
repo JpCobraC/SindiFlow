@@ -6,8 +6,13 @@
  *
  * Em desenvolvimento/teste, credenciais ausentes caem em placeholders
  * explícitos: o app precisa bootar e linkar os módulos nativos antes de o
- * responsável provisionar Supabase/Google. Em produção, ausência é erro fatal —
- * um app publicado não pode fingir que tem backend.
+ * responsável provisionar o Supabase. Em produção, as credenciais do Supabase
+ * são obrigatórias (ausência é erro fatal), enquanto as credenciais do Google
+ * Sign-In são opcionais.
+ *
+ * IMPORTANTE: As variáveis `EXPO_PUBLIC_*` precisam ser lidas com notação de
+ * ponto literal (`process.env.EXPO_PUBLIC_*`) para que o Metro/Babel faça o
+ * inlining estático no bundle de produção.
  */
 
 export interface ConfiguracaoApp {
@@ -35,23 +40,23 @@ const PLACEHOLDERS = {
 };
 
 export function carregarConfiguracao(
-  env: NodeJS.ProcessEnv = process.env
+  env?: NodeJS.ProcessEnv
 ): ConfiguracaoApp {
-  const supabaseUrl = texto(env.EXPO_PUBLIC_SUPABASE_URL);
-  const supabaseAnonKey = texto(env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
-  const googleWebClientId = texto(env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
-  const googleIosClientId = texto(env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
+  const origem = env ?? lerEnvNativo();
+  const supabaseUrl = texto(origem.EXPO_PUBLIC_SUPABASE_URL);
+  const supabaseAnonKey = texto(origem.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+  const googleWebClientId = texto(origem.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
+  const googleIosClientId = texto(origem.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
 
   const ausentes: string[] = [];
   if (!supabaseUrl) ausentes.push('EXPO_PUBLIC_SUPABASE_URL');
   if (!supabaseAnonKey) ausentes.push('EXPO_PUBLIC_SUPABASE_ANON_KEY');
-  if (!googleWebClientId) ausentes.push('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID');
 
-  if (ausentes.length > 0 && emProducao(env)) {
+  if (ausentes.length > 0 && emProducao(origem)) {
     throw new ConfiguracaoAusenteError(ausentes);
   }
 
-  if (ausentes.length > 0 && emDesenvolvimento(env)) {
+  if (ausentes.length > 0 && emDesenvolvimento(origem)) {
     console.warn(
       `[SindiFlow] Credenciais ausentes (${ausentes.join(', ')}). ` +
         'Usando placeholders de desenvolvimento: o boot e o link nativo funcionam, ' +
@@ -65,6 +70,20 @@ export function carregarConfiguracao(
     googleWebClientId: googleWebClientId ?? PLACEHOLDERS.googleWebClientId,
     googleIosClientId,
     usandoPlaceholders: ausentes.length > 0,
+  };
+}
+
+/**
+ * Lê as variáveis `EXPO_PUBLIC_*` com notação de ponto literal para que o
+ * `babel-preset-expo` / Metro consiga fazer o inlining estático no bundle.
+ */
+function lerEnvNativo(): NodeJS.ProcessEnv {
+  return {
+    NODE_ENV: process.env.NODE_ENV,
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
   };
 }
 
