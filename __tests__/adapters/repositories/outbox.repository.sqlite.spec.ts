@@ -231,4 +231,65 @@ describe('OutboxRepositorySQLite', () => {
     expect(ev1.id).not.toBe(ev2.id);
     expect(await repoSessao2.listarTodos()).toHaveLength(2);
   });
+
+  it('deve respeitar o prazo de backoff em obterPendentes após registrar falha', async () => {
+    const t0 = new Date('2026-11-10T10:00:00.000Z');
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-backoff' }));
+
+    await repo.iniciarProcessamento(evento.id);
+    await repo.registrarFalha(evento.id, '503', t0); // proximoRetryMs = 1000ms
+
+    const antesDoPrazo = await repo.obterPendentes(new Date(t0.getTime() + 500));
+    expect(antesDoPrazo).toHaveLength(0);
+
+    const aposPrazo = await repo.obterPendentes(new Date(t0.getTime() + 1000));
+    expect(aposPrazo).toHaveLength(1);
+    expect(aposPrazo[0].id).toBe(evento.id);
+  });
+
+  it('deve ordenar pai antes de filho quando eventos têm o mesmo instante de criação', async () => {
+    const mesmoInstante = new Date('2026-11-10T10:00:00.000Z');
+
+    await repo.enfileirar({
+      tabela: 'fotos_evidencia',
+      operacao: 'INSERT',
+      idRegistro: 'foto-1',
+      payload: { id: 'foto-1' },
+      usuarioId: 'usr-1',
+      deviceId: 'dev-1',
+      dataCriacao: mesmoInstante,
+    });
+    await repo.enfileirar({
+      tabela: 'itens_checklist',
+      operacao: 'INSERT',
+      idRegistro: 'item-1',
+      payload: { id: 'item-1' },
+      usuarioId: 'usr-1',
+      deviceId: 'dev-1',
+      dataCriacao: mesmoInstante,
+    });
+    await repo.enfileirar({
+      tabela: 'vistorias',
+      operacao: 'INSERT',
+      idRegistro: 'vist-1',
+      payload: { id: 'vist-1' },
+      usuarioId: 'usr-1',
+      deviceId: 'dev-1',
+      dataCriacao: mesmoInstante,
+    });
+
+    const pendentes = await repo.obterPendentes(mesmoInstante);
+    expect(pendentes.map((e) => e.tabela)).toEqual([
+      'vistorias',
+      'itens_checklist',
+      'fotos_evidencia',
+    ]);
+  });
+
+  it('deve recusar iniciarProcessamento se o evento já estiver em PROCESSANDO', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-concorrente' }));
+    await repo.iniciarProcessamento(evento.id);
+
+    await expect(repo.iniciarProcessamento(evento.id)).rejects.toThrow(/não pode ser processado/);
+  });
 });

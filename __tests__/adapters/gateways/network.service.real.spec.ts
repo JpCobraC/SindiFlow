@@ -8,6 +8,8 @@ import * as Network from 'expo-network';
 import { EstadoRede, INetworkService } from '../../../src/domain/interfaces/network.service.interface';
 import { NetworkServiceReal } from '../../../src/adapters/gateways/network.service.real';
 
+const mockRemove = jest.fn();
+
 jest.mock('expo-network', () => {
   let isInternetReachable: boolean | null = null;
   return {
@@ -19,6 +21,7 @@ jest.mock('expo-network', () => {
     getNetworkStateAsync: jest.fn(async () => ({
       isInternetReachable,
     })),
+    addNetworkStateListener: jest.fn(() => ({ remove: mockRemove })),
     __setIsInternetReachable: (value: boolean | null) => {
       isInternetReachable = value;
     },
@@ -26,6 +29,7 @@ jest.mock('expo-network', () => {
 });
 
 const mockGetNetworkStateAsync = Network.getNetworkStateAsync as jest.Mock;
+const mockAddNetworkStateListener = Network.addNetworkStateListener as jest.Mock;
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -89,5 +93,26 @@ describe('NetworkServiceReal', () => {
     mockGetNetworkStateAsync.mockResolvedValue({ isInternetReachable: true });
     await service.estadoConexao();
     expect(mockGetNetworkStateAsync).toHaveBeenCalledTimes(1);
+  });
+
+  it('observarConexao deve repassar mudanças de rede e cancelar inscrição', () => {
+    const callback = jest.fn();
+
+    const cancelar = service.observarConexao?.(callback);
+
+    expect(mockAddNetworkStateListener).toHaveBeenCalledTimes(1);
+    const disparar = mockAddNetworkStateListener.mock.calls[0][0] as (evento: {
+      isConnected?: boolean;
+      isInternetReachable?: boolean | null;
+    }) => void;
+
+    disparar({ isConnected: true, isInternetReachable: null });
+    disparar({ isConnected: false, isInternetReachable: false });
+
+    expect(callback).toHaveBeenNthCalledWith(1, true);
+    expect(callback).toHaveBeenNthCalledWith(2, false);
+
+    cancelar?.();
+    expect(mockRemove).toHaveBeenCalledTimes(1);
   });
 });

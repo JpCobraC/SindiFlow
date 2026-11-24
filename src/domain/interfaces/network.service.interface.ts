@@ -24,4 +24,7 @@ export interface INetworkService {
 
   /** Só `ONLINE`. Mantido para o gate explícito de §1.3 antes de todo sync. */
   estaConectado(): Promise<boolean>;
+
+  /** Observa mudanças de conectividade em tempo real e devolve função de cancelamento. */
+  observarConexao?(callback: (conectado: boolean) => void): () => void;
 }

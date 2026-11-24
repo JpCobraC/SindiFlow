@@ -17,6 +17,8 @@ export default function SyncScreen() {
     outboxComFalha,
     auditLogs,
     isOnline,
+    isSincronizando,
+    ultimaSincronizacao,
     sincronizarOutbox,
     reentarFalhasOutbox,
   } = useVistoria();
@@ -24,13 +26,11 @@ export default function SyncScreen() {
   const handleDispararSync = async () => {
     try {
       const res = await sincronizarOutbox();
-      if (res.total === 0) {
-        Alert.alert('Tudo em dia', 'Não há nenhum envio pendente no momento.');
-        return;
-      }
       Alert.alert(
         'Sincronização concluída',
-        `Enviados com sucesso: ${res.sincronizados}\nNão enviados: ${res.falhas}`
+        res.total === 0
+          ? 'Seus dados locais e da nuvem estão atualizados.'
+          : `Enviados com sucesso: ${res.sincronizados}\nNão enviados: ${res.falhas}`
       );
     } catch (err: unknown) {
       Alert.alert(
@@ -103,14 +103,22 @@ export default function SyncScreen() {
             </Text>
           </View>
           <Text style={styles.backoffFormula}>
-            Caso falhe por falta de sinal, o aplicativo tenta enviar novamente de forma automática.
+            A sincronização automática está ativa em segundo plano sempre que houver internet.
+            {ultimaSincronizacao
+              ? `\nÚltima sincronização: ${ultimaSincronizacao.toLocaleTimeString()}`
+              : ''}
           </Text>
 
           <TouchableOpacity
-            style={[styles.syncBtn, outboxPendentes.length === 0 && styles.syncBtnDisabled]}
+            style={[styles.syncBtn, isSincronizando && styles.syncBtnDisabled]}
+            disabled={isSincronizando}
             onPress={handleDispararSync}>
             <Text style={styles.syncBtnText}>
-              🔄 Sincronizar Agora ({outboxPendentes.length} pendente(s))
+              {isSincronizando
+                ? 'Sincronizando...'
+                : outboxPendentes.length > 0
+                ? `🔄 Sincronizar Agora (${outboxPendentes.length} pendente(s))`
+                : '🔄 Sincronizar Agora'}
             </Text>
           </TouchableOpacity>
 

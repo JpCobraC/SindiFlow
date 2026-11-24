@@ -7,7 +7,7 @@ import { RoleUsuario } from '@/src/domain/entities/usuario.entity';
 import { LoginModal } from './LoginModal';
 
 export const UserHeaderBar: React.FC = () => {
-  const { usuarioLogado, isOnline } = useVistoria();
+  const { usuarioLogado, isOnline, isSincronizando, outboxPendentes } = useVistoria();
   const [modalVisible, setModalVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -19,6 +19,29 @@ export const UserHeaderBar: React.FC = () => {
   };
 
   const roleStyles = getRoleTheme(usuarioLogado?.role);
+  const statusConexao = !isOnline
+    ? {
+        texto: 'Offline',
+        corPonto: '#F85149',
+        estiloPilula: styles.networkOffline,
+      }
+    : isSincronizando
+    ? {
+        texto: 'Sincronizando...',
+        corPonto: '#58A6FF',
+        estiloPilula: styles.networkSyncing,
+      }
+    : outboxPendentes.length > 0
+    ? {
+        texto: `Enviando (${outboxPendentes.length})`,
+        corPonto: '#E3B341',
+        estiloPilula: styles.networkSending,
+      }
+    : {
+        texto: 'Online',
+        corPonto: '#3FB950',
+        estiloPilula: styles.networkOnline,
+      };
 
   return (
     <>
@@ -57,18 +80,14 @@ export const UserHeaderBar: React.FC = () => {
 
         {/* Indicadores de Conexão e Acesso ao Perfil */}
         <View style={styles.actionsGroup}>
-          <View
-            style={[
-              styles.networkPill,
-              isOnline ? styles.networkOnline : styles.networkOffline,
-            ]}>
+          <View style={[styles.networkPill, statusConexao.estiloPilula]}>
             <View
               style={[
                 styles.networkDot,
-                { backgroundColor: isOnline ? '#3FB950' : '#F85149' },
+                { backgroundColor: statusConexao.corPonto },
               ]}
             />
-            <Text style={styles.networkText}>{isOnline ? 'Online' : 'Offline'}</Text>
+            <Text style={styles.networkText}>{statusConexao.texto}</Text>
           </View>
 
           <TouchableOpacity
@@ -189,6 +208,14 @@ const styles = StyleSheet.create({
   networkOnline: {
     backgroundColor: 'rgba(63, 185, 80, 0.12)',
     borderColor: '#238636',
+  },
+  networkSyncing: {
+    backgroundColor: 'rgba(88, 166, 255, 0.14)',
+    borderColor: '#1F6FEB',
+  },
+  networkSending: {
+    backgroundColor: 'rgba(227, 179, 65, 0.14)',
+    borderColor: '#9E6A03',
   },
   networkOffline: {
     backgroundColor: 'rgba(248, 81, 73, 0.12)',

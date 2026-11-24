@@ -19,6 +19,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
+import { AppState } from 'react-native';
 import {
   CameraGatewayExpo,
   ResultadoCapturadorInApp,
@@ -80,6 +81,8 @@ export interface VistoriaContextData {
 
   // Conectividade e boot
   isOnline: boolean;
+  isSincronizando: boolean;
+  ultimaSincronizacao: Date | null;
   isCarregando: boolean;
   erroBoot: string | null;
 
@@ -146,10 +149,19 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [isOnline, setIsOnline] = useState(false);
+  const [isSincronizando, setIsSincronizando] = useState(false);
+  const [ultimaSincronizacao, setUltimaSincronizacao] = useState<Date | null>(null);
   const [isCarregando, setIsCarregando] = useState(true);
   const [erroBoot, setErroBoot] = useState<string | null>(null);
   const [cameraModalAberto, setCameraModalAberto] = useState(false);
   const cameraResolverRef = useRef<((res: ResultadoCapturadorInApp) => void) | null>(null);
+  const usuarioLogadoRef = useRef<Usuario | null>(null);
+  const syncEmAndamentoRef = useRef<Promise<SincronizacaoResultado> | null>(null);
+  const syncReagendarRef = useRef(false);
+  const syncDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const agendarSyncAutomaticoRef = useRef<(atrasoMs?: number, puxarRemoto?: boolean) => void>(
+    () => {}
+  );
 
   useEffect(() => {
     CameraGatewayExpo.definirCapturadorInApp(
@@ -273,7 +285,127 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   useEffect(() => {
+    usuarioLogadoRef.current = usuarioLogado;
+  }, [usuarioLogado]);
+
+  const executarSincronizacao = useCallback(
+    async (opcoes?: {
+      silenciosa?: boolean;
+      puxarRemoto?: boolean;
+    }): Promise<SincronizacaoResultado> => {
+      const app = appRef.current;
+      if (!app) {
+        if (opcoes?.silenciosa) {
+          return {
+            total: 0,
+            sincronizados: 0,
+            falhas: 0,
+            permanentes: 0,
+            ignorados: 0,
+            detalhes: [],
+          };
+        }
+        throw new Error('Aplicação ainda inicializando. Aguarde o carregamento do banco local.');
+      }
+
+      if (syncEmAndamentoRef.current) {
+        syncReagendarRef.current = true;
+        return syncEmAndamentoRef.current;
+      }
+
+      const tarefa = (async (): Promise<SincronizacaoResultado> => {
+        const silenciosa = opcoes?.silenciosa ?? false;
+        const puxarRemoto = opcoes?.puxarRemoto ?? true;
+
+        const conectado = await app.gateways.network.estaConectado();
+        setIsOnline(conectado);
+
+        if (!conectado && silenciosa) {
+          return {
+            total: 0,
+            sincronizados: 0,
+            falhas: 0,
+            permanentes: 0,
+            ignorados: 0,
+            detalhes: [],
+          };
+        }
+
+        setIsSincronizando(true);
+        try {
+          if (!silenciosa) {
+            addLog('INFO', 'Iniciando sincronização da outbox...');
+          }
+
+          const resultado = await app.casosDeUso.sincronizarOutbox.executar();
+          await atualizarEstadoOutbox(app);
+          setIsOnline(await app.gateways.network.estaConectado());
+
+          if (resultado.sincronizados > 0) {
+            addLog('SUCESSO', `${resultado.sincronizados} evento(s) sincronizado(s).`);
+          }
+          if (resultado.falhas > 0) {
+            addLog('FALHA', `${resultado.falhas} evento(s) falharam e seguem em backoff.`);
+          }
+
+          const usuarioAtual = usuarioLogadoRef.current;
+          if (puxarRemoto && usuarioAtual) {
+            try {
+              const pull = await app.casosDeUso.sincronizarDadosRemotos.executar(
+                usuarioAtual.condominioId
+              );
+              if (pull.atualizado) {
+                await carregarDadosDoUsuario(app, usuarioAtual);
+              }
+            } catch {
+              // Falha silenciosa ao atualizar dados remotos não invalida envios concluídos
+            }
+          }
+
+          setUltimaSincronizacao(new Date());
+          return resultado;
+        } catch (err: unknown) {
+          if (!silenciosa) {
+            const mensagem = err instanceof Error ? err.message : String(err);
+            addLog('BLOQUEIO', `Sincronização abortada: ${mensagem}`);
+          }
+          throw err;
+        } finally {
+          syncEmAndamentoRef.current = null;
+          setIsSincronizando(false);
+          if (syncReagendarRef.current) {
+            syncReagendarRef.current = false;
+            agendarSyncAutomaticoRef.current(250, false);
+          }
+        }
+      })();
+
+      syncEmAndamentoRef.current = tarefa;
+      return tarefa;
+    },
+    [addLog, atualizarEstadoOutbox, carregarDadosDoUsuario]
+  );
+
+  const agendarSyncAutomatico = useCallback(
+    (atrasoMs = 300, puxarRemoto = false) => {
+      if (syncDebounceRef.current) {
+        clearTimeout(syncDebounceRef.current);
+      }
+      syncDebounceRef.current = setTimeout(() => {
+        syncDebounceRef.current = null;
+        void executarSincronizacao({ silenciosa: true, puxarRemoto }).catch(() => {});
+      }, atrasoMs);
+    },
+    [executarSincronizacao]
+  );
+
+  useEffect(() => {
+    agendarSyncAutomaticoRef.current = agendarSyncAutomatico;
+  }, [agendarSyncAutomatico]);
+
+  useEffect(() => {
     let ativo = true;
+    let cancelarObservadorRede: (() => void) | undefined;
 
     (async () => {
       try {
@@ -284,13 +416,23 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         appRef.current = app;
 
+        cancelarObservadorRede = app.gateways.network.observarConexao?.((conectado) => {
+          if (!ativo) return;
+          setIsOnline(conectado);
+          if (conectado) {
+            agendarSyncAutomaticoRef.current(200, true);
+          }
+        });
+
         const usuario = await app.casosDeUso.autenticarUsuario.restaurarSessao();
         if (!ativo) return;
 
         if (usuario) {
+          usuarioLogadoRef.current = usuario;
           setUsuarioLogado(usuario);
           await carregarDadosDoUsuario(app, usuario);
           addLog('SUCESSO', `Sessão restaurada para "${usuario.nome}".`);
+          agendarSyncAutomaticoRef.current(0, true);
         }
 
         setIsOnline(await app.gateways.network.estaConectado());
@@ -309,23 +451,41 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     return () => {
       ativo = false;
+      cancelarObservadorRede?.();
+      if (syncDebounceRef.current) {
+        clearTimeout(syncDebounceRef.current);
+        syncDebounceRef.current = null;
+      }
     };
   }, [addLog, carregarDadosDoUsuario]);
 
-  // Indicador de conectividade real. Não há toggle de demonstração.
+  // Sincronização automática ao retornar ao primeiro plano e a cada 10s enquanto online.
   useEffect(() => {
+    const assinaturaAppState = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') {
+        agendarSyncAutomaticoRef.current(200, true);
+      }
+    });
+
     const intervalo = setInterval(async () => {
       const app = appRef.current;
       if (!app) return;
       try {
-        setIsOnline(await app.gateways.network.estaConectado());
+        const conectado = await app.gateways.network.estaConectado();
+        setIsOnline(conectado);
+        if (conectado && usuarioLogadoRef.current) {
+          void executarSincronizacao({ silenciosa: true, puxarRemoto: true }).catch(() => {});
+        }
       } catch {
         setIsOnline(false);
       }
-    }, 15000);
+    }, 10000);
 
-    return () => clearInterval(intervalo);
-  }, []);
+    return () => {
+      assinaturaAppState.remove();
+      clearInterval(intervalo);
+    };
+  }, [executarSincronizacao]);
 
   const fazerLogin = async (email: string, senha: string): Promise<void> => {
     const app = exigirApp();
@@ -335,6 +495,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         email,
         senha,
       });
+      usuarioLogadoRef.current = usuario;
       setUsuarioLogado(usuario);
       try {
         await carregarDadosDoUsuario(app, usuario);
@@ -343,6 +504,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         // o usuário já está autenticado e os dados podem ser recarregados depois.
       }
       addLog('SUCESSO', `Usuário "${usuario.nome}" autenticado.`);
+      agendarSyncAutomatico(0, true);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha na autenticação: ${mensagem}`);
@@ -356,9 +518,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const usuario = await app.casosDeUso.autenticarUsuario.executar({
         metodo: 'google',
       });
+      usuarioLogadoRef.current = usuario;
       setUsuarioLogado(usuario);
       await carregarDadosDoUsuario(app, usuario);
       addLog('SUCESSO', `Usuário "${usuario.nome}" autenticado com Google [${usuario.role}].`);
+      agendarSyncAutomatico(0, true);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha no login com Google: ${mensagem}`);
@@ -371,6 +535,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (app) {
       await app.casosDeUso.autenticarUsuario.encerrarSessao();
     }
+    usuarioLogadoRef.current = null;
     setUsuarioLogado(null);
     limparEstado();
     addLog('INFO', 'Usuário desconectado.');
@@ -405,6 +570,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setOcorrencias([]);
     await atualizarEstadoOutbox(app);
     addLog('SUCESSO', `Vistoria ${vistoria.id} iniciada no SQLite com checklist padrão.`);
+    agendarSyncAutomatico(300, false);
   };
 
   const marcarItem = async (
@@ -434,6 +600,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           vistoriaAtualizada.percentualRespondido()
         )}%.`
       );
+      agendarSyncAutomatico(300, false);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha ao marcar item: ${mensagem}`);
@@ -490,6 +657,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setItensChecklist([...vistoriaFinalizada.itens]);
       await atualizarEstadoOutbox(app);
       addLog('SUCESSO', `Vistoria ${vistoriaFinalizada.id} finalizada com GPS.`);
+      agendarSyncAutomatico(300, false);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Bloqueio de domínio: ${mensagem}`);
@@ -605,6 +773,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
         await atualizarEstadoOutbox(app);
         addLog('SUCESSO', 'Foto da galeria anexada com sucesso.');
+        agendarSyncAutomatico(300, false);
         return evidencia;
       }
 
@@ -642,6 +811,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       await atualizarEstadoOutbox(app);
       addLog('SUCESSO', 'Foto anexada com sucesso.');
+      agendarSyncAutomatico(300, false);
       return evidencia;
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
@@ -679,6 +849,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         'SUCESSO',
         `Ocorrência "${nova.titulo}" gravada com SLA de ${nova.slaHoras}h.`
       );
+      agendarSyncAutomatico(300, false);
       return nova;
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
@@ -707,6 +878,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setVistoriaAtiva(aprovada);
       await atualizarEstadoOutbox(app);
       addLog('SUCESSO', `Vistoria ${aprovada.id} aprovada por "${usuarioLogado.nome}".`);
+      agendarSyncAutomatico(300, false);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha ao aprovar vistoria: ${mensagem}`);
@@ -733,6 +905,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setItensChecklist([...devolvida.itens]);
       await atualizarEstadoOutbox(app);
       addLog('INFO', `Vistoria ${devolvida.id} devolvida ao inspetor.`);
+      agendarSyncAutomatico(300, false);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha ao devolver vistoria: ${mensagem}`);
@@ -761,30 +934,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setComunicados((prev) => [novo, ...prev]);
     await atualizarEstadoOutbox(app);
     addLog('SUCESSO', `Comunicado emitido pelo síndico: "${titulo}".`);
+    agendarSyncAutomatico(300, false);
   };
 
   const sincronizarOutbox = async (): Promise<SincronizacaoResultado> => {
-    const app = exigirApp();
-
-    try {
-      addLog('INFO', 'Iniciando sincronização da outbox...');
-      const resultado = await app.casosDeUso.sincronizarOutbox.executar();
-      await atualizarEstadoOutbox(app);
-      setIsOnline(await app.gateways.network.estaConectado());
-
-      if (resultado.sincronizados > 0) {
-        addLog('SUCESSO', `${resultado.sincronizados} evento(s) sincronizado(s).`);
-      }
-      if (resultado.falhas > 0) {
-        addLog('FALHA', `${resultado.falhas} evento(s) falharam e seguem em backoff.`);
-      }
-
-      return resultado;
-    } catch (err: unknown) {
-      const mensagem = err instanceof Error ? err.message : String(err);
-      addLog('BLOQUEIO', `Sincronização abortada: ${mensagem}`);
-      throw err;
-    }
+    return executarSincronizacao({ silenciosa: false, puxarRemoto: true });
   };
 
   const reentarFalhasOutbox = async (): Promise<SincronizacaoResultado> => {
@@ -813,6 +967,8 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         auditLogs,
         comunicados,
         isOnline,
+        isSincronizando,
+        ultimaSincronizacao,
         isCarregando,
         erroBoot,
         locationGateway,

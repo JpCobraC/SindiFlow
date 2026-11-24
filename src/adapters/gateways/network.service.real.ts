@@ -43,4 +43,20 @@ export class NetworkServiceReal implements INetworkService {
     const estado = await this.estadoConexao();
     return estado === EstadoRede.ONLINE;
   }
+
+  observarConexao(callback: (conectado: boolean) => void): () => void {
+    try {
+      const subscription = Network.addNetworkStateListener((evento) => {
+        const conectado =
+          evento.isInternetReachable === true ||
+          (evento.isInternetReachable === null && evento.isConnected === true);
+        callback(conectado);
+      });
+      return () => {
+        subscription?.remove();
+      };
+    } catch {
+      return () => {};
+    }
+  }
 }

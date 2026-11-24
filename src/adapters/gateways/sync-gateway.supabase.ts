@@ -19,7 +19,15 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { ErroSincronizacao } from '../../domain/errors/domain-errors';
 import { AuthGateway } from '../../domain/interfaces/auth.gateway.interface';
-import { IRemoteSyncGateway } from '../../domain/interfaces/remote-sync.gateway.interface';
+import {
+  ComunicadoRemoto,
+  FotoEvidenciaRemota,
+  IRemoteSyncGateway,
+  ItemChecklistRemoto,
+  OcorrenciaRemota,
+  SnapshotRemotoCondominio,
+  VistoriaRemota,
+} from '../../domain/interfaces/remote-sync.gateway.interface';
 
 export class SyncGatewaySupabase implements IRemoteSyncGateway {
   /**
@@ -56,26 +64,9 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
     };
 
     try {
-      await enviar();
+      await this.executarComRenovacaoSessao(enviar);
     } catch (erro: any) {
-      // Erro já traduzido por `tratarErroSupabase`: preservar transitoriedade e
-      // status. Sem isto, um 4xx permanente vira 5xx transitório e entra em
-      // retry infinito, violando C-05.
       if (erro instanceof ErroSincronizacao) {
-        // 401: tentar renovar a sessão e reenviar uma vez antes de desistir.
-        if (erro.statusCode === 401 && this.authGateway) {
-          try {
-            const bruta = await this.authGateway.obterSessaoSalvaBruta();
-            if (bruta?.refreshToken) {
-              await this.authGateway.renovarSessao(bruta.refreshToken);
-              await enviar();
-              return;
-            }
-          } catch {
-            // Renovação falhou: cai no throw abaixo como transitório.
-          }
-          throw new ErroSincronizacao(erro.message, true, 401);
-        }
         throw erro;
       }
 
@@ -85,6 +76,149 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
         true, // erro não tipado é tratado como transitório
         erro?.status
       );
+    }
+  }
+
+  async buscarSnapshotCondominio(condominioId: string): Promise<SnapshotRemotoCondominio> {
+    const buscar = async (): Promise<SnapshotRemotoCondominio> => {
+      const [{ data: vistoriasData, error: vistoriasError }, { data: comunicadosData, error: comunicadosError }] =
+        await Promise.all([
+          this.client
+            .from('vistorias')
+            .select('*')
+            .eq('condominio_id', condominioId)
+            .order('data_criacao', { ascending: false })
+            .limit(20),
+          this.client
+            .from('comunicados')
+            .select('*')
+            .eq('condominio_id', condominioId)
+            .order('data_criacao', { ascending: false })
+            .limit(50),
+        ]);
+
+      if (vistoriasError) {
+        this.tratarErroSupabase(vistoriasError);
+      }
+      if (comunicadosError) {
+        this.tratarErroSupabase(comunicadosError);
+      }
+
+      const vistorias = (vistoriasData ?? []) as VistoriaRemota[];
+      const comunicados = (comunicadosData ?? []) as ComunicadoRemoto[];
+
+      if (vistorias.length === 0) {
+        return {
+          vistorias: [],
+          itensChecklist: [],
+          ocorrencias: [],
+          fotosEvidencia: [],
+          comunicados,
+        };
+      }
+
+      const vistoriaIds = vistorias.map((v) => v.id);
+
+      const [{ data: itensData, error: itensError }, { data: ocorrenciasData, error: ocorrenciasError }] =
+        await Promise.all([
+          this.client
+            .from('itens_checklist')
+            .select('*')
+            .in('vistoria_id', vistoriaIds),
+          this.client
+            .from('ocorrencias')
+            .select('*')
+            .in('vistoria_id', vistoriaIds),
+        ]);
+
+      if (itensError) {
+        this.tratarErroSupabase(itensError);
+      }
+      if (ocorrenciasError) {
+        this.tratarErroSupabase(ocorrenciasError);
+      }
+
+      const itensChecklist = (itensData ?? []) as ItemChecklistRemoto[];
+      const ocorrencias = (ocorrenciasData ?? []) as OcorrenciaRemota[];
+
+      const fotosPorId = new Map<string, FotoEvidenciaRemota>();
+      try {
+        const itemIds = itensChecklist.map((i) => i.id);
+        const ocorrenciaIds = ocorrencias.map((o) => o.id);
+        const consultasFotos: PromiseLike<{ data: unknown[] | null; error: unknown }>[] = [];
+
+        if (itemIds.length > 0) {
+          consultasFotos.push(
+            this.client.from('fotos_evidencia').select('*').in('item_id', itemIds)
+          );
+        }
+        if (ocorrenciaIds.length > 0) {
+          consultasFotos.push(
+            this.client.from('fotos_evidencia').select('*').in('ocorrencia_id', ocorrenciaIds)
+          );
+        }
+
+        if (consultasFotos.length > 0) {
+          const resultados = await Promise.all(consultasFotos);
+          for (const res of resultados) {
+            if (!res.error && Array.isArray(res.data)) {
+              for (const foto of res.data as FotoEvidenciaRemota[]) {
+                if (foto?.id) {
+                  fotosPorId.set(foto.id, foto);
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Evidências remotas são best-effort para não bloquear o snapshot principal
+      }
+
+      return {
+        vistorias,
+        itensChecklist,
+        ocorrencias,
+        fotosEvidencia: Array.from(fotosPorId.values()),
+        comunicados,
+      };
+    };
+
+    try {
+      return await this.executarComRenovacaoSessao(buscar);
+    } catch (erro: any) {
+      if (erro instanceof ErroSincronizacao) {
+        throw erro;
+      }
+
+      throw new ErroSincronizacao(
+        erro?.message || 'Erro desconhecido ao buscar dados do condomínio no Supabase',
+        true,
+        erro?.status
+      );
+    }
+  }
+
+  private async executarComRenovacaoSessao<T>(operacao: () => Promise<T>): Promise<T> {
+    try {
+      return await operacao();
+    } catch (erro: any) {
+      if (erro instanceof ErroSincronizacao) {
+        // 401: tentar renovar a sessão e reenviar uma vez antes de desistir.
+        if (erro.statusCode === 401 && this.authGateway) {
+          try {
+            const bruta = await this.authGateway.obterSessaoSalvaBruta();
+            if (bruta?.refreshToken) {
+              await this.authGateway.renovarSessao(bruta.refreshToken);
+              return await operacao();
+            }
+          } catch {
+            // Renovação falhou: cai no throw abaixo como transitório.
+          }
+          throw new ErroSincronizacao(erro.message, true, 401);
+        }
+        throw erro;
+      }
+      throw erro;
     }
   }
 

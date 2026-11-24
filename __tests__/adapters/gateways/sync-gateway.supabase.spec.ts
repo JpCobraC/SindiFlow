@@ -15,7 +15,12 @@ import { ErroSincronizacao } from '../../../src/domain/errors/domain-errors';
 import { SyncGatewaySupabase } from '../../../src/adapters/gateways/sync-gateway.supabase';
 
 const mockUpsert = jest.fn();
-const mockFrom = jest.fn(() => ({ upsert: mockUpsert }));
+const mockIn = jest.fn();
+const mockLimit = jest.fn();
+const mockOrder = jest.fn(() => ({ limit: mockLimit }));
+const mockEq = jest.fn(() => ({ order: mockOrder }));
+const mockSelect = jest.fn(() => ({ eq: mockEq, in: mockIn }));
+const mockFrom = jest.fn(() => ({ upsert: mockUpsert, select: mockSelect }));
 
 const clienteFake = { from: mockFrom } as unknown as SupabaseClient;
 
@@ -181,5 +186,72 @@ describe('SyncGatewaySupabase', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('users');
     expect(mockUpsert).toHaveBeenCalledWith(evento.payload, { onConflict: 'email' });
+  });
+
+  describe('buscarSnapshotCondominio', () => {
+    it('busca vistorias, comunicados, itens, ocorrências e fotos do condomínio', async () => {
+      mockLimit
+        .mockResolvedValueOnce({
+          data: [{ id: 'vist-1', condominio_id: 'cond-1', inspetor_id: 'insp-1', status: 'FINALIZADA', data_criacao: '2026-11-24T10:00:00Z' }],
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: 'com-1', condominio_id: 'cond-1', autor_id: 'sin-1', autor_nome: 'Síndico', titulo: 'Aviso', conteudo: 'Texto', data_criacao: '2026-11-24T10:00:00Z', fixado: false }],
+          error: null,
+        });
+
+      mockIn
+        .mockResolvedValueOnce({
+          data: [{ id: 'item-1', vistoria_id: 'vist-1', titulo: 'Extintor', categoria: 'Segurança', status: 'OK' }],
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: 'oc-1', vistoria_id: 'vist-1', titulo: 'Vazamento', gravidade: 'MEDIA', status: 'ABERTA', data_criacao: '2026-11-24T10:00:00Z' }],
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: 'foto-1', item_id: 'item-1', caminho_arquivo: 'file:///foto1.jpg', hash: 'h1', data_captura: '2026-11-24T10:00:00Z' }],
+          error: null,
+        })
+        .mockResolvedValueOnce({
+          data: [{ id: 'foto-2', ocorrencia_id: 'oc-1', caminho_arquivo: 'file:///foto2.jpg', hash: 'h2', data_captura: '2026-11-24T10:00:00Z' }],
+          error: null,
+        });
+
+      const snapshot = await gateway.buscarSnapshotCondominio('cond-1');
+
+      expect(snapshot.vistorias).toHaveLength(1);
+      expect(snapshot.comunicados).toHaveLength(1);
+      expect(snapshot.itensChecklist).toHaveLength(1);
+      expect(snapshot.ocorrencias).toHaveLength(1);
+      expect(snapshot.fotosEvidencia).toHaveLength(2);
+    });
+
+    it('não consulta tabelas filhas quando não há vistorias remotas', async () => {
+      mockLimit
+        .mockResolvedValueOnce({ data: [], error: null })
+        .mockResolvedValueOnce({ data: [], error: null });
+
+      const snapshot = await gateway.buscarSnapshotCondominio('cond-vazio');
+
+      expect(snapshot.vistorias).toEqual([]);
+      expect(snapshot.itensChecklist).toEqual([]);
+      expect(snapshot.ocorrencias).toEqual([]);
+      expect(mockIn).not.toHaveBeenCalled();
+    });
+
+    it('traduz erro do Supabase ao consultar snapshot', async () => {
+      mockLimit
+        .mockResolvedValueOnce({
+          data: null,
+          error: { code: '503', message: 'Service Unavailable', status: 503 },
+        })
+        .mockResolvedValueOnce({ data: [], error: null });
+
+      const erro = await gateway.buscarSnapshotCondominio('cond-1').catch((e) => e);
+      expect(erro).toBeInstanceOf(ErroSincronizacao);
+      expect(erro.transitorio).toBe(true);
+      expect(erro.statusCode).toBe(503);
+    });
   });
 });

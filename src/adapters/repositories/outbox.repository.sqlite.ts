@@ -25,6 +25,16 @@ export type LinhaOutbox = {
   data_sincronizacao: string | null;
 };
 
+const PRIORIDADE_TABELA_OUTBOX: Record<string, number> = {
+  users: 0,
+  vistorias: 1,
+  itens_checklist: 2,
+  item_checklist: 2,
+  ocorrencias: 3,
+  fotos_evidencia: 4,
+  comunicados: 5,
+};
+
 export class OutboxRepositorySQLite implements IOutboxRepository {
   private sequencia = 0;
 
@@ -97,19 +107,31 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
     const linhas = await this.executor.consultar<LinhaOutbox>(
       `SELECT * FROM outbox_events
        WHERE status = 'PENDENTE'
-         AND (data_ultima_tentativa IS NULL OR data_ultima_tentativa < ?)
-       ORDER BY data_criacao ASC
-       LIMIT ?`,
-      [agora.toISOString(), limite]
+       ORDER BY data_criacao ASC`
     );
 
-    return linhas.map((linha) => this.hidratar(linha));
+    const agoraMs = agora.getTime();
+
+    return linhas
+      .map((linha) => this.hidratar(linha))
+      .filter((evento) => {
+        if (!evento.dataUltimaTentativa) return true;
+        return agoraMs >= evento.dataUltimaTentativa.getTime() + evento.proximoRetryMs;
+      })
+      .sort((a, b) => {
+        const diffData = a.dataCriacao.getTime() - b.dataCriacao.getTime();
+        if (diffData !== 0) return diffData;
+        const prioA = PRIORIDADE_TABELA_OUTBOX[a.tabela] ?? 99;
+        const prioB = PRIORIDADE_TABELA_OUTBOX[b.tabela] ?? 99;
+        return prioA - prioB;
+      })
+      .slice(0, limite);
   }
 
   async iniciarProcessamento(id: string): Promise<OutboxEvent> {
     const agora = new Date().toISOString();
-    await this.executor.executar(
-      "UPDATE outbox_events SET status = 'PROCESSANDO', data_ultima_tentativa = ? WHERE id = ?",
+    const resultado = await this.executor.executar(
+      "UPDATE outbox_events SET status = 'PROCESSANDO', data_ultima_tentativa = ? WHERE id = ? AND status = 'PENDENTE'",
       [agora, id]
     );
 
@@ -120,6 +142,12 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
 
     if (!linha) {
       throw new OutboxNaoProcessavelError(`evento ${id} não existe na fila.`);
+    }
+
+    if (resultado.alteracoes === 0) {
+      throw new OutboxNaoProcessavelError(
+        `evento ${id} não pode ser processado (status atual: ${linha.status}).`
+      );
     }
 
     return this.hidratar(linha);

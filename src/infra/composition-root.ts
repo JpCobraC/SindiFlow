@@ -21,6 +21,7 @@ import { DevolverVistoriaUseCase } from '../application/use-cases/devolver-visto
 import { ListarComunicadosUseCase } from '../application/use-cases/listar-comunicados.usecase';
 import { FinalizarVistoriaUseCase } from '../application/use-cases/finalizar-vistoria.usecase';
 import { RegistrarOcorrenciaUseCase } from '../application/use-cases/registrar-ocorrencia.usecase';
+import { SincronizarDadosRemotosUseCase } from '../application/use-cases/sincronizar-dados-remotos.usecase';
 import { SincronizarOutboxUseCase } from '../application/use-cases/sincronizar-outbox.usecase';
 import { ComunicadoRepositorySQLite } from '../adapters/repositories/comunicado.repository.sqlite';
 import { OcorrenciaRepositorySQLite } from '../adapters/repositories/ocorrencia.repository.sqlite';
@@ -64,6 +65,7 @@ export interface AplicacaoComposta {
     classificarItem: ClassificarItemChecklistUseCase;
     finalizarVistoria: FinalizarVistoriaUseCase;
     registrarOcorrencia: RegistrarOcorrenciaUseCase;
+    sincronizarDadosRemotos: SincronizarDadosRemotosUseCase;
     sincronizarOutbox: SincronizarOutboxUseCase;
     capturarLocalizacao: CapturarLocalizacaoUseCase;
     anexarFoto: AnexarFotoUseCase;
@@ -109,6 +111,14 @@ export function comporAplicacao(portas: PortasAplicacao): AplicacaoComposta {
       classificarItem: new ClassificarItemChecklistUseCase(vistoriaRepo, outboxRepo),
       finalizarVistoria: new FinalizarVistoriaUseCase(vistoriaRepo, outboxRepo),
       registrarOcorrencia: new RegistrarOcorrenciaUseCase(ocorrenciaRepo, outboxRepo),
+      sincronizarDadosRemotos: new SincronizarDadosRemotosUseCase(
+        portas.networkService,
+        portas.syncGateway,
+        outboxRepo,
+        vistoriaRepo,
+        ocorrenciaRepo,
+        comunicadoRepo
+      ),
       sincronizarOutbox: new SincronizarOutboxUseCase(
         portas.networkService,
         outboxRepo,
