@@ -134,8 +134,11 @@ INSERT INTO public.users (id, nome, email, role, condominio_id, unidade, registr
 VALUES 
   ('usr-sindico-carlos', 'Dr. Carlos Alberto', 'sindico@solar.com', 'SINDICO', 'cond-solar-palmeiras', NULL, NULL, true),
   ('usr-inspetor-carlos', 'Eng. Carlos Eduardo', 'inspetor@solar.com', 'INSPETOR', 'cond-solar-palmeiras', NULL, 'CREA 50692-SP', true),
-  ('usr-condomino-mariana', 'Mariana de Souza', 'condomino@solar.com', 'CONDOMINO', 'cond-solar-palmeiras', 'Apto 402 - Bloco B', NULL, true)
-ON CONFLICT (id) DO UPDATE SET
+  ('usr-condomino-mariana', 'Mariana de Souza', 'condomino@solar.com', 'CONDOMINO', 'cond-solar-palmeiras', 'Apto 402 - Bloco B', NULL, true),
+  ('usr-admin-sindiflow', 'Administrador SindiFlow', 'admin@solar.com', 'ADMIN', 'cond-solar-palmeiras', NULL, NULL, true)
+ON CONFLICT (email) DO UPDATE SET
   nome = excluded.nome,
   role = excluded.role,
-  condominio_id = excluded.condominio_id;
+  condominio_id = excluded.condominio_id,
+  unidade = excluded.unidade,
+  registro_profissional = excluded.registro_profissional;

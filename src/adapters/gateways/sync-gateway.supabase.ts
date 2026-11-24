@@ -39,14 +39,15 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
   async sincronizarItem(evento: OutboxEvent): Promise<void> {
     const tabela = this.normalizarTabela(evento.tabela);
     const payload = this.normalizarPayload(tabela, evento.payload);
+    const onConflict = tabela === 'users' ? 'email' : 'id';
 
     const enviar = async (): Promise<void> => {
       const { error } = await this.client
         .from(tabela)
         .upsert(payload, {
-          // A chave de dedup do outbox não é coluna do Supabase. O upsert
-          // conflita pela chave primária `id` do registro (RF-SYNC-007).
-          onConflict: 'id',
+          // A chave de dedup do outbox não é coluna do Supabase. Para `users`,
+          // conflita por `email` (evita 409 com seeds); nas demais, por `id`.
+          onConflict,
         });
 
       if (error) {

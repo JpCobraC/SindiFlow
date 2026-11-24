@@ -162,4 +162,24 @@ describe('SyncGatewaySupabase', () => {
       { onConflict: 'id' }
     );
   });
+
+  it('usa onConflict email para sincronizar tabela users', async () => {
+    const evento = criarEventoDeTeste({
+      tabela: 'users',
+      operacao: 'INSERT',
+      idRegistro: 'uuid-user-1',
+      payload: {
+        id: 'uuid-user-1',
+        nome: 'Dr. Carlos',
+        email: 'sindico@solar.com',
+        role: 'SINDICO',
+        condominio_id: 'cond-solar-palmeiras',
+      },
+    });
+
+    await gateway.sincronizarItem(evento);
+
+    expect(mockFrom).toHaveBeenCalledWith('users');
+    expect(mockUpsert).toHaveBeenCalledWith(evento.payload, { onConflict: 'email' });
+  });
 });

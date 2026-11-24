@@ -377,6 +377,71 @@
     .role-inspetor { background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3); }
     .role-sindico { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.3); }
     .role-condomino { background: rgba(52, 211, 153, 0.15); color: #34D399; border: 1px solid rgba(52, 211, 153, 0.3); }
+    .role-admin { background: rgba(167, 139, 250, 0.15); color: #A78BFA; border: 1px solid rgba(167, 139, 250, 0.3); }
+
+    /* Test Credentials Cards */
+    .cred-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(10, 16, 29, 0.7);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-top: 10px;
+    }
+
+    .cred-label {
+      font-size: 0.78rem;
+      color: var(--text-subtle);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      min-width: 58px;
+    }
+
+    .cred-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.96rem;
+      color: #E2E8F0;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .btn-copy {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-copy:hover {
+      background: var(--accent);
+      color: #030712;
+    }
+
+    .cred-tabs {
+      margin-top: 12px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+
+    .cred-note {
+      margin-top: 18px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: #CBD5E1;
+      font-size: 0.95rem;
+      max-width: 1400px;
+    }
 
     /* Bottom Control Bar */
     .deck-bottombar {
@@ -465,7 +530,7 @@
         <span class="tag-badge">NBR 5674 / 16747</span>
         <span class="tag-badge">Expo SDK 58</span>
         <button id="btnFullscreen" class="btn-slide" style="padding: 4px 10px; font-size: 0.8rem;">⛶ Tela Cheia</button>
-        <div class="counter-badge" id="slideCounter">01 / 12</div>
+        <div class="counter-badge" id="slideCounter">01 / 13</div>
       </div>
     </header>
 
@@ -588,6 +653,7 @@
               <li><span class="bullet-icon bullet-ok">✓</span> Painel de indicadores e outbox</li>
               <li><span class="bullet-icon bullet-bad">✕</span> Sem acesso a homologações</li>
             </ul>
+            <div style="margin-top: 14px;"><span class="pill-stat">inspetor@solar.com</span></div>
           </div>
           <div class="glass-card">
             <span class="role-badge-pill role-sindico">PERFIL GESTOR</span>
@@ -598,6 +664,7 @@
               <li><span class="bullet-icon bullet-ok">✓</span> Publicação no mural geral</li>
               <li><span class="bullet-icon bullet-ok">✓</span> Gestão de matriz de SLAs</li>
             </ul>
+            <div style="margin-top: 14px;"><span class="pill-stat">sindico@solar.com</span></div>
           </div>
           <div class="glass-card">
             <span class="role-badge-pill role-condomino">PERFIL MORADOR</span>
@@ -608,6 +675,7 @@
               <li><span class="bullet-icon bullet-ok">✓</span> Acompanhamento de comunicados</li>
               <li><span class="bullet-icon bullet-bad">✕</span> Bloqueado de vistorias técnicas</li>
             </ul>
+            <div style="margin-top: 14px;"><span class="pill-stat">condomino@solar.com</span></div>
           </div>
         </div>
       </section>
@@ -782,6 +850,81 @@
         </div>
       </section>
 
+      <!-- SLIDE 13: Contas de Teste & Acesso ao Aplicativo -->
+      <section class="slide-page" data-index="13">
+        <div class="slide-category">Demonstração Prática</div>
+        <h2 class="slide-title">Contas de Teste & Acesso ao Aplicativo</h2>
+        <div class="grid-2col">
+          <div class="glass-card" style="padding: 22px;">
+            <span class="role-badge-pill role-inspetor">INSPETOR TÉCNICO</span>
+            <div class="card-title" style="margin-bottom: 4px;">Eng. Carlos Eduardo • CREA 50692-SP</div>
+            <div class="cred-row">
+              <span class="cred-label">E-mail</span>
+              <span class="cred-val">inspetor@solar.com</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('inspetor@solar.com', this)">Copiar</button>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Senha</span>
+              <span class="cred-val">cefetapp123</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('cefetapp123', this)">Copiar</button>
+            </div>
+            <div class="cred-tabs"><strong>Abas liberadas:</strong> Vistoria, Ocorrências, Sincronização e Indicadores.</div>
+          </div>
+
+          <div class="glass-card" style="padding: 22px;">
+            <span class="role-badge-pill role-sindico">SÍNDICO GERAL</span>
+            <div class="card-title" style="margin-bottom: 4px;">Dr. Carlos Alberto</div>
+            <div class="cred-row">
+              <span class="cred-label">E-mail</span>
+              <span class="cred-val">sindico@solar.com</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('sindico@solar.com', this)">Copiar</button>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Senha</span>
+              <span class="cred-val">cefetapp123</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('cefetapp123', this)">Copiar</button>
+            </div>
+            <div class="cred-tabs"><strong>Abas liberadas:</strong> Síndico, Ocorrências, Sincronização e Indicadores.</div>
+          </div>
+
+          <div class="glass-card" style="padding: 22px;">
+            <span class="role-badge-pill role-condomino">CONDÔMINO / MORADOR</span>
+            <div class="card-title" style="margin-bottom: 4px;">Mariana de Souza • Apto 402 - Bloco B</div>
+            <div class="cred-row">
+              <span class="cred-label">E-mail</span>
+              <span class="cred-val">condomino@solar.com</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('condomino@solar.com', this)">Copiar</button>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Senha</span>
+              <span class="cred-val">cefetapp123</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('cefetapp123', this)">Copiar</button>
+            </div>
+            <div class="cred-tabs"><strong>Abas liberadas:</strong> Condômino e Ocorrências.</div>
+          </div>
+
+          <div class="glass-card" style="padding: 22px;">
+            <span class="role-badge-pill role-admin">ADMINISTRADOR</span>
+            <div class="card-title" style="margin-bottom: 4px;">Administrador SindiFlow</div>
+            <div class="cred-row">
+              <span class="cred-label">E-mail</span>
+              <span class="cred-val">admin@solar.com</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('admin@solar.com', this)">Copiar</button>
+            </div>
+            <div class="cred-row">
+              <span class="cred-label">Senha</span>
+              <span class="cred-val">cefetapp123</span>
+              <button class="btn-copy" type="button" onclick="copiarTexto('cefetapp123', this)">Copiar</button>
+            </div>
+            <div class="cred-tabs"><strong>Abas liberadas:</strong> Acesso completo a todas as telas do sistema.</div>
+          </div>
+        </div>
+
+        <div class="cred-note">
+          💡 <strong>Nota:</strong> Todas as contas pertencem ao condomínio <strong>Edifício Solar das Palmeiras</strong> (<span class="pill-stat">cond-solar-palmeiras</span>), estão ativas e validadas no Supabase Auth, e compartilham a senha padrão <span class="pill-stat">cefetapp123</span>.
+        </div>
+      </section>
+
     </main>
 
     <!-- Bottom Navigation Bar -->
@@ -801,13 +944,23 @@
 
   <script>
     let activeIndex = 1;
-    const totalCount = 12;
+    const totalCount = 13;
 
     const slides = document.querySelectorAll('.slide-page');
     const counter = document.getElementById('slideCounter');
     const btnPrev = document.getElementById('btnPrev');
     const btnNext = document.getElementById('btnNext');
     const progressTrack = document.getElementById('progressTrack');
+
+    function copiarTexto(texto, btn) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(() => {
+          const original = btn.textContent;
+          btn.textContent = 'Copiado!';
+          setTimeout(() => { btn.textContent = original; }, 1400);
+        }).catch(() => {});
+      }
+    }
 
     function renderSlide() {
       slides.forEach((slide) => {
@@ -834,42 +987,14 @@
     function moveNext() {
       if (activeIndex < totalCount) {
         activeIndex++;
-        // Fullscreen toggle
-    const btnFullscreen = document.getElementById('btnFullscreen');
-    if (btnFullscreen) {
-      btnFullscreen.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-          btnFullscreen.textContent = '✕ Sair';
-        } else {
-          document.exitFullscreen().catch(() => {});
-          btnFullscreen.textContent = '⛶ Tela Cheia';
-        }
-      });
-    }
-
-    renderSlide();
+        renderSlide();
       }
     }
 
     function movePrev() {
       if (activeIndex > 1) {
         activeIndex--;
-        // Fullscreen toggle
-    const btnFullscreen = document.getElementById('btnFullscreen');
-    if (btnFullscreen) {
-      btnFullscreen.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(() => {});
-          btnFullscreen.textContent = '✕ Sair';
-        } else {
-          document.exitFullscreen().catch(() => {});
-          btnFullscreen.textContent = '⛶ Tela Cheia';
-        }
-      });
-    }
-
-    renderSlide();
+        renderSlide();
       }
     }
 
