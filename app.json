@@ -56,6 +56,13 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "SindiFlow precisa da câmera para registrar evidências fotográficas das vistorias e ocorrências.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "SindiFlow usa sua localização para registrar as coordenadas da vistoria, conforme norma de inspeção predial.",

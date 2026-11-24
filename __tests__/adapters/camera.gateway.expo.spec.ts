@@ -3,11 +3,13 @@ import { CameraGatewayExpo } from '../../src/adapters/gateways/camera.gateway.ex
 const mockGetCameraPermissionsAsync = jest.fn();
 const mockRequestCameraPermissionsAsync = jest.fn();
 const mockLaunchCameraAsync = jest.fn();
+const mockGetPendingResultAsync = jest.fn();
 
 jest.mock('expo-image-picker', () => ({
   getCameraPermissionsAsync: () => mockGetCameraPermissionsAsync(),
   requestCameraPermissionsAsync: () => mockRequestCameraPermissionsAsync(),
   launchCameraAsync: (opts: any) => mockLaunchCameraAsync(opts),
+  getPendingResultAsync: () => mockGetPendingResultAsync(),
   PermissionStatus: {
     GRANTED: 'granted',
     DENIED: 'denied',
@@ -78,6 +80,7 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    CameraGatewayExpo.definirCapturadorInApp(null);
     gateway = new CameraGatewayExpo();
 
     mockManipulateAsync.mockImplementation(async (uri: string) => ({
@@ -89,6 +92,10 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
     mockDigestStringAsync.mockResolvedValue('sha256_pericial_hash_456');
     mockDirectoryCreate.mockImplementation(() => undefined);
     mockFileCopy.mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    CameraGatewayExpo.definirCapturadorInApp(null);
   });
 
   it('deve verificar permissão existente através do ImagePicker', async () => {
@@ -278,5 +285,51 @@ describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
 
     const resultado = await gateway.capturarFoto();
     expect(resultado.status).toBe('cancelado');
+  });
+
+  it('usa o capturador in-app quando registrado, sem abrir câmera externa', async () => {
+    CameraGatewayExpo.definirCapturadorInApp(async () => ({
+      canceled: false,
+      uri: 'file:///data/user/0/com.sindiflow/cache/inapp_photo.jpg',
+      width: 1920,
+      height: 1080,
+    }));
+
+    const resultado = await gateway.capturarFoto({ larguraMaxima: 1080 });
+
+    expect(mockLaunchCameraAsync).not.toHaveBeenCalled();
+    expect(resultado.status).toBe('sucesso');
+    if (resultado.status === 'sucesso') {
+      expect(resultado.foto.uri).toContain('files/evidencias/');
+      expect(resultado.foto.hash).toBe('sha256_pericial_hash_456');
+    }
+  });
+
+  it('retorna cancelado quando o capturador in-app é cancelado', async () => {
+    CameraGatewayExpo.definirCapturadorInApp(async () => ({ canceled: true }));
+
+    const resultado = await gateway.capturarFoto();
+    expect(resultado.status).toBe('cancelado');
+    expect(mockLaunchCameraAsync).not.toHaveBeenCalled();
+  });
+
+  it('recuperarFotoPendente processa foto recuperada após reciclagem da Activity Android', async () => {
+    mockGetPendingResultAsync.mockResolvedValueOnce({
+      canceled: false,
+      assets: [
+        {
+          uri: 'file:///data/user/0/com.sindiflow/cache/recovered.jpg',
+          width: 1280,
+          height: 720,
+        },
+      ],
+    });
+
+    const resultado = await gateway.recuperarFotoPendente();
+    expect(resultado?.status).toBe('sucesso');
+
+    mockGetPendingResultAsync.mockResolvedValueOnce(null);
+    const vazio = await gateway.recuperarFotoPendente();
+    expect(vazio).toBeNull();
   });
 });

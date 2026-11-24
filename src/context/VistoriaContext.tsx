@@ -19,7 +19,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
+import {
+  CameraGatewayExpo,
+  ResultadoCapturadorInApp,
+} from '../adapters/gateways/camera.gateway.expo';
+import {
+  CameraCaptureModal,
+  FotoInAppCapturada,
+} from '../../components/CameraCaptureModal';
 import { FileSystemGateway } from '../adapters/gateways/file-system.gateway.real';
 import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo';
 import {
@@ -141,6 +148,48 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [isOnline, setIsOnline] = useState(false);
   const [isCarregando, setIsCarregando] = useState(true);
   const [erroBoot, setErroBoot] = useState<string | null>(null);
+  const [cameraModalAberto, setCameraModalAberto] = useState(false);
+  const cameraResolverRef = useRef<((res: ResultadoCapturadorInApp) => void) | null>(null);
+
+  useEffect(() => {
+    CameraGatewayExpo.definirCapturadorInApp(
+      () =>
+        new Promise<ResultadoCapturadorInApp>((resolve) => {
+          if (cameraResolverRef.current) {
+            cameraResolverRef.current({ canceled: true });
+          }
+          cameraResolverRef.current = resolve;
+          setCameraModalAberto(true);
+        })
+    );
+
+    return () => {
+      if (cameraResolverRef.current) {
+        cameraResolverRef.current({ canceled: true });
+        cameraResolverRef.current = null;
+      }
+      CameraGatewayExpo.definirCapturadorInApp(null);
+    };
+  }, []);
+
+  const handleCameraInAppCancel = useCallback(() => {
+    setCameraModalAberto(false);
+    const resolver = cameraResolverRef.current;
+    cameraResolverRef.current = null;
+    resolver?.({ canceled: true });
+  }, []);
+
+  const handleCameraInAppCapture = useCallback((foto: FotoInAppCapturada) => {
+    setCameraModalAberto(false);
+    const resolver = cameraResolverRef.current;
+    cameraResolverRef.current = null;
+    resolver?.({
+      canceled: false,
+      uri: foto.uri,
+      width: foto.width,
+      height: foto.height,
+    });
+  }, []);
 
   const addLog = useCallback((tipo: AuditLogItem['tipo'], mensagem: string) => {
     const novo: AuditLogItem = {
@@ -783,6 +832,11 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         reentarFalhasOutbox,
       }}>
       {children}
+      <CameraCaptureModal
+        visible={cameraModalAberto}
+        onCancel={handleCameraInAppCancel}
+        onCapture={handleCameraInAppCapture}
+      />
     </VistoriaContext.Provider>
   );
 };

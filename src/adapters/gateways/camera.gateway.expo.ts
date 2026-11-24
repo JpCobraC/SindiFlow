@@ -9,7 +9,28 @@ import {
   ResultadoCaptura,
 } from '../../domain/interfaces/camera.gateway.interface';
 
+export type ResultadoCapturadorInApp =
+  | { canceled: true }
+  | {
+      canceled: false;
+      uri: string;
+      width?: number;
+      height?: number;
+      fileName?: string;
+      fileSize?: number;
+    };
+
+export type CapturadorInApp = (
+  options?: CapturaFotoOptions
+) => Promise<ResultadoCapturadorInApp>;
+
 export class CameraGatewayExpo implements ICameraGateway {
+  private static capturadorInApp: CapturadorInApp | null = null;
+
+  static definirCapturadorInApp(capturador: CapturadorInApp | null): void {
+    CameraGatewayExpo.capturadorInApp = capturador;
+  }
+
   async temPermissao(): Promise<boolean> {
     const status = await ImagePicker.getCameraPermissionsAsync();
     return status.granted;
@@ -32,6 +53,23 @@ export class CameraGatewayExpo implements ICameraGateway {
 
   async capturarFoto(options?: CapturaFotoOptions): Promise<ResultadoCaptura> {
     try {
+      if (CameraGatewayExpo.capturadorInApp) {
+        const resultadoInApp = await CameraGatewayExpo.capturadorInApp(options);
+        if (resultadoInApp.canceled) {
+          return { status: 'cancelado' };
+        }
+        return this.processarAsset(
+          {
+            uri: resultadoInApp.uri,
+            width: resultadoInApp.width ?? 1080,
+            height: resultadoInApp.height ?? 1080,
+            fileName: resultadoInApp.fileName,
+            fileSize: resultadoInApp.fileSize,
+          } as ImagePicker.ImagePickerAsset,
+          options
+        );
+      }
+
       const qualidade = options?.qualidade ?? 0.8;
 
       // 1. Aciona o sensor de câmera nativo sem adicionar à galeria pública (DCIM/Photos)
@@ -51,6 +89,24 @@ export class CameraGatewayExpo implements ICameraGateway {
         status: 'erro',
         mensagem: err?.message || 'Erro ao capturar foto pela câmera',
       };
+    }
+  }
+
+  async recuperarFotoPendente(
+    options?: CapturaFotoOptions
+  ): Promise<ResultadoCaptura | null> {
+    try {
+      const pendente = await ImagePicker.getPendingResultAsync();
+      if (!pendente) return null;
+
+      const primeiro = Array.isArray(pendente) ? pendente[0] : pendente;
+      if (!primeiro || !('assets' in primeiro) || primeiro.canceled || !primeiro.assets?.length) {
+        return null;
+      }
+
+      return this.processarAsset(primeiro.assets[0], options);
+    } catch {
+      return null;
     }
   }
 
