@@ -37,10 +37,13 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
    * correspondente.
    */
   async sincronizarItem(evento: OutboxEvent): Promise<void> {
+    const tabela = this.normalizarTabela(evento.tabela);
+    const payload = this.normalizarPayload(tabela, evento.payload);
+
     const enviar = async (): Promise<void> => {
       const { error } = await this.client
-        .from(evento.tabela)
-        .upsert(evento.payload, {
+        .from(tabela)
+        .upsert(payload, {
           // A chave de dedup do outbox não é coluna do Supabase. O upsert
           // conflita pela chave primária `id` do registro (RF-SYNC-007).
           onConflict: 'id',
@@ -100,5 +103,64 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
       transitorio,
       statusCode
     );
+  }
+
+  private normalizarTabela(tabela: string): string {
+    return tabela === 'item_checklist' ? 'itens_checklist' : tabela;
+  }
+
+  private normalizarPayload(
+    tabela: string,
+    payload: Record<string, unknown>
+  ): Record<string, unknown> {
+    const possuiLegado =
+      'percentual_vistoria' in payload ||
+      'tipo' in payload ||
+      'fotos' in payload ||
+      'dataCriacao' in payload ||
+      'aprovador_id' in payload ||
+      'solicitante_id' in payload ||
+      'motivo' in payload ||
+      (tabela === 'vistorias' && 'vistoria_id' in payload);
+
+    if (!possuiLegado) {
+      return payload;
+    }
+
+    const limpo: Record<string, unknown> = { ...payload };
+
+    if ('dataCriacao' in limpo && !('data_criacao' in limpo)) {
+      limpo.data_criacao = limpo.dataCriacao;
+    }
+    if (tabela === 'vistorias' && 'vistoria_id' in limpo && !('id' in limpo)) {
+      limpo.id = limpo.vistoria_id;
+    }
+    if (tabela === 'vistorias') {
+      if (limpo.tipo === 'VISTORIA_APROVADA' && !('status' in limpo)) {
+        limpo.status = 'APROVADA';
+      } else if (limpo.tipo === 'VISTORIA_DEVOLVIDA' && !('status' in limpo)) {
+        limpo.status = 'DEVOLVIDA';
+      }
+      if ('aprovador_id' in limpo && !('aprovado_por' in limpo)) {
+        limpo.aprovado_por = limpo.aprovador_id;
+      }
+      if ('solicitante_id' in limpo && !('devolvido_por' in limpo)) {
+        limpo.devolvido_por = limpo.solicitante_id;
+      }
+      if ('motivo' in limpo && !('motivo_devolucao' in limpo)) {
+        limpo.motivo_devolucao = limpo.motivo;
+      }
+      delete limpo.vistoria_id;
+      delete limpo.aprovador_id;
+      delete limpo.solicitante_id;
+      delete limpo.motivo;
+    }
+
+    delete limpo.tipo;
+    delete limpo.fotos;
+    delete limpo.dataCriacao;
+    delete limpo.percentual_vistoria;
+
+    return limpo;
   }
 }

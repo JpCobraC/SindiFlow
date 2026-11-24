@@ -34,7 +34,8 @@ describe('Gestão de Vistoria (Síndico / Condômino)', () => {
 
     const outbox = await outboxRepo.obterPendentes();
     expect(outbox.length).toBe(1);
-    expect(outbox[0].payload.tipo).toBe('VISTORIA_APROVADA');
+    expect(outbox[0].payload.status).toBe(StatusVistoria.APROVADA);
+    expect(outbox[0].payload.aprovado_por).toBe('sindico-carlos');
   });
 
   it('deve devolver vistoria para revisão com motivo obrigatório', async () => {
@@ -64,6 +65,7 @@ describe('Gestão de Vistoria (Síndico / Condômino)', () => {
 
     const outbox = await outboxRepo.obterPendentes();
     expect(outbox.length).toBe(1);
-    expect(outbox[0].payload.tipo).toBe('VISTORIA_DEVOLVIDA');
+    expect(outbox[0].payload.status).toBe(StatusVistoria.DEVOLVIDA);
+    expect(outbox[0].payload.motivo_devolucao).toBe('Faltou foto detalhada do barrilete.');
   });
 });

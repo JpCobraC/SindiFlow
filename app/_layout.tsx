@@ -3,8 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { VistoriaProvider, useVistoria } from '@/src/context/VistoriaContext';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -18,12 +20,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { usuarioLogado, isCarregando, erroBoot } = useVistoria();
   const segments = useSegments();
   const naTelaDeLogin = (segments[0] as string) === 'login';
+  const abaAtual = segments[1] as string | undefined;
 
   if (isCarregando) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#38BDF8" />
-        <Text style={styles.loadingText}>Restaurando sessão segura...</Text>
+        <Text style={styles.loadingText}>Carregando sua conta...</Text>
       </View>
     );
   }
@@ -31,11 +34,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   if (erroBoot) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Falha ao iniciar</Text>
-        <Text style={styles.errorText}>{erroBoot}</Text>
+        <Text style={styles.errorTitle}>Não foi possível abrir o aplicativo</Text>
+        <Text style={styles.errorText}>
+          {humanizarErro(erroBoot, 'Ocorreu uma falha ao iniciar os dados locais.')}
+        </Text>
         <Text style={styles.errorHint}>
-          Feche e abra o app novamente. Se o problema persistir, verifique o
-          armazenamento local do dispositivo.
+          Feche e abra o app novamente. Se o problema continuar, entre em contato com a administração.
         </Text>
       </View>
     );
@@ -55,20 +59,38 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     return <Redirect href={'/(tabs)' as any} />;
   }
 
+  if (usuarioLogado && (segments[0] as string) === '(tabs)' && usuarioLogado.role !== 'ADMIN') {
+    if (usuarioLogado.isSindico()) {
+      if (!abaAtual || abaAtual === 'index' || abaAtual === 'condomino') {
+        return <Redirect href={'/(tabs)/sindico' as any} />;
+      }
+    } else if (usuarioLogado.isCondomino()) {
+      if (abaAtual !== 'condomino' && abaAtual !== 'ocorrencias') {
+        return <Redirect href={'/(tabs)/condomino' as any} />;
+      }
+    } else if (usuarioLogado.isInspetor()) {
+      if (abaAtual === 'sindico' || abaAtual === 'condomino') {
+        return <Redirect href={'/(tabs)' as any} />;
+      }
+    }
+  }
+
   return <>{children}</>;
 }
 
 export default function RootLayout() {
   return (
-    <VistoriaProvider>
-      <AuthGate>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-        </Stack>
-      </AuthGate>
-      <StatusBar style="auto" />
-    </VistoriaProvider>
+    <SafeAreaProvider>
+      <VistoriaProvider>
+        <AuthGate>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+          </Stack>
+        </AuthGate>
+        <StatusBar style="auto" />
+      </VistoriaProvider>
+    </SafeAreaProvider>
   );
 }
 

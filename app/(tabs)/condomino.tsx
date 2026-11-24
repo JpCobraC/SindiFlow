@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import {
+  Image,
+  KeyboardAvoidingView,
   View,
   Text,
   StyleSheet,
@@ -13,6 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 import { StatusVistoria } from '@/src/domain/entities/vistoria.entity';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function CondominoScreen() {
   const {
@@ -20,7 +23,7 @@ export default function CondominoScreen() {
     vistoriaAtiva,
     itensChecklist,
     comunicados,
-    anexarFoto,
+    capturarFotoAvulsa,
     registrarOcorrencia,
   } = useVistoria();
 
@@ -32,18 +35,31 @@ export default function CondominoScreen() {
   const isCondomino = usuarioLogado?.isCondomino() ?? false;
   const laudoLiberado = vistoriaAtiva?.status === StatusVistoria.APROVADA;
 
-  const handleTirarFoto = async () => {
+  const handleTirarFoto = async (origem: 'camera' | 'galeria' = 'camera') => {
     try {
       if (Platform.OS !== 'web') {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      const resultado = await anexarFoto({});
+      const resultado = await capturarFotoAvulsa(origem);
       if (resultado) {
-        setFotoEvidencia(resultado.caminhoArquivoLocal);
-        Alert.alert('Foto Anexada', 'Evidência fotográfica registrada e comprimida no armazenamento privado.');
+        setFotoEvidencia(resultado.uri);
+        Alert.alert('Foto Anexada', 'A foto foi anexada ao seu chamado.');
       }
     } catch (e: any) {
-      Alert.alert('Aviso de Câmera', e?.message || 'Não foi possível capturar foto');
+      const msg = humanizarErro(e, 'Não foi possível capturar a foto.');
+      if (origem === 'camera') {
+        Alert.alert('Não foi possível abrir a câmera', msg, [
+          { text: 'Fechar', style: 'cancel' },
+          {
+            text: 'Escolher da Galeria',
+            onPress: () => {
+              void handleTirarFoto('galeria');
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Aviso', msg);
+      }
     }
   };
 
@@ -71,17 +87,23 @@ export default function CondominoScreen() {
       setFotoEvidencia(null);
       Alert.alert(
         'Chamado Registrado!',
-        'Sua solicitação de manutenção foi enviada ao síndico com SLA de atendimento e salva no banco de dados offline.'
+        'Sua solicitação foi registrada e será enviada ao síndico.'
       );
     } catch (e: any) {
-      Alert.alert('Erro ao enviar', e?.message || 'Falha ao registrar chamado');
+      Alert.alert('Não foi possível registrar', humanizarErro(e, 'Falha ao registrar chamado.'));
     } finally {
       setIsEnviando(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
+        keyboardShouldPersistTaps="handled">
       {/* Alerta de Perfil */}
       {!isCondomino && (
         <View style={styles.switchAlertCard}>
@@ -240,16 +262,30 @@ export default function CondominoScreen() {
         <View style={styles.photoRow}>
           <TouchableOpacity
             style={styles.photoButton}
-            onPress={handleTirarFoto}
+            onPress={() => handleTirarFoto('camera')}
             activeOpacity={0.8}>
-            <Text style={styles.photoButtonText}>📷 Tirar Foto da Evidência</Text>
+            <Text style={styles.photoButtonText}>📷 Tirar Foto</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.photoButton}
+            onPress={() => handleTirarFoto('galeria')}
+            activeOpacity={0.8}>
+            <Text style={styles.photoButtonText}>🖼️ Galeria</Text>
           </TouchableOpacity>
           {fotoEvidencia && (
-            <View style={styles.photoBadge}>
-              <Text style={styles.photoBadgeText}>✓ Foto Anexada</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.photoBadge}
+              onPress={() => setFotoEvidencia(null)}>
+              <Text style={styles.photoBadgeText}>✓ Remover Foto ✕</Text>
+            </TouchableOpacity>
           )}
         </View>
+        {fotoEvidencia && (
+          <Image
+            source={{ uri: fotoEvidencia }}
+            style={{ width: 72, height: 72, borderRadius: 8, marginBottom: 12 }}
+          />
+        )}
 
         <TouchableOpacity
           style={[styles.btnEnviarChamado, isEnviando && { opacity: 0.6 }]}
@@ -257,7 +293,7 @@ export default function CondominoScreen() {
           disabled={isEnviando}
           activeOpacity={0.8}>
           <Text style={styles.btnEnviarChamadoText}>
-            {isEnviando ? 'Gravando no SQLite...' : 'Registrar Chamado para o Síndico'}
+            {isEnviando ? 'Registrando...' : 'Registrar Chamado para o Síndico'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -285,6 +321,7 @@ export default function CondominoScreen() {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

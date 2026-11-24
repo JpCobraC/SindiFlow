@@ -15,8 +15,19 @@ CREATE TABLE IF NOT EXISTS public.vistorias (
   precisao REAL,
   data_criacao TIMESTAMPTZ NOT NULL DEFAULT now(),
   data_finalizacao TIMESTAMPTZ,
+  parecer_tecnico TEXT,
+  motivo_devolucao TEXT,
+  devolvido_por TEXT,
+  aprovado_por TEXT,
+  data_aprovacao TIMESTAMPTZ,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.vistorias ADD COLUMN IF NOT EXISTS parecer_tecnico TEXT;
+ALTER TABLE public.vistorias ADD COLUMN IF NOT EXISTS motivo_devolucao TEXT;
+ALTER TABLE public.vistorias ADD COLUMN IF NOT EXISTS devolvido_por TEXT;
+ALTER TABLE public.vistorias ADD COLUMN IF NOT EXISTS aprovado_por TEXT;
+ALTER TABLE public.vistorias ADD COLUMN IF NOT EXISTS data_aprovacao TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_vistorias_condominio ON public.vistorias(condominio_id);
 CREATE INDEX IF NOT EXISTS idx_vistorias_status ON public.vistorias(status);

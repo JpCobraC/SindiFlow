@@ -1,8 +1,8 @@
-import { DevolverVistoriaUseCase } from '../../src/application/use-cases/devolver-vistoria.usecase';
-import { VistoriaRepositoryInMemory } from '../../src/adapters/repositories/vistoria.repository.inmemory';
 import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
-import { Vistoria, StatusVistoria } from '../../src/domain/entities/vistoria.entity';
+import { VistoriaRepositoryInMemory } from '../../src/adapters/repositories/vistoria.repository.inmemory';
+import { DevolverVistoriaUseCase } from '../../src/application/use-cases/devolver-vistoria.usecase';
 import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
+import { StatusVistoria, Vistoria } from '../../src/domain/entities/vistoria.entity';
 import { Geolocalizacao } from '../../src/domain/value-objects/geolocalizacao.vo';
 
 describe('DevolverVistoriaUseCase', () => {
@@ -37,8 +37,10 @@ describe('DevolverVistoriaUseCase', () => {
     expect(pendentes[0].operacao).toBe('UPDATE');
     expect(pendentes[0].usuarioId).toBe('sindico-1');
     expect(pendentes[0].deviceId).toBe('device-abc-123');
-    expect(pendentes[0].payload.tipo).toBe('VISTORIA_DEVOLVIDA');
-    expect(pendentes[0].payload.motivo).toBe('Faltam fotos dos extintores');
+    expect(pendentes[0].payload.id).toBe('v-1');
+    expect(pendentes[0].payload.status).toBe('DEVOLVIDA');
+    expect(pendentes[0].payload.devolvido_por).toBe('sindico-1');
+    expect(pendentes[0].payload.motivo_devolucao).toBe('Faltam fotos dos extintores');
   });
 
   it('deve rejeitar quando a vistoria não existe', async () => {

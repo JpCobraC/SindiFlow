@@ -24,9 +24,9 @@ export class NetworkServiceReal implements INetworkService {
    * - `null`  → INDETERMINADO (não se sabe ainda; trata como OFFLINE no sync)
    */
   async estadoConexao(): Promise<EstadoRede> {
-    const { isInternetReachable } = await Network.getNetworkStateAsync();
+    const { isConnected, isInternetReachable } = await Network.getNetworkStateAsync();
 
-    if (isInternetReachable === true) {
+    if (isInternetReachable === true || (isInternetReachable === null && isConnected === true)) {
       return EstadoRede.ONLINE;
     }
     return EstadoRede.OFFLINE;

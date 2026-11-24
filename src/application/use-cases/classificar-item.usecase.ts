@@ -38,16 +38,17 @@ export class ClassificarItemChecklistUseCase {
 
     // Enfileira na outbox
     await this.outboxRepo.enfileirar({
-      tabela: 'item_checklist',
+      tabela: 'itens_checklist',
       operacao: 'UPDATE',
       // RF-SYNC-007: a chave de dedup cola no item, não no evento.
       idRegistro: item.id,
       payload: {
         id: item.id,
         vistoria_id: input.vistoriaId,
+        titulo: item.titulo,
+        categoria: item.categoria,
         status: item.status,
-        observacao: item.observacao || null,
-        percentual_vistoria: vistoria.percentualRespondido(),
+        observacao: item.observacao ?? null,
       },
       usuarioId: input.usuarioId,
       deviceId: input.deviceId,

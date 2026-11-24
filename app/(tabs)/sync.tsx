@@ -9,44 +9,49 @@ import {
 } from 'react-native';
 
 import { useVistoria } from '@/src/context/VistoriaContext';
-import { ConexaoIndisponivelError, ErroSincronizacao } from '@/src/domain/errors/domain-errors';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function SyncScreen() {
   const {
     outboxPendentes,
+    outboxComFalha,
     auditLogs,
     isOnline,
     sincronizarOutbox,
+    reentarFalhasOutbox,
   } = useVistoria();
 
   const handleDispararSync = async () => {
     try {
       const res = await sincronizarOutbox();
-      Alert.alert(
-        '✓ Sincronização Executada!',
-        `Total de itens processados: ${res.total}\nSucessos (200 OK): ${res.sincronizados}\nFalhas: ${res.falhas} (${res.permanentes} permanentes)`
-      );
-    } catch (err: any) {
-      let titulo = 'Falha na sincronização';
-      let mensagem = 'Não foi possível sincronizar agora. Seus dados estão salvos no celular.';
-
-      if (err instanceof ConexaoIndisponivelError) {
-        titulo = 'Sem conexão';
-        mensagem = 'Sem internet no momento. Seus dados estão salvos no celular e serão enviados quando a conexão voltar.';
-      } else if (err instanceof ErroSincronizacao) {
-        if (err.statusCode === 401) {
-          titulo = 'Sessão expirada';
-          mensagem = 'Sua sessão expirou. Faça login novamente para sincronizar.';
-        } else if (err.statusCode && err.statusCode >= 400 && err.statusCode < 500) {
-          titulo = 'Acesso negado';
-          mensagem = 'Seu acesso foi revogado ou o dado foi rejeitado. Contate o administrador.';
-        } else {
-          titulo = 'Falha no servidor';
-          mensagem = 'O servidor não respondeu. Tentaremos novamente em instantes.';
-        }
+      if (res.total === 0) {
+        Alert.alert('Tudo em dia', 'Não há nenhum envio pendente no momento.');
+        return;
       }
+      Alert.alert(
+        'Sincronização concluída',
+        `Enviados com sucesso: ${res.sincronizados}\nNão enviados: ${res.falhas}`
+      );
+    } catch (err: unknown) {
+      Alert.alert(
+        'Não foi possível sincronizar',
+        humanizarErro(err, 'Seus dados continuam salvos no aparelho e serão enviados depois.')
+      );
+    }
+  };
 
-      Alert.alert(titulo, mensagem);
+  const handleReenviarFalhas = async () => {
+    try {
+      const res = await reentarFalhasOutbox();
+      Alert.alert(
+        'Reenvio concluído',
+        `Enviados com sucesso: ${res.sincronizados}\nAinda pendentes: ${res.falhas}`
+      );
+    } catch (err: unknown) {
+      Alert.alert(
+        'Não foi possível reenviar',
+        humanizarErro(err, 'Verifique sua conexão com a internet e tente novamente.')
+      );
     }
   };
 
@@ -69,18 +74,18 @@ export default function SyncScreen() {
         {/* Header */}
         <Text style={styles.title}>Sincronização de Dados</Text>
         <Text style={styles.subtitle}>
-          Seus dados são salvos no celular e sincronizados automaticamente com a nuvem
+          Seus dados são salvos no aparelho e enviados automaticamente para a nuvem
         </Text>
 
         {/* Painel de Conectividade */}
         <View style={styles.controlPanel}>
           <View style={styles.controlRow}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <Text style={styles.controlTitle}>Conectividade real (expo-network)</Text>
+              <Text style={styles.controlTitle}>Status da conexão</Text>
               <Text style={styles.controlDesc}>
                 {isOnline
-                  ? 'Rede disponível — a outbox pode ser enviada ao Supabase.'
-                  : 'Sem conectividade — os eventos permanecem no SQLite e tentam novamente com backoff.'}
+                  ? 'Internet disponível — pronto para enviar os registros pendentes.'
+                  : 'Sem internet — tudo fica salvo com segurança no aparelho até você reconectar.'}
               </Text>
             </View>
             <View
@@ -89,48 +94,55 @@ export default function SyncScreen() {
           </View>
         </View>
 
-        {/* Status da Fila Outbox */}
+        {/* Status da Fila de Envio */}
         <View style={styles.outboxStatusCard}>
           <View style={styles.outboxStatusHeader}>
-            <Text style={styles.outboxStatusLabel}>Fila Transacional Local (SQLite)</Text>
+            <Text style={styles.outboxStatusLabel}>Envios pendentes</Text>
             <Text style={styles.outboxStatusCount}>
-              {outboxPendentes.length} pacote(s) pendente(s)
+              {outboxPendentes.length} item(ns) aguardando
             </Text>
           </View>
           <Text style={styles.backoffFormula}>
-            Retry exponencial §1.3: T = 2^(tentativas - 1) × 1000ms (1s → 2s → 4s → 8s → 16s),
-            limitado a 60s. Após 5 falhas o evento entra em FALHA_MAXIMA e sai da fila.
+            Caso falhe por falta de sinal, o aplicativo tenta enviar novamente de forma automática.
           </Text>
 
           <TouchableOpacity
             style={[styles.syncBtn, outboxPendentes.length === 0 && styles.syncBtnDisabled]}
             onPress={handleDispararSync}>
             <Text style={styles.syncBtnText}>
-              🔄 Disparar Sincronização Agora ({outboxPendentes.length} pendentes)
+              🔄 Sincronizar Agora ({outboxPendentes.length} pendente(s))
             </Text>
           </TouchableOpacity>
+
+          {outboxComFalha.length > 0 && (
+            <TouchableOpacity
+              style={[styles.syncBtn, { backgroundColor: '#D97706', marginTop: 10 }]}
+              onPress={handleReenviarFalhas}>
+              <Text style={styles.syncBtnText}>
+                ↻ Reenviar itens com falha ({outboxComFalha.length})
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
-        {/* Lista de Itens na Outbox */}
-        <Text style={styles.sectionTitle}>Eventos na Fila Outbox</Text>
+        {/* Lista de Itens Pendentes */}
+        <Text style={styles.sectionTitle}>Fila de envio</Text>
         {outboxPendentes.length === 0 ? (
           <View style={styles.emptyOutboxBox}>
             <Text style={styles.emptyOutboxText}>
-              ✓ Todos os eventos sincronizados com sucesso na nuvem!
+              ✓ Todos os registros já foram enviados com sucesso!
             </Text>
           </View>
         ) : (
           outboxPendentes.map((item) => (
             <View key={item.id} style={styles.outboxItemCard}>
               <View style={styles.outboxItemHeader}>
-                <Text style={styles.outboxTabela}>{item.tabela.toUpperCase()}</Text>
-                <Text style={styles.outboxOpBadge}>{item.operacao}</Text>
+                <Text style={styles.outboxTabela}>{item.tabela.replace('_', ' ').toUpperCase()}</Text>
+                <Text style={styles.outboxOpBadge}>Aguardando envio</Text>
               </View>
-              <Text style={styles.outboxPayloadId}>ID Evento: {item.id}</Text>
               <View style={styles.outboxItemFooter}>
                 <Text style={styles.outboxRetryText}>
-                  Tentativas: {item.tentativas}/{item.maxTentativas} • Backoff:{' '}
-                  {Math.round(item.proximoRetryMs / 1000)}s
+                  Tentativas: {item.tentativas} de {item.maxTentativas}
                 </Text>
                 <Text style={styles.outboxTimeText}>
                   {item.dataCriacao.toLocaleTimeString()}

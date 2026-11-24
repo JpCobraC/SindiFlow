@@ -81,7 +81,7 @@ export class Vistoria {
     // RF-VIST-007 na reidratação: o adapter SQLite monta a vistoria a partir da
     // linha, sem passar por `finalizar()`. Sem isto, todo cold start devolveria
     // uma vistoria FINALIZADA cujos itens ainda aceitam edição.
-    if (this._status === StatusVistoria.FINALIZADA) {
+    if (this._status === StatusVistoria.FINALIZADA || this._status === StatusVistoria.APROVADA) {
       for (const item of this._itens) {
         item.bloquearEdicao();
       }
@@ -118,7 +118,7 @@ export class Vistoria {
     // RF-VIST-007: vistoria já assinada é imutável. Antes desta guarda, chamar
     // `finalizar` duas vezes sobrescrevia `_dataFinalizacao` e a geolocalização
     // pericial, destruindo a evidência sem trilha de auditoria.
-    if (this._status === StatusVistoria.FINALIZADA) {
+    if (this._status === StatusVistoria.FINALIZADA || this._status === StatusVistoria.APROVADA) {
       throw new VistoriaJaFinalizadaError(this.id);
     }
     if (this._status === StatusVistoria.CANCELADA) {

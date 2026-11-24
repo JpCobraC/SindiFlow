@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -8,6 +9,7 @@ import { useVistoria } from '@/src/context/VistoriaContext';
 
 export default function TabLayout() {
   const { usuarioLogado } = useVistoria();
+  const insets = useSafeAreaInsets();
 
   const role = usuarioLogado?.role;
   const isSindico = role === 'SINDICO' || role === 'ADMIN';
@@ -24,8 +26,8 @@ export default function TabLayout() {
           tabBarStyle: {
             backgroundColor: '#161B22',
             borderTopColor: '#30363D',
-            height: 60,
-            paddingBottom: 8,
+            height: 60 + insets.bottom,
+            paddingBottom: Math.max(insets.bottom, 10),
             paddingTop: 6,
           },
           tabBarLabelStyle: {

@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 
 import { useVistoria } from '@/src/context/VistoriaContext';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function LoginScreen() {
   const { fazerLogin } = useVistoria();
@@ -46,8 +47,8 @@ export default function LoginScreen() {
       await fazerLogin(email.trim(), senha);
     } catch (err: any) {
       Alert.alert(
-        'Falha na autenticação',
-        err?.message || 'E-mail ou senha inválidos.'
+        'Não foi possível entrar',
+        humanizarErro(err, 'E-mail ou senha inválidos.')
       );
     } finally {
       setCarregando(false);
@@ -60,7 +61,10 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoiding}
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.logoContainer}>
             <Text style={styles.logoText}>SindiFlow</Text>
             <Text style={styles.subtitle}>Vistoria Predial Preventiva</Text>
@@ -129,7 +133,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
     justifyContent: 'center',
   },

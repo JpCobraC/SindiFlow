@@ -72,6 +72,24 @@ export class CriarVistoriaUseCase {
         usuarioId: input.inspetorId,
         deviceId: input.deviceId,
       });
+
+      for (const item of vistoria.itens) {
+        await this.outboxRepo.enfileirar({
+          tabela: 'itens_checklist',
+          operacao: 'INSERT',
+          idRegistro: item.id,
+          payload: {
+            id: item.id,
+            vistoria_id: vistoria.id,
+            titulo: item.titulo,
+            categoria: item.categoria,
+            status: item.status,
+            observacao: item.observacao ?? null,
+          },
+          usuarioId: input.inspetorId,
+          deviceId: input.deviceId,
+        });
+      }
     }
 
     return vistoria;

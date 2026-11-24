@@ -51,6 +51,7 @@ describe('CriarComunicadoUseCase', () => {
     expect(pendentes[0].idRegistro).toBe('com-1');
     expect(pendentes[0].usuarioId).toBe('sindico-1');
     expect(pendentes[0].deviceId).toBe('device-abc-123');
+    expect(pendentes[0].payload.autor_nome).toBe('Dr. Carlos');
   });
 
   it('deve funcionar sem o repositório de outbox informado', async () => {

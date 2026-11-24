@@ -8,6 +8,8 @@ import { VistoriaRepositorySQLite } from '../../../src/adapters/repositories/vis
 import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { Vistoria , StatusVistoria } from '../../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../../src/domain/entities/item-checklist.entity';
+import { Evidencia } from '../../../src/domain/value-objects/evidencia.vo';
+import { Geolocalizacao } from '../../../src/domain/value-objects/geolocalizacao.vo';
 
 function criarVistoriaDeTeste(props?: Partial<{
   id: string;
@@ -180,5 +182,109 @@ describe('VistoriaRepositorySQLite', () => {
 
     const encontrada = await repo.buscarPorId('vist-upd');
     expect(encontrada?.status).toBe(StatusVistoria.FINALIZADA);
+  });
+
+  it('deve persistir e reidratar metadados de aprovação (parecerTecnico, aprovadoPor, dataAprovacao)', async () => {
+    const item = ItemChecklist.criar({
+      id: 'item-aprov',
+      vistoriaId: 'vist-aprov',
+      titulo: 'Extintores',
+      categoria: 'Incêndio',
+    });
+    item.marcarStatus(StatusItemChecklist.OK);
+
+    const vistoria = Vistoria.criar({
+      id: 'vist-aprov',
+      condominioId: 'cond-1',
+      inspetorId: 'insp-1',
+      itens: [item],
+    });
+    vistoria.finalizar(Geolocalizacao.criar({ latitude: -23.55, longitude: -46.63 }));
+    const dataAprov = new Date('2026-11-24T12:00:00.000Z');
+    vistoria.aprovar('Tudo em conformidade.', 'sindico-1', dataAprov);
+
+    await repo.salvar(vistoria);
+
+    const encontrada = await repo.buscarPorId('vist-aprov');
+    expect(encontrada?.status).toBe(StatusVistoria.APROVADA);
+    expect(encontrada?.parecerTecnico).toBe('Tudo em conformidade.');
+    expect(encontrada?.aprovadoPor).toBe('sindico-1');
+    expect(encontrada?.dataAprovacao).toEqual(dataAprov);
+  });
+
+  it('deve persistir e reidratar metadados de devolução (motivoDevolucao, devolvidoPor)', async () => {
+    const item = ItemChecklist.criar({
+      id: 'item-dev',
+      vistoriaId: 'vist-dev',
+      titulo: 'Bombas',
+      categoria: 'Hidráulica',
+    });
+    item.marcarStatus(StatusItemChecklist.OK);
+
+    const vistoria = Vistoria.criar({
+      id: 'vist-dev',
+      condominioId: 'cond-1',
+      inspetorId: 'insp-1',
+      itens: [item],
+    });
+    vistoria.finalizar(Geolocalizacao.criar({ latitude: -23.55, longitude: -46.63 }));
+    vistoria.devolver('Faltou foto da casa de máquinas.', 'sindico-1');
+
+    await repo.salvar(vistoria);
+
+    const encontrada = await repo.buscarPorId('vist-dev');
+    expect(encontrada?.status).toBe(StatusVistoria.DEVOLVIDA);
+    expect(encontrada?.motivoDevolucao).toBe('Faltou foto da casa de máquinas.');
+    expect(encontrada?.devolvidoPor).toBe('sindico-1');
+  });
+
+  it('deve persistir e reidratar evidências fotográficas dos itens do checklist', async () => {
+    const vistoria = criarVistoriaDeTeste({
+      id: 'vist-fotos',
+      itens: [{ id: 'item-foto', titulo: 'Quadro Elétrico', categoria: 'Elétrica' }],
+    });
+    const ev = Evidencia.criar({
+      id: 'ev-123',
+      caminhoArquivoLocal: 'file:///evidencias/evi_123.jpg',
+      hash: 'sha256_abc',
+      timestamp: new Date('2026-11-24T10:00:00.000Z'),
+    });
+    vistoria.itens[0].adicionarEvidencia(ev);
+
+    await repo.salvar(vistoria);
+
+    const encontrada = await repo.buscarPorId('vist-fotos');
+    expect(encontrada?.itens[0].evidencias).toHaveLength(1);
+    expect(encontrada?.itens[0].evidencias[0].id).toBe('ev-123');
+    expect(encontrada?.itens[0].evidencias[0].caminhoArquivoLocal).toBe('file:///evidencias/evi_123.jpg');
+    expect(encontrada?.itens[0].evidencias[0].hash).toBe('sha256_abc');
+  });
+
+  it('deve persistir gravações consecutivas no mesmo milissegundo sem descartar a segunda', async () => {
+    const item = ItemChecklist.criar({
+      id: 'item-ms',
+      vistoriaId: 'vist-ms',
+      titulo: 'Extintor',
+      categoria: 'Incêndio',
+    });
+    item.marcarStatus(StatusItemChecklist.OK);
+
+    const vistoria = Vistoria.criar({
+      id: 'vist-ms',
+      condominioId: 'cond-1',
+      inspetorId: 'insp-1',
+      itens: [item],
+    });
+    await repo.salvar(vistoria);
+
+    vistoria.finalizar(Geolocalizacao.criar({ latitude: -23.55, longitude: -46.63 }));
+    await repo.salvar(vistoria);
+
+    vistoria.aprovar('Aprovada imediatamente.', 'sindico-1');
+    await repo.salvar(vistoria);
+
+    const encontrada = await repo.buscarPorId('vist-ms');
+    expect(encontrada?.status).toBe(StatusVistoria.APROVADA);
+    expect(encontrada?.parecerTecnico).toBe('Aprovada imediatamente.');
   });
 });

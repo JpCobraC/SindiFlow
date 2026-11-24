@@ -41,17 +41,17 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
     const agora = new Date().toISOString();
 
     await this.executor.emTransacao(async (tx) => {
-      // RF-SYNC-005: last-write-wins por updated_at. Só atualiza se o registro
-      // existente tiver updated_at menor que o novo (ou não existir).
+      // RF-SYNC-005: garante monotonicidade de updated_at para salvar
+      // alterações feitas no mesmo milissegundo sem descartar a gravação.
       const existente = await tx.consultarUm<{ updated_at: string }>(
         'SELECT updated_at FROM ocorrencias WHERE id = ?',
         [ocorrencia.id]
       );
 
-      if (existente && existente.updated_at >= agora) {
-        // Registro existente é mais recente ou igual: não sobrescreve.
-        return;
-      }
+      const timestampSalvar =
+        existente && existente.updated_at >= agora
+          ? new Date(Date.parse(existente.updated_at) + 1).toISOString()
+          : agora;
 
       await tx.executar(
         `INSERT INTO ocorrencias (
@@ -87,7 +87,7 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
           iso(ocorrencia.dataResolucao),
           iso(ocorrencia.dataCancelamento),
           ocorrencia.solucao ?? null,
-          agora,
+          timestampSalvar,
         ]
       );
 
@@ -112,8 +112,8 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
             caminhoFoto,
             caminhoFoto, // hash: usa o caminho como placeholder de integridade
             null,
-            agora,
-            agora,
+            timestampSalvar,
+            timestampSalvar,
           ]
         );
       }
@@ -178,6 +178,7 @@ export class OcorrenciaRepositorySQLite implements IOcorrenciaRepository {
       fotos,
       dataCriacao: new Date(linha.data_criacao),
       dataResolucao: linha.data_resolucao ? new Date(linha.data_resolucao) : undefined,
+      dataCancelamento: linha.data_cancelamento ? new Date(linha.data_cancelamento) : undefined,
       solucao: linha.solucao ?? undefined,
     });
   }

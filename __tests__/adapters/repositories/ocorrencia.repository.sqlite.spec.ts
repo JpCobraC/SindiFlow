@@ -129,4 +129,19 @@ describe('OcorrenciaRepositorySQLite', () => {
     expect(encontrada?.titulo).toBe('Título atualizado');
     expect(encontrada?.gravidade).toBe(GravidadeOcorrencia.ALTA);
   });
+
+  it('deve persistir e reidratar dataCancelamento quando ocorrência é cancelada', async () => {
+    const ocorrencia = criarOcorrenciaDeTeste({
+      id: 'oc-cancel',
+      vistoriaId: 'vist-1',
+      titulo: 'Ocorrência cancelada',
+    });
+    const dataCancel = new Date('2026-11-24T14:30:00.000Z');
+    ocorrencia.cancelar(dataCancel);
+
+    await repo.salvar(ocorrencia);
+
+    const encontrada = await repo.buscarPorId('oc-cancel');
+    expect(encontrada?.dataCancelamento).toEqual(dataCancel);
+  });
 });

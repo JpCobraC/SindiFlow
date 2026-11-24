@@ -44,19 +44,38 @@ export class RegistrarOcorrenciaUseCase {
       payload: {
         id: ocorrencia.id,
         vistoria_id: ocorrencia.vistoriaId,
-        item_id: ocorrencia.itemId,
+        item_id: ocorrencia.itemId ?? null,
         titulo: ocorrencia.titulo,
-        descricao: ocorrencia.descricao,
+        descricao: ocorrencia.descricao ?? null,
         gravidade: ocorrencia.gravidade,
         status: ocorrencia.status,
         sla_horas: ocorrencia.slaHoras,
         data_limite_sla: ocorrencia.dataLimiteSla.toISOString(),
-        fotos: [...ocorrencia.fotos],
-        dataCriacao: ocorrencia.dataCriacao.toISOString(),
+        data_criacao: ocorrencia.dataCriacao.toISOString(),
       },
       usuarioId: input.usuarioId,
       deviceId: input.deviceId,
     });
+
+    for (let idx = 0; idx < ocorrencia.fotos.length; idx++) {
+      const caminho = ocorrencia.fotos[idx];
+      const fotoId = `foto-${ocorrencia.id}-${idx}`;
+      await this.outboxRepo.enfileirar({
+        tabela: 'fotos_evidencia',
+        operacao: 'INSERT',
+        idRegistro: fotoId,
+        payload: {
+          id: fotoId,
+          item_id: ocorrencia.itemId ?? null,
+          ocorrencia_id: ocorrencia.id,
+          caminho_arquivo: caminho,
+          hash: caminho,
+          data_captura: ocorrencia.dataCriacao.toISOString(),
+        },
+        usuarioId: input.usuarioId,
+        deviceId: input.deviceId,
+      });
+    }
 
     return ocorrencia;
   }

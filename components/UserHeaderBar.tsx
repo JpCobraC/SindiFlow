@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { RoleUsuario } from '@/src/domain/entities/usuario.entity';
 import { LoginModal } from './LoginModal';
@@ -8,6 +9,7 @@ import { LoginModal } from './LoginModal';
 export const UserHeaderBar: React.FC = () => {
   const { usuarioLogado, isOnline } = useVistoria();
   const [modalVisible, setModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleOpenLogin = () => {
     if (Platform.OS !== 'web') {
@@ -20,7 +22,7 @@ export const UserHeaderBar: React.FC = () => {
 
   return (
     <>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: Math.max(insets.top + 6, 16) }]}>
         {/* Identificação do Usuário */}
         <TouchableOpacity
           style={styles.profileButton}
@@ -121,7 +123,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 44 : 36,
     paddingBottom: 10,
   },
   profileButton: {

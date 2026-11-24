@@ -41,6 +41,7 @@ export class CriarComunicadoUseCase {
           id: comunicado.id,
           condominio_id: comunicado.condominioId,
           autor_id: comunicado.autorId,
+          autor_nome: comunicado.autorNome,
           titulo: comunicado.titulo,
           conteudo: comunicado.conteudo,
           fixado: comunicado.fixado,

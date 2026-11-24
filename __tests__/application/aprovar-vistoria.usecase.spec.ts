@@ -40,9 +40,11 @@ describe('AprovarVistoriaUseCase', () => {
     expect(pendentes[0].operacao).toBe('UPDATE');
     expect(pendentes[0].usuarioId).toBe('sindico-1');
     expect(pendentes[0].deviceId).toBe('device-abc-123');
-    expect(pendentes[0].payload.tipo).toBe('VISTORIA_APROVADA');
-    expect(pendentes[0].payload.aprovador_id).toBe('sindico-1');
+    expect(pendentes[0].payload.id).toBe('v-1');
+    expect(pendentes[0].payload.status).toBe('APROVADA');
+    expect(pendentes[0].payload.aprovado_por).toBe('sindico-1');
     expect(pendentes[0].payload.parecer_tecnico).toBe('Laudo aprovado');
+    expect(pendentes[0].payload.data_aprovacao).toBeDefined();
   });
 
   it('deve rejeitar quando a vistoria não existe', async () => {

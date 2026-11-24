@@ -20,8 +20,9 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
@@ -50,7 +51,8 @@
         "expo-image-picker",
         {
           "photosPermission": "SindiFlow precisa acessar suas fotos para anexar evidências das vistorias.",
-          "cameraPermission": "SindiFlow precisa da câmera para registrar evidências fotográficas das vistorias e ocorrências."
+          "cameraPermission": "SindiFlow precisa da câmera para registrar evidências fotográficas das vistorias e ocorrências.",
+          "microphonePermission": false
         }
       ],
       [

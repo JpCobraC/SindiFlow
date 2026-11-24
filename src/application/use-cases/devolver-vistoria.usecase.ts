@@ -31,10 +31,12 @@ export class DevolverVistoriaUseCase {
       usuarioId: input.solicitanteId,
       deviceId: input.deviceId,
       payload: {
-        tipo: 'VISTORIA_DEVOLVIDA',
-        vistoria_id: vistoria.id,
-        solicitante_id: input.solicitanteId,
-        motivo: input.motivo,
+        id: vistoria.id,
+        condominio_id: vistoria.condominioId,
+        inspetor_id: vistoria.inspetorId,
+        status: vistoria.status,
+        devolvido_por: input.solicitanteId,
+        motivo_devolucao: input.motivo,
       },
     });
     return vistoria;

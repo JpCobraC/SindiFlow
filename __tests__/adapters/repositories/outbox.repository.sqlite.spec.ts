@@ -220,4 +220,15 @@ describe('OutboxRepositorySQLite', () => {
     const ainda = todos.find((e) => e.id === evento.id);
     expect(ainda?.status).toBe(StatusOutbox.PROCESSANDO);
   });
+
+  it('deve gerar ids únicos entre instâncias distintas (cold start) sem colisão', async () => {
+    const repoSessao1 = new OutboxRepositorySQLite(executor);
+    const ev1 = await repoSessao1.enfileirar(criarDadosOutbox({ idRegistro: 'reg-cold-1' }));
+
+    const repoSessao2 = new OutboxRepositorySQLite(executor);
+    const ev2 = await repoSessao2.enfileirar(criarDadosOutbox({ idRegistro: 'reg-cold-2' }));
+
+    expect(ev1.id).not.toBe(ev2.id);
+    expect(await repoSessao2.listarTodos()).toHaveLength(2);
+  });
 });

@@ -43,12 +43,15 @@ describe('CriarVistoriaUseCase', () => {
     await useCase.executar(entrada);
 
     const pendentes = await outbox.listarTodos();
-    expect(pendentes).toHaveLength(1);
+    expect(pendentes).toHaveLength(3);
     expect(pendentes[0].tabela).toBe('vistorias');
     expect(pendentes[0].operacao).toBe('INSERT');
     expect(pendentes[0].usuarioId).toBe('user-1');
     expect(pendentes[0].deviceId).toBe('device-teste');
     expect(pendentes[0].payload.condominio_id).toBe('cond-1');
+    expect(pendentes[1].tabela).toBe('itens_checklist');
+    expect(pendentes[1].payload.vistoria_id).toBe('vist-100');
+    expect(pendentes[2].tabela).toBe('itens_checklist');
   });
 
   it('deve recusar checklist vazio em vez de criar vistoria inapta a finalizar', async () => {

@@ -29,6 +29,7 @@ export interface OcorrenciaProps {
   fotos?: string[];
   dataCriacao?: Date;
   dataResolucao?: Date;
+  dataCancelamento?: Date;
   solucao?: string;
 }
 
@@ -59,6 +60,9 @@ export class Ocorrencia {
     // `dataCriacao.setFullYear(1999)`, que reescreveria o prazo do SLA em disco.
     this.dataCriacao = new Date((props.dataCriacao ?? new Date()).getTime());
     this._dataResolucao = props.dataResolucao;
+    this._dataCancelamento = props.dataCancelamento
+      ? new Date(props.dataCancelamento.getTime())
+      : undefined;
     this._solucao = props.solucao;
   }
 

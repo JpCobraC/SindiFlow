@@ -32,7 +32,7 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
 
   private proximoId(): string {
     this.sequencia += 1;
-    return `out-${this.sequencia}`;
+    return `out-${Date.now()}-${this.sequencia}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   private chaveDedup(dados: DadosOutbox): string {

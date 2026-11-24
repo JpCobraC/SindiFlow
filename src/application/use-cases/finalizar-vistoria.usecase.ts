@@ -44,10 +44,12 @@ export class FinalizarVistoriaUseCase {
       payload: {
         id: vistoria.id,
         condominio_id: vistoria.condominioId,
+        inspetor_id: vistoria.inspetorId,
         status: vistoria.status,
         data_finalizacao: vistoria.dataFinalizacao?.toISOString(),
         latitude: geo.latitude,
         longitude: geo.longitude,
+        precisao: geo.precisao ?? null,
       },
       usuarioId: vistoria.inspetorId,
       deviceId: input.deviceId,

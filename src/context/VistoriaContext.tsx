@@ -22,7 +22,12 @@ import React, {
 import { CameraGatewayExpo } from '../adapters/gateways/camera.gateway.expo';
 import { FileSystemGateway } from '../adapters/gateways/file-system.gateway.real';
 import { LocationGatewayExpo } from '../adapters/gateways/location.gateway.expo';
-import { CapturaFotoOptions, ICameraGateway, ResultadoCaptura } from '../domain/interfaces/camera.gateway.interface';
+import {
+  CapturaFotoOptions,
+  FotoCapturada,
+  ICameraGateway,
+  ResultadoCaptura,
+} from '../domain/interfaces/camera.gateway.interface';
 import { IFileSystemGateway } from '../domain/interfaces/file-system.gateway.interface';
 import {
   ILocationGateway,
@@ -30,7 +35,12 @@ import {
 import { ItemChecklist, StatusItemChecklist } from '../domain/entities/item-checklist.entity';
 import { GravidadeOcorrencia, Ocorrencia } from '../domain/entities/ocorrencia.entity';
 import { Vistoria } from '../domain/entities/vistoria.entity';
-import { OutboxEvent } from '../domain/entities/outbox-event.entity';
+import { OutboxEvent, StatusOutbox } from '../domain/entities/outbox-event.entity';
+import {
+  ItemChecklistNaoEncontradoError,
+  OcorrenciaNaoEncontradaError,
+  PermissaoNegadaError,
+} from '../domain/errors/domain-errors';
 import { Evidencia } from '../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../domain/value-objects/geolocalizacao.vo';
 import { Usuario } from '../domain/entities/usuario.entity';
@@ -57,6 +67,7 @@ export interface VistoriaContextData {
   itensChecklist: ItemChecklist[];
   ocorrencias: Ocorrencia[];
   outboxPendentes: OutboxEvent[];
+  outboxComFalha: OutboxEvent[];
   auditLogs: AuditLogItem[];
   comunicados: Comunicado[];
 
@@ -70,9 +81,11 @@ export interface VistoriaContextData {
   cameraGateway: ICameraGateway;
   fileSystemGateway: IFileSystemGateway;
   capturarLocalizacao: () => Promise<Geolocalizacao>;
+  capturarFotoAvulsa: (origem?: 'camera' | 'galeria') => Promise<FotoCapturada | null>;
   anexarFoto: (params: {
     itemId?: string;
     ocorrenciaId?: string;
+    origem?: 'camera' | 'galeria';
   }) => Promise<Evidencia | null>;
 
   // Casos de uso & ações
@@ -94,6 +107,7 @@ export interface VistoriaContextData {
   }) => Promise<Ocorrencia>;
   criarComunicado: (titulo: string, conteudo: string) => Promise<void>;
   sincronizarOutbox: () => Promise<SincronizacaoResultado>;
+  reentarFalhasOutbox: () => Promise<SincronizacaoResultado>;
 }
 
 const VistoriaContext = createContext<VistoriaContextData>({} as VistoriaContextData);
@@ -121,6 +135,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [itensChecklist, setItensChecklist] = useState<ItemChecklist[]>([]);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [outboxPendentes, setOutboxPendentes] = useState<OutboxEvent[]>([]);
+  const [outboxComFalha, setOutboxComFalha] = useState<OutboxEvent[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [isOnline, setIsOnline] = useState(false);
@@ -146,8 +161,20 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, []);
 
   const atualizarEstadoOutbox = useCallback(async (app: AplicacaoComposta) => {
-    const pendentes = await app.repositorios.outbox.obterPendentes();
-    setOutboxPendentes([...pendentes]);
+    try {
+      const todos = await app.repositorios.outbox.listarTodos();
+      setOutboxPendentes(
+        todos.filter(
+          (e) =>
+            e.status === StatusOutbox.PENDENTE || e.status === StatusOutbox.PROCESSANDO
+        )
+      );
+      setOutboxComFalha(
+        todos.filter((e) => e.status === StatusOutbox.FALHA_MAXIMA)
+      );
+    } catch {
+      // Falha silenciosa ao atualizar badge da fila local
+    }
   }, []);
 
   const atualizarEstadoOcorrencias = useCallback(
@@ -192,6 +219,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setItensChecklist([]);
     setOcorrencias([]);
     setOutboxPendentes([]);
+    setOutboxComFalha([]);
     setComunicados([]);
   }, []);
 
@@ -259,8 +287,13 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         senha,
       });
       setUsuarioLogado(usuario);
-      await carregarDadosDoUsuario(app, usuario);
-      addLog('SUCESSO', `Usuário "${usuario.nome}" autenticado [${usuario.role}].`);
+      try {
+        await carregarDadosDoUsuario(app, usuario);
+      } catch {
+        // Não derruba o login caso o carregamento inicial do banco local falhe;
+        // o usuário já está autenticado e os dados podem ser recarregados depois.
+      }
+      addLog('SUCESSO', `Usuário "${usuario.nome}" autenticado.`);
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
       addLog('BLOQUEIO', `Falha na autenticação: ${mensagem}`);
@@ -415,14 +448,117 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const capturarFotoAvulsa = async (
+    origem: 'camera' | 'galeria' = 'camera'
+  ): Promise<FotoCapturada | null> => {
+    const opcoes: CapturaFotoOptions = {
+      larguraMaxima: 1080,
+      alturaMaxima: 1080,
+      qualidade: 0.8,
+    };
+
+    let resultado: ResultadoCaptura;
+    if (origem === 'galeria') {
+      let permissao = await cameraGateway.temPermissaoGaleria();
+      if (!permissao) {
+        permissao = await cameraGateway.solicitarPermissaoGaleria();
+        if (!permissao) {
+          throw new PermissaoNegadaError('Galeria');
+        }
+      }
+      resultado = await cameraGateway.selecionarDaGaleria(opcoes);
+    } else {
+      let permissao = await cameraGateway.temPermissao();
+      if (!permissao) {
+        permissao = await cameraGateway.solicitarPermissao();
+        if (!permissao) {
+          throw new PermissaoNegadaError('Câmera');
+        }
+      }
+      resultado = await cameraGateway.capturarFoto(opcoes);
+    }
+
+    if (resultado.status === 'cancelado') {
+      return null;
+    }
+    if (resultado.status === 'erro') {
+      throw new Error(resultado.mensagem);
+    }
+    return resultado.foto;
+  };
+
   const anexarFoto = async (params: {
     itemId?: string;
     ocorrenciaId?: string;
+    origem?: 'camera' | 'galeria';
   }): Promise<Evidencia | null> => {
     if (!vistoriaAtiva) throw new Error('Nenhuma vistoria ativa.');
     const app = exigirApp();
 
     try {
+      if (params.origem === 'galeria') {
+        let vistoriaDestino: Vistoria | null = null;
+        let ocorrenciaDestino: Ocorrencia | null = null;
+
+        if (params.itemId) {
+          vistoriaDestino = await app.repositorios.vistoria.buscarPorId(vistoriaAtiva.id);
+          if (!vistoriaDestino) throw new Error('Nenhuma vistoria ativa.');
+          const itemExiste = vistoriaDestino.itens.some((i) => i.id === params.itemId);
+          if (!itemExiste) throw new ItemChecklistNaoEncontradoError(params.itemId);
+        } else if (params.ocorrenciaId) {
+          ocorrenciaDestino = await app.repositorios.ocorrencia.buscarPorId(
+            params.ocorrenciaId
+          );
+          if (!ocorrenciaDestino) {
+            throw new OcorrenciaNaoEncontradaError(params.ocorrenciaId);
+          }
+        } else {
+          throw new Error('Selecione um item ou ocorrência para anexar a foto.');
+        }
+
+        const foto = await capturarFotoAvulsa('galeria');
+        if (!foto) return null;
+
+        const evidencia = Evidencia.criar({
+          id: `ev-${foto.timestamp.getTime()}-${Math.random().toString(36).slice(2, 6)}`,
+          caminhoArquivoLocal: foto.uri,
+          hash: foto.hash,
+          timestamp: foto.timestamp,
+        });
+
+        if (params.itemId && vistoriaDestino) {
+          const item = vistoriaDestino.itens.find((i) => i.id === params.itemId)!;
+          item.adicionarEvidencia(evidencia);
+          await app.repositorios.vistoria.salvar(vistoriaDestino);
+          setVistoriaAtiva(vistoriaDestino);
+          setItensChecklist([...vistoriaDestino.itens]);
+        } else if (params.ocorrenciaId && ocorrenciaDestino) {
+          ocorrenciaDestino.adicionarFoto(evidencia.caminhoArquivoLocal);
+          await app.repositorios.ocorrencia.salvar(ocorrenciaDestino);
+          await atualizarEstadoOcorrencias(app, vistoriaAtiva.id);
+        }
+
+        await app.repositorios.outbox.enfileirar({
+          tabela: 'fotos_evidencia',
+          operacao: 'INSERT',
+          idRegistro: evidencia.id,
+          payload: {
+            id: evidencia.id,
+            item_id: params.itemId ?? null,
+            ocorrencia_id: params.ocorrenciaId ?? null,
+            caminho_arquivo: evidencia.caminhoArquivoLocal,
+            hash: evidencia.hash,
+            data_captura: evidencia.timestamp.toISOString(),
+          },
+          usuarioId: usuarioLogado?.id ?? vistoriaAtiva.inspetorId,
+          deviceId: app.deviceId,
+        });
+
+        await atualizarEstadoOutbox(app);
+        addLog('SUCESSO', 'Foto da galeria anexada com sucesso.');
+        return evidencia;
+      }
+
       const resultado = await app.casosDeUso.anexarFoto.executar({
         vistoriaId: vistoriaAtiva.id,
         itemId: params.itemId,
@@ -455,7 +591,8 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await atualizarEstadoOcorrencias(app, vistoriaAtiva.id);
       }
 
-      addLog('SUCESSO', `Foto salva no SQLite + FileSystem: ${evidencia.caminhoArquivoLocal}`);
+      await atualizarEstadoOutbox(app);
+      addLog('SUCESSO', 'Foto anexada com sucesso.');
       return evidencia;
     } catch (err: unknown) {
       const mensagem = err instanceof Error ? err.message : String(err);
@@ -601,6 +738,17 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
+  const reentarFalhasOutbox = async (): Promise<SincronizacaoResultado> => {
+    const app = exigirApp();
+    const todos = await app.repositorios.outbox.listarTodos();
+    const falhas = todos.filter((e) => e.status === StatusOutbox.FALHA_MAXIMA);
+    for (const item of falhas) {
+      await app.repositorios.outbox.resetar(item.id);
+    }
+    await atualizarEstadoOutbox(app);
+    return sincronizarOutbox();
+  };
+
   return (
     <VistoriaContext.Provider
       value={{
@@ -612,6 +760,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         itensChecklist,
         ocorrencias,
         outboxPendentes,
+        outboxComFalha,
         auditLogs,
         comunicados,
         isOnline,
@@ -621,6 +770,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         cameraGateway,
         fileSystemGateway,
         capturarLocalizacao,
+        capturarFotoAvulsa,
         anexarFoto,
         iniciarVistoria,
         marcarItem,
@@ -630,6 +780,7 @@ export const VistoriaProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         registrarOcorrencia,
         criarComunicado,
         sincronizarOutbox,
+        reentarFalhasOutbox,
       }}>
       {children}
     </VistoriaContext.Provider>

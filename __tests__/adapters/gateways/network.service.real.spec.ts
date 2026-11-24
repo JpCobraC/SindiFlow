@@ -74,6 +74,17 @@ describe('NetworkServiceReal', () => {
     expect(await service.estaConectado()).toBe(false);
   });
 
+  it('deve retornar ONLINE quando isConnected é true e isInternetReachable é null (Android)', async () => {
+    mockGetNetworkStateAsync.mockResolvedValue({
+      isConnected: true,
+      isInternetReachable: null,
+    });
+
+    const estado = await service.estadoConexao();
+    expect(estado).toBe(EstadoRede.ONLINE);
+    expect(await service.estaConectado()).toBe(true);
+  });
+
   it('deve chamar expo-network getNetworkStateAsync', async () => {
     mockGetNetworkStateAsync.mockResolvedValue({ isInternetReachable: true });
     await service.estadoConexao();

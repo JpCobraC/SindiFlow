@@ -2,7 +2,10 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -15,6 +18,7 @@ import {
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { StatusItemChecklist } from '@/src/domain/entities/item-checklist.entity';
 import { StatusVistoria } from '@/src/domain/entities/vistoria.entity';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function VistoriaScreen() {
   const {
@@ -44,7 +48,9 @@ export default function VistoriaScreen() {
   // Cálculo de progresso do agregado de domínio
   const percentual = vistoriaAtiva ? Math.round(vistoriaAtiva.percentualRespondido()) : 0;
   const aptoParaFinalizar = percentual >= 80;
-  const isFinalizada = vistoriaAtiva?.status === StatusVistoria.FINALIZADA;
+  const isFinalizada =
+    vistoriaAtiva?.status === StatusVistoria.FINALIZADA ||
+    vistoriaAtiva?.status === StatusVistoria.APROVADA;
 
   const handleObterGPS = async () => {
     try {
@@ -60,13 +66,16 @@ export default function VistoriaScreen() {
         `📍 Coordenadas: [${geo.latitude.toFixed(6)}, ${geo.longitude.toFixed(6)}]\n🎯 Precisão: ${geo.precisao ?? '4.5'} metros`
       );
     } catch (err: any) {
-      Alert.alert('Falha na Localização', err?.message || 'Não foi possível capturar o GPS.');
+      Alert.alert('Falha na Localização', humanizarErro(err, 'Não foi possível capturar o GPS.'));
     } finally {
       setCapturandoGps(false);
     }
   };
 
-  const handleAnexarFoto = async (itemId: string) => {
+  const handleAnexarFoto = async (
+    itemId: string,
+    origem: 'camera' | 'galeria' = 'camera'
+  ) => {
     if (isFinalizada) {
       Alert.alert('Vistoria Concluída', 'Esta vistoria já foi finalizada e não aceita mais fotos.');
       return;
@@ -74,14 +83,26 @@ export default function VistoriaScreen() {
 
     try {
       setAnexandoFotoId(itemId);
-      const ev = await anexarFoto({ itemId });
+      const ev = await anexarFoto({ itemId, origem });
       if (ev) {
-        const nomeArquivo = ev.caminhoArquivoLocal.split('/').pop();
-        Alert.alert('✓ Foto Anexada ao Item!', `Arquivo salvo: ${nomeArquivo}`);
+        Alert.alert('✓ Foto Anexada', 'A foto foi salva neste item da vistoria.');
       }
     } catch (err: any) {
       if (err?.message?.includes('cancelada')) return;
-      Alert.alert('Falha na Câmera', err?.message || 'Não foi possível capturar a foto.');
+      const msg = humanizarErro(err, 'Não foi possível capturar a foto.');
+      if (origem === 'camera') {
+        Alert.alert('Não foi possível abrir a câmera', msg, [
+          { text: 'Fechar', style: 'cancel' },
+          {
+            text: 'Escolher da Galeria',
+            onPress: () => {
+              void handleAnexarFoto(itemId, 'galeria');
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Falha ao selecionar foto', msg);
+      }
     } finally {
       setAnexandoFotoId(null);
     }
@@ -103,7 +124,7 @@ export default function VistoriaScreen() {
     try {
       await marcarItem(id, novoStatus);
     } catch (err: any) {
-      Alert.alert('Atenção', err?.message || 'Falha ao classificar item');
+      Alert.alert('Atenção', humanizarErro(err, 'Não foi possível atualizar o item.'));
     }
   };
 
@@ -123,7 +144,7 @@ export default function VistoriaScreen() {
       setSelectedItemId(null);
       setJustificativa('');
     } catch (err: any) {
-      Alert.alert('Inconformidade Técnica', err?.message || 'Falha ao classificar item.');
+      Alert.alert('Atenção', humanizarErro(err, 'Não foi possível salvar a justificativa.'));
     }
   };
 
@@ -132,12 +153,12 @@ export default function VistoriaScreen() {
       await finalizarVistoria(sessionGps?.latitude, sessionGps?.longitude);
       Alert.alert(
         '✓ Vistoria Finalizada com Sucesso!',
-        `📍 Assinatura digital com geolocalização pericial capturada via Expo Location\n📊 Índice de itens avaliados: ${percentual}%\n📄 Laudo técnico arquivado e pronto para envio à administração.`
+        `📍 Localização registrada com sucesso\n📊 Itens avaliados: ${percentual}%\n📄 Laudo técnico pronto para análise do síndico.`
       );
     } catch (err: any) {
       Alert.alert(
-        'Vistoria Incompleta ou Bloqueada',
-        err?.message || 'É obrigatório inspecionar pelo menos 80% dos itens do checklist para concluir a vistoria.'
+        'Não foi possível finalizar',
+        humanizarErro(err, 'Responda pelo menos 80% dos itens antes de finalizar a vistoria.')
       );
     }
   };
@@ -148,7 +169,7 @@ export default function VistoriaScreen() {
     } catch (err: any) {
       Alert.alert(
         'Não foi possível iniciar',
-        err?.message || 'Apenas inspetores podem iniciar uma vistoria.'
+        humanizarErro(err, 'Apenas inspetores podem iniciar uma vistoria.')
       );
     }
   };
@@ -169,7 +190,7 @@ export default function VistoriaScreen() {
           Nenhuma vistoria ativa
         </Text>
         <Text style={{ color: '#94A3B8', marginBottom: 20, textAlign: 'center' }}>
-          Inicie uma nova vistoria. O checklist padrão é gravado no SQLite e enfileirado para sincronizar.
+          Inicie uma nova vistoria. O checklist padrão fica salvo no aparelho e sincroniza quando houver conexão.
         </Text>
         <TouchableOpacity
           style={[styles.finalizeBtn, { paddingHorizontal: 24, paddingVertical: 12, marginTop: 8 }]}
@@ -262,9 +283,8 @@ export default function VistoriaScreen() {
                 {vistoriaAtiva.geolocalizacao.longitude.toFixed(6)}
               </Text>
               <Text style={styles.geoDetails}>
-                ✓ Vinculada à vistoria finalizada • Precisão:{' '}
-                {vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m • Fonte:{' '}
-                Expo Location Nativo
+                ✓ Localização registrada • Precisão:{' '}
+                {vistoriaAtiva.geolocalizacao.precisao ?? '4.5'}m
               </Text>
             </View>
           ) : sessionGps ? (
@@ -273,17 +293,28 @@ export default function VistoriaScreen() {
                 Lat: {sessionGps.latitude.toFixed(6)} | Long: {sessionGps.longitude.toFixed(6)}
               </Text>
               <Text style={styles.geoDetails}>
-                Sessão em andamento • Precisão: {sessionGps.precisao ?? '4.5'}m • Provedor:{' '}
-                Expo Location
+                Sessão em andamento • Precisão: {sessionGps.precisao ?? '4.5'}m
               </Text>
             </View>
           ) : (
             <Text style={styles.geoEmpty}>
-              Nenhuma coordenada capturada ainda. O GPS será obtido automaticamente via LocationGateway
-              ao finalizar a inspeção, ou toque em Testar / Atualizar GPS.
+              Nenhuma coordenada capturada ainda. O GPS será obtido automaticamente ao finalizar a
+              inspeção, ou toque em Atualizar GPS.
             </Text>
           )}
         </View>
+
+        {vistoriaAtiva.status === StatusVistoria.DEVOLVIDA && (
+          <View style={styles.devolvidaBanner}>
+            <Text style={styles.devolvidaBannerTitle}>
+              ⚠️ Vistoria devolvida para revisão
+            </Text>
+            <Text style={styles.devolvidaBannerText}>
+              Motivo informado pelo síndico:{' '}
+              {vistoriaAtiva.motivoDevolucao || 'Revisar apontamentos antes de reenviar.'}
+            </Text>
+          </View>
+        )}
 
         {/* Lista de Itens do Checklist */}
         <View style={styles.sectionHeaderRow}>
@@ -312,7 +343,7 @@ export default function VistoriaScreen() {
 
             {item.observacao ? (
               <View style={styles.observacaoBox}>
-                <Text style={styles.observacaoLabel}>Justificativa Técnica (RF-VIST-003):</Text>
+                <Text style={styles.observacaoLabel}>Justificativa Técnica:</Text>
                 <Text style={styles.observacaoText}>{item.observacao}</Text>
               </View>
             ) : null}
@@ -365,26 +396,44 @@ export default function VistoriaScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Ação de Evidência Fotográfica do Item (CameraGateway / RF-EVI-001) */}
+            {/* Ação de Evidência Fotográfica do Item */}
             <View style={styles.itemFooterRow}>
-              <TouchableOpacity
-                style={styles.itemFotoBtn}
-                onPress={() => handleAnexarFoto(item.id)}
-                disabled={isFinalizada || anexandoFotoId === item.id}>
-                <Text style={styles.itemFotoBtnText}>
-                  {anexandoFotoId === item.id
-                    ? 'Capturando...'
-                    : item.evidencias.length > 0
-                    ? `📷 ${item.evidencias.length} Foto(s) Anexada(s)`
-                    : '📷 Tirar Foto (Câmera)'}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.itemFotoActions}>
+                <TouchableOpacity
+                  style={styles.itemFotoBtn}
+                  onPress={() => handleAnexarFoto(item.id, 'camera')}
+                  disabled={isFinalizada || anexandoFotoId === item.id}>
+                  <Text style={styles.itemFotoBtnText}>
+                    {anexandoFotoId === item.id ? 'Abrindo...' : '📷 Tirar Foto'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.itemFotoBtn}
+                  onPress={() => handleAnexarFoto(item.id, 'galeria')}
+                  disabled={isFinalizada || anexandoFotoId === item.id}>
+                  <Text style={styles.itemFotoBtnText}>🖼️ Galeria</Text>
+                </TouchableOpacity>
+              </View>
               {item.evidencias.length > 0 && (
-                <Text style={styles.itemFotoHash}>
-                  Hash: {item.evidencias[item.evidencias.length - 1].hash?.slice(0, 12)}...
+                <Text style={styles.itemFotoCount}>
+                  {item.evidencias.length} foto(s) anexada(s)
                 </Text>
               )}
             </View>
+            {item.evidencias.length > 0 && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.thumbsRow}>
+                {item.evidencias.map((ev) => (
+                  <Image
+                    key={ev.id}
+                    source={{ uri: ev.caminhoArquivoLocal }}
+                    style={styles.thumbImage}
+                  />
+                ))}
+              </ScrollView>
+            )}
           </View>
         ))}
 
@@ -403,40 +452,46 @@ export default function VistoriaScreen() {
 
       {/* Modal de Justificativa Obrigatória para Crítico */}
       <Modal visible={modalVisible} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Justificativa Obrigatória</Text>
-            <Text style={styles.modalSubtitle}>
-              Qualquer item classificado como CRÍTICO exige justificativa técnica detalhando a anomalia.
-            </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}>
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Justificativa Obrigatória</Text>
+              <Text style={styles.modalSubtitle}>
+                Qualquer item classificado como CRÍTICO exige justificativa técnica detalhando a anomalia.
+              </Text>
 
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Descreva o problema crítico, risco e necessidade de reparo..."
-              placeholderTextColor="#64748B"
-              multiline
-              numberOfLines={4}
-              value={justificativa}
-              onChangeText={setJustificativa}
-            />
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Descreva o problema crítico, risco e necessidade de reparo..."
+                placeholderTextColor="#64748B"
+                multiline
+                numberOfLines={4}
+                value={justificativa}
+                onChangeText={setJustificativa}
+              />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalBtnCancel}
-                onPress={() => {
-                  setModalVisible(false);
-                  setSelectedItemId(null);
-                  setJustificativa('');
-                }}>
-                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalBtnCancel}
+                  onPress={() => {
+                    setModalVisible(false);
+                    setSelectedItemId(null);
+                    setJustificativa('');
+                  }}>
+                  <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirmarCritico}>
-                <Text style={styles.modalBtnConfirmText}>Confirmar Crítico</Text>
-              </TouchableOpacity>
+                <TouchableOpacity style={styles.modalBtnConfirm} onPress={handleConfirmarCritico}>
+                  <Text style={styles.modalBtnConfirmText}>Confirmar Crítico</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -578,15 +633,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
     marginTop: 10,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#1E293B',
   },
+  itemFotoActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   itemFotoBtn: {
     backgroundColor: '#1E293B',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: '#3B4B70',
@@ -596,10 +657,40 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#38BDF8',
   },
-  itemFotoHash: {
-    fontSize: 10,
-    color: '#64748B',
-    fontFamily: 'monospace',
+  itemFotoCount: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '700',
+  },
+  thumbsRow: {
+    marginTop: 10,
+  },
+  thumbImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#30363D',
+  },
+  devolvidaBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  devolvidaBannerTitle: {
+    color: '#FBBF24',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 4,
+  },
+  devolvidaBannerText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    lineHeight: 17,
   },
   headerCard: {
     backgroundColor: '#151D30',
@@ -851,6 +942,9 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,

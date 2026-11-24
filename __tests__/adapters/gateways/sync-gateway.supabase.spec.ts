@@ -109,4 +109,57 @@ describe('SyncGatewaySupabase', () => {
 
     await expect(gateway.sincronizarItem(evento)).resolves.toBeUndefined();
   });
+
+  it('normaliza tabela legada item_checklist e campos legados antes do upsert', async () => {
+    const evento = criarEventoDeTeste({
+      tabela: 'item_checklist',
+      operacao: 'UPDATE',
+      idRegistro: 'item-1',
+      payload: {
+        id: 'item-1',
+        vistoria_id: 'vist-1',
+        status: 'OK',
+        percentual_vistoria: 50,
+      },
+    });
+
+    await gateway.sincronizarItem(evento);
+
+    expect(mockFrom).toHaveBeenCalledWith('itens_checklist');
+    expect(mockUpsert).toHaveBeenCalledWith(
+      {
+        id: 'item-1',
+        vistoria_id: 'vist-1',
+        status: 'OK',
+      },
+      { onConflict: 'id' }
+    );
+  });
+
+  it('normaliza payload legado de aprovação/devolução de vistoria', async () => {
+    const evento = criarEventoDeTeste({
+      tabela: 'vistorias',
+      operacao: 'UPDATE',
+      idRegistro: 'vist-legado',
+      payload: {
+        tipo: 'VISTORIA_APROVADA',
+        vistoria_id: 'vist-legado',
+        aprovador_id: 'sindico-1',
+        parecer_tecnico: 'Ok',
+      },
+    });
+
+    await gateway.sincronizarItem(evento);
+
+    expect(mockFrom).toHaveBeenCalledWith('vistorias');
+    expect(mockUpsert).toHaveBeenCalledWith(
+      {
+        id: 'vist-legado',
+        status: 'APROVADA',
+        aprovado_por: 'sindico-1',
+        parecer_tecnico: 'Ok',
+      },
+      { onConflict: 'id' }
+    );
+  });
 });

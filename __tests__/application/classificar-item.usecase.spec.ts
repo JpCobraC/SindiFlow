@@ -1,8 +1,8 @@
+import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 import { ClassificarItemChecklistUseCase } from '../../src/application/use-cases/classificar-item.usecase';
 import { ItemChecklist, StatusItemChecklist } from '../../src/domain/entities/item-checklist.entity';
 import { StatusVistoria, Vistoria } from '../../src/domain/entities/vistoria.entity';
 import { ItemChecklistNaoEncontradoError, ItemCriticoSemObservacaoError } from '../../src/domain/errors/domain-errors';
-import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 import { IVistoriaRepository } from '../../src/domain/interfaces/vistoria.repository.interface';
 
 class FakeVistoriaRepository implements IVistoriaRepository {
@@ -70,7 +70,7 @@ describe('ClassificarItemChecklistUseCase (Application)', () => {
     const itemAtualizado = vistoria.itens.find((i) => i.id === 'item-1');
     expect(itemAtualizado?.status).toBe(StatusItemChecklist.OK);
     expect((await outboxRepo.listarTodos()).length).toBe(1);
-    expect((await outboxRepo.listarTodos())[0].tabela).toBe('item_checklist');
+    expect((await outboxRepo.listarTodos())[0].tabela).toBe('itens_checklist');
   });
 
   it('deve bloquear status CRITICO se não for fornecida observação/justificativa (RF-VIST-003)', async () => {

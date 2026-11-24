@@ -7,12 +7,14 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
 import { StatusVistoria } from '@/src/domain/entities/vistoria.entity';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function SindicoScreen() {
   const {
@@ -56,7 +58,7 @@ export default function SindicoScreen() {
         'A vistoria pericial foi homologada e o laudo agora está público para todos os condôminos.'
       );
     } catch (e: any) {
-      Alert.alert('Erro ao aprovar', e?.message || 'Falha na aprovação');
+      Alert.alert('Não foi possível aprovar', humanizarErro(e, 'Falha na aprovação do laudo.'));
     } finally {
       setIsProcessando(false);
     }
@@ -74,9 +76,9 @@ export default function SindicoScreen() {
       }
       await devolverVistoria(motivoDevolucao.trim());
       setMotivoDevolucao('');
-      Alert.alert('Vistoria Devolvida', 'A vistoria foi devolvida para revisão técnica do perito.');
+      Alert.alert('Vistoria Devolvida', 'A vistoria foi devolvida para revisão do inspetor.');
     } catch (e: any) {
-      Alert.alert('Erro ao devolver', e?.message || 'Falha na devolução');
+      Alert.alert('Não foi possível devolver', humanizarErro(e, 'Falha ao devolver a vistoria.'));
     } finally {
       setIsProcessando(false);
     }
@@ -96,7 +98,7 @@ export default function SindicoScreen() {
       setNovoAvisoConteudo('');
       Alert.alert('Comunicado Emitido', 'O comunicado foi publicado no mural de todos os condôminos.');
     } catch (e: any) {
-      Alert.alert('Erro ao publicar', e?.message || 'Falha na publicação');
+      Alert.alert('Erro ao publicar', humanizarErro(e, 'Falha na publicação do comunicado.'));
     }
   };
 
@@ -110,16 +112,22 @@ export default function SindicoScreen() {
         }
       }
       await finalizarVistoria(-23.55052, -46.633308);
-      Alert.alert('Vistoria Finalizada', 'Vistoria 100% preenchida com GPS pericial. Agora você pode homologá-la como Síndico!');
+      Alert.alert('Vistoria Finalizada', 'Vistoria concluída com sucesso. Agora você pode aprová-la como Síndico.');
     } catch (e: any) {
-      Alert.alert('Aviso', e?.message || 'Não foi possível finalizar automaticamente');
+      Alert.alert('Aviso', humanizarErro(e, 'Não foi possível finalizar automaticamente.'));
     } finally {
       setIsProcessando(false);
     }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingBottom: 80 }]}
+        keyboardShouldPersistTaps="handled">
       {/* Alerta de Perfil quando não for síndico */}
       {!isSindico && (
         <View style={styles.switchAlertCard}>
@@ -178,9 +186,19 @@ export default function SindicoScreen() {
                 ? styles.badgeFinalizado
                 : styles.badgePendente,
             ]}>
-            <Text style={styles.statusBadgeText}>{vistoriaAtiva?.status}</Text>
+            <Text style={styles.statusBadgeText}>
+              {vistoriaAtiva?.status ?? 'SEM VISTORIA'}
+            </Text>
           </View>
         </View>
+
+        {!vistoriaAtiva && (
+          <View style={styles.draftHelpBox}>
+            <Text style={styles.draftHelpText}>
+              Nenhuma vistoria foi registrada ainda para este condomínio. Quando o inspetor iniciar e concluir a vistoria, ela aparecerá aqui para aprovação.
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.cardDesc}>
           Condomínio: Edifício Solar das Palmeiras • Inspetor Responsável: Eng. Carlos Eduardo (CREA 50692)
@@ -272,9 +290,9 @@ export default function SindicoScreen() {
 
       {/* Monitor de SLAs Críticos */}
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>MONITOR DE MATRIZ DE SLA (§3.2)</Text>
+        <Text style={styles.cardTitle}>ACOMPANHAMENTO DE OCORRÊNCIAS E PRAZOS</Text>
         <Text style={styles.cardDesc}>
-          Acompanhamento de apontamentos críticos com risco estrutural ou de segurança:
+          Chamados e apontamentos ordenados por prazo de atendimento:
         </Text>
 
         {ocorrencias.map((oc) => {
@@ -298,13 +316,13 @@ export default function SindicoScreen() {
                       styles.slaBadgeText,
                       { color: isAlta ? '#F85149' : '#E3B341' },
                     ]}>
-                    SLA {oc.slaHoras}h
+                    Prazo {oc.slaHoras}h
                   </Text>
                 </View>
               </View>
               {oc.descricao && <Text style={styles.slaItemDesc}>{oc.descricao}</Text>}
               <Text style={styles.slaItemMeta}>
-                Gravidade: {oc.gravidade} • ID: {oc.id} • Evidências: {oc.fotos.length} foto(s)
+                Gravidade: {oc.gravidade} • Fotos anexadas: {oc.fotos.length}
               </Text>
             </View>
           );
@@ -365,6 +383,7 @@ export default function SindicoScreen() {
 
       <View style={{ height: 40 }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

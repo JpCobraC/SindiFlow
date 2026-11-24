@@ -1,8 +1,8 @@
+import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 import { RegistrarOcorrenciaUseCase } from '../../src/application/use-cases/registrar-ocorrencia.usecase';
 import { GravidadeOcorrencia } from '../../src/domain/entities/ocorrencia.entity';
 import { OcorrenciaAltaSemFotoError } from '../../src/domain/errors/domain-errors';
 import { IOcorrenciaRepository } from '../../src/domain/interfaces/ocorrencia.repository.interface';
-import { OutboxRepositoryInMemory } from '../../src/adapters/repositories/outbox.repository.inmemory';
 
 class FakeOcorrenciaRepository implements IOcorrenciaRepository {
   private itens: any[] = [];
@@ -93,6 +93,13 @@ describe('RegistrarOcorrenciaUseCase (Application)', () => {
     expect(output.gravidade).toBe(GravidadeOcorrencia.ALTA);
     expect(output.slaHoras).toBe(24);
     expect(output.fotos.length).toBe(1);
-    expect((await outboxRepo.listarTodos()).length).toBe(1);
+
+    const eventos = await outboxRepo.listarTodos();
+    expect(eventos).toHaveLength(2);
+    expect(eventos[0].tabela).toBe('ocorrencias');
+    expect(eventos[0].payload.fotos).toBeUndefined();
+    expect(eventos[0].payload.data_criacao).toBeDefined();
+    expect(eventos[1].tabela).toBe('fotos_evidencia');
+    expect(eventos[1].payload.ocorrencia_id).toBe('oc-3');
   });
 });

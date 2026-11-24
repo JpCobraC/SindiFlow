@@ -3,6 +3,7 @@ import {
   StatusItemChecklist,
 } from '../../domain/entities/item-checklist.entity';
 import { Vistoria, StatusVistoria } from '../../domain/entities/vistoria.entity';
+import { Evidencia } from '../../domain/value-objects/evidencia.vo';
 import { Geolocalizacao } from '../../domain/value-objects/geolocalizacao.vo';
 import { IVistoriaRepository } from '../../domain/interfaces/vistoria.repository.interface';
 import { ISQLiteExecutor } from './sqlite-executor.interface';
@@ -21,6 +22,11 @@ export type LinhaVistoria = {
   precisao: number | null;
   data_criacao: string;
   data_finalizacao: string | null;
+  parecer_tecnico: string | null;
+  motivo_devolucao: string | null;
+  devolvido_por: string | null;
+  aprovado_por: string | null;
+  data_aprovacao: string | null;
   updated_at: string;
 };
 
@@ -34,6 +40,17 @@ export type LinhaItemChecklist = {
   updated_at: string;
 };
 
+type LinhaFotoEvidenciaItem = {
+  id: string;
+  item_id: string | null;
+  ocorrencia_id: string | null;
+  caminho_arquivo: string;
+  hash: string;
+  tamanho_bytes: number | null;
+  data_captura: string;
+  updated_at: string;
+};
+
 export class VistoriaRepositorySQLite implements IVistoriaRepository {
   constructor(private readonly executor: ISQLiteExecutor) {}
 
@@ -41,23 +58,24 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
     const agora = new Date().toISOString();
 
     await this.executor.emTransacao(async (tx) => {
-      // RF-SYNC-005: last-write-wins por updated_at. Só atualiza se o registro
-      // existente tiver updated_at menor que o novo (ou não existir).
+      // Garante monotonicidade de updated_at para que duas gravações no mesmo
+      // milissegundo (ex.: finalizar e aprovar em sequência) nunca sejam descartadas.
       const existente = await tx.consultarUm<{ updated_at: string }>(
         'SELECT updated_at FROM vistorias WHERE id = ?',
         [vistoria.id]
       );
 
-      if (existente && existente.updated_at >= agora) {
-        // Registro existente é mais recente ou igual: não sobrescreve.
-        return;
-      }
+      const timestampSalvar =
+        existente && existente.updated_at >= agora
+          ? new Date(Date.parse(existente.updated_at) + 1).toISOString()
+          : agora;
 
       await tx.executar(
         `INSERT INTO vistorias (
           id, condominio_id, inspetor_id, status, latitude, longitude, precisao,
-          data_criacao, data_finalizacao, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          data_criacao, data_finalizacao, parecer_tecnico, motivo_devolucao,
+          devolvido_por, aprovado_por, data_aprovacao, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           condominio_id = excluded.condominio_id,
           inspetor_id = excluded.inspetor_id,
@@ -67,6 +85,11 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
           precisao = excluded.precisao,
           data_criacao = excluded.data_criacao,
           data_finalizacao = excluded.data_finalizacao,
+          parecer_tecnico = excluded.parecer_tecnico,
+          motivo_devolucao = excluded.motivo_devolucao,
+          devolvido_por = excluded.devolvido_por,
+          aprovado_por = excluded.aprovado_por,
+          data_aprovacao = excluded.data_aprovacao,
           updated_at = excluded.updated_at`,
         [
           vistoria.id,
@@ -78,14 +101,15 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
           vistoria.geolocalizacao?.precisao ?? null,
           vistoria.dataCriacao.toISOString(),
           iso(vistoria.dataFinalizacao),
-          agora,
+          vistoria.parecerTecnico ?? null,
+          vistoria.motivoDevolucao ?? null,
+          vistoria.devolvidoPor ?? null,
+          vistoria.aprovadoPor ?? null,
+          iso(vistoria.dataAprovacao),
+          timestampSalvar,
         ]
       );
 
-      // O checklist é parte do agregado, mas mora em tabela própria. Antes
-      // desta gravação o repositório descartava os itens em silêncio: a
-      // vistoria voltava do banco sem checklist e `marcarItem` falhava com
-      // "item não encontrado" logo após o primeiro cold start.
       for (const item of vistoria.itens) {
         await tx.executar(
           `INSERT INTO itens_checklist (
@@ -105,9 +129,34 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
             item.categoria,
             item.status,
             item.observacao ?? null,
-            agora,
+            timestampSalvar,
           ]
         );
+
+        for (const evidencia of item.evidencias) {
+          await tx.executar(
+            `INSERT INTO fotos_evidencia (
+              id, item_id, ocorrencia_id, caminho_arquivo, hash,
+              tamanho_bytes, data_captura, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              item_id = excluded.item_id,
+              caminho_arquivo = excluded.caminho_arquivo,
+              hash = excluded.hash,
+              data_captura = excluded.data_captura,
+              updated_at = excluded.updated_at`,
+            [
+              evidencia.id,
+              item.id,
+              null,
+              evidencia.caminhoArquivoLocal,
+              evidencia.hash,
+              null,
+              evidencia.timestamp.toISOString(),
+              timestampSalvar,
+            ]
+          );
+        }
       }
     });
   }
@@ -143,14 +192,31 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
       [vistoriaId]
     );
 
-    return linhas.map((linha) =>
-      ItemChecklist.criar({
-        id: linha.id,
-        vistoriaId: linha.vistoria_id,
-        titulo: linha.titulo,
-        categoria: linha.categoria,
-        status: linha.status,
-        observacao: linha.observacao ?? undefined,
+    return Promise.all(
+      linhas.map(async (linha) => {
+        const fotosLinhas = await this.executor.consultar<LinhaFotoEvidenciaItem>(
+          'SELECT * FROM fotos_evidencia WHERE item_id = ?',
+          [linha.id]
+        );
+
+        const evidencias = fotosLinhas.map((f) =>
+          Evidencia.criar({
+            id: f.id,
+            caminhoArquivoLocal: f.caminho_arquivo,
+            hash: f.hash,
+            timestamp: new Date(f.data_captura),
+          })
+        );
+
+        return ItemChecklist.criar({
+          id: linha.id,
+          vistoriaId: linha.vistoria_id,
+          titulo: linha.titulo,
+          categoria: linha.categoria,
+          status: linha.status,
+          observacao: linha.observacao ?? undefined,
+          evidencias,
+        });
       })
     );
   }
@@ -165,7 +231,7 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
           })
         : undefined;
 
-    // reidratar (não criar): permite status FINALIZADA vindo do banco sem
+    // reidratar (não criar): permite status FINALIZADA/APROVADA vindo do banco sem
     // disparar a guarda de RF-VIST-001 (só a criação recusa status != RASCUNHO).
     return Vistoria.reidratar({
       id: linha.id,
@@ -176,6 +242,11 @@ export class VistoriaRepositorySQLite implements IVistoriaRepository {
       dataFinalizacao: linha.data_finalizacao ? new Date(linha.data_finalizacao) : undefined,
       geolocalizacao: geo,
       itens,
+      parecerTecnico: linha.parecer_tecnico ?? undefined,
+      motivoDevolucao: linha.motivo_devolucao ?? undefined,
+      devolvidoPor: linha.devolvido_por ?? undefined,
+      aprovadoPor: linha.aprovado_por ?? undefined,
+      dataAprovacao: linha.data_aprovacao ? new Date(linha.data_aprovacao) : undefined,
     });
   }
 }

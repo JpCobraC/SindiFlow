@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import {
   Alert,
+  Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -13,30 +16,80 @@ import {
 
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { GravidadeOcorrencia } from '@/src/domain/entities/ocorrencia.entity';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 export default function OcorrenciasScreen() {
-  const { ocorrencias, registrarOcorrencia, isOnline, outboxPendentes, anexarFoto } = useVistoria();
+  const {
+    ocorrencias,
+    registrarOcorrencia,
+    isOnline,
+    outboxPendentes,
+    anexarFoto,
+    capturarFotoAvulsa,
+  } = useVistoria();
 
   const [modalVisible, setModalVisible] = useState(false);
   const [titulo, setTitulo] = useState('');
   const [descricao, setDescricao] = useState('');
   const [gravidade, setGravidade] = useState<GravidadeOcorrencia>(GravidadeOcorrencia.ALTA);
+  const [fotosModal, setFotosModal] = useState<string[]>([]);
 
-  const handleAnexarFoto = async (ocorrenciaId: string) => {
+  const handleAdicionarFotoModal = async (origem: 'camera' | 'galeria' = 'camera') => {
     try {
-      const evidencia = await anexarFoto({ ocorrenciaId });
-      if (evidencia) {
-        Alert.alert('Foto Anexada', 'Evidência fotográfica registrada e comprimida no armazenamento privado.');
+      const foto = await capturarFotoAvulsa(origem);
+      if (foto) {
+        setFotosModal((prev) => [...prev, foto.uri]);
       }
     } catch (err: any) {
       if (err?.message?.includes('cancelada')) return;
-      Alert.alert('Aviso de Câmera', err?.message || 'Não foi possível capturar foto');
+      const msg = humanizarErro(err, 'Não foi possível capturar a foto.');
+      if (origem === 'camera') {
+        Alert.alert('Não foi possível abrir a câmera', msg, [
+          { text: 'Fechar', style: 'cancel' },
+          {
+            text: 'Escolher da Galeria',
+            onPress: () => {
+              void handleAdicionarFotoModal('galeria');
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Aviso', msg);
+      }
+    }
+  };
+
+  const handleAnexarFoto = async (
+    ocorrenciaId: string,
+    origem: 'camera' | 'galeria' = 'camera'
+  ) => {
+    try {
+      const evidencia = await anexarFoto({ ocorrenciaId, origem });
+      if (evidencia) {
+        Alert.alert('Foto Anexada', 'A foto foi anexada à ocorrência com sucesso.');
+      }
+    } catch (err: any) {
+      if (err?.message?.includes('cancelada')) return;
+      const msg = humanizarErro(err, 'Não foi possível capturar a foto.');
+      if (origem === 'camera') {
+        Alert.alert('Não foi possível abrir a câmera', msg, [
+          { text: 'Fechar', style: 'cancel' },
+          {
+            text: 'Escolher da Galeria',
+            onPress: () => {
+              void handleAnexarFoto(ocorrenciaId, 'galeria');
+            },
+          },
+        ]);
+      } else {
+        Alert.alert('Aviso', msg);
+      }
     }
   };
 
   const handleSalvarOcorrencia = async () => {
     if (!titulo.trim()) {
-      Alert.alert('Dados Incompletos', 'Informe o título ou resumo da ocorrência técnica.');
+      Alert.alert('Dados Incompletos', 'Informe o título ou resumo da ocorrência.');
       return;
     }
 
@@ -45,11 +98,13 @@ export default function OcorrenciasScreen() {
         titulo: titulo.trim(),
         descricao: descricao.trim() || undefined,
         gravidade,
+        fotos: fotosModal,
       });
 
       setModalVisible(false);
       setTitulo('');
       setDescricao('');
+      setFotosModal([]);
 
       Alert.alert(
         '✓ Ocorrência Registrada com Sucesso!',
@@ -58,7 +113,7 @@ export default function OcorrenciasScreen() {
     } catch (err: any) {
       Alert.alert(
         'Atenção',
-        err?.message || 'Falha ao salvar a ocorrência.'
+        humanizarErro(err, 'Não foi possível salvar a ocorrência.')
       );
     }
   };
@@ -110,7 +165,7 @@ export default function OcorrenciasScreen() {
 
         {/* Lista de Ocorrências Cadastradas */}
         <Text style={styles.sectionTitle}>
-          Ocorrências no Repositório ({ocorrencias.length})
+          Ocorrências registradas ({ocorrencias.length})
         </Text>
 
         {ocorrencias.map((oc) => {
@@ -150,15 +205,15 @@ export default function OcorrenciasScreen() {
                   <Text style={styles.photoIcon}>📷</Text>
                   <Text style={styles.photoText}>
                     {oc.fotos.length > 0
-                      ? `${oc.fotos.length} foto(s) no FileSystem`
+                      ? `${oc.fotos.length} foto(s) anexada(s)`
                       : 'Sem foto anexada'}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={styles.attachBtn}
-                  onPress={() => handleAnexarFoto(oc.id)}
+                  onPress={() => handleAnexarFoto(oc.id, 'camera')}
                   activeOpacity={0.8}>
-                  <Text style={styles.attachBtnText}>Anexar foto</Text>
+                  <Text style={styles.attachBtnText}>📷 Anexar foto</Text>
                 </TouchableOpacity>
                 <Text style={styles.dateText}>
                   {oc.dataCriacao ? new Date(oc.dataCriacao).toLocaleTimeString() : 'Agora'}
@@ -171,100 +226,144 @@ export default function OcorrenciasScreen() {
 
       {/* Modal de Nova Ocorrência */}
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Registrar Ocorrência Técnica</Text>
-            <Text style={styles.modalSubtitle}>
-              Classifique a severidade e anexe evidências conforme a regra §3.2.
-            </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}>
+          <ScrollView
+            contentContainerStyle={styles.modalScrollContent}
+            keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Registrar Ocorrência</Text>
+              <Text style={styles.modalSubtitle}>
+                Classifique a gravidade do problema. Ocorrências de gravidade ALTA exigem foto.
+              </Text>
 
-            <Text style={styles.inputLabel}>Título / Problema Identificado:</Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Ex: Fissura passante em viga mestra..."
-              placeholderTextColor="#64748B"
-              value={titulo}
-              onChangeText={setTitulo}
-            />
+              <Text style={styles.inputLabel}>Título / Problema Identificado:</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="Ex: Fissura passante em viga mestra..."
+                placeholderTextColor="#64748B"
+                value={titulo}
+                onChangeText={setTitulo}
+              />
 
-            <Text style={styles.inputLabel}>Detalhes Técnicos (Opcional):</Text>
-            <TextInput
-              style={[styles.modalInput, { height: 60 }]}
-              placeholder="Observações complementares..."
-              placeholderTextColor="#64748B"
-              multiline
-              value={descricao}
-              onChangeText={setDescricao}
-            />
+              <Text style={styles.inputLabel}>Detalhes (Opcional):</Text>
+              <TextInput
+                style={[styles.modalInput, { height: 64, textAlignVertical: 'top' }]}
+                placeholder="Observações complementares..."
+                placeholderTextColor="#64748B"
+                multiline
+                value={descricao}
+                onChangeText={setDescricao}
+              />
 
-            <Text style={styles.inputLabel}>Severidade da Anomalia:</Text>
-            <View style={styles.gravidadeRow}>
-              <TouchableOpacity
-                style={[
-                  styles.gravidadeBtn,
-                  gravidade === GravidadeOcorrencia.ALTA && styles.btnAltaActive,
-                ]}
-                onPress={() => setGravidade(GravidadeOcorrencia.ALTA)}>
-                <Text
+              <Text style={styles.inputLabel}>Gravidade:</Text>
+              <View style={styles.gravidadeRow}>
+                <TouchableOpacity
                   style={[
-                    styles.gravidadeBtnText,
-                    gravidade === GravidadeOcorrencia.ALTA && styles.textWhite,
-                  ]}>
-                  ALTA (24h)
-                </Text>
-              </TouchableOpacity>
+                    styles.gravidadeBtn,
+                    gravidade === GravidadeOcorrencia.ALTA && styles.btnAltaActive,
+                  ]}
+                  onPress={() => setGravidade(GravidadeOcorrencia.ALTA)}>
+                  <Text
+                    style={[
+                      styles.gravidadeBtnText,
+                      gravidade === GravidadeOcorrencia.ALTA && styles.textWhite,
+                    ]}>
+                    ALTA (24h)
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.gravidadeBtn,
-                  gravidade === GravidadeOcorrencia.MEDIA && styles.btnMediaActive,
-                ]}
-                onPress={() => setGravidade(GravidadeOcorrencia.MEDIA)}>
-                <Text
+                <TouchableOpacity
                   style={[
-                    styles.gravidadeBtnText,
-                    gravidade === GravidadeOcorrencia.MEDIA && styles.textWhite,
-                  ]}>
-                  MÉDIA (72h)
-                </Text>
-              </TouchableOpacity>
+                    styles.gravidadeBtn,
+                    gravidade === GravidadeOcorrencia.MEDIA && styles.btnMediaActive,
+                  ]}
+                  onPress={() => setGravidade(GravidadeOcorrencia.MEDIA)}>
+                  <Text
+                    style={[
+                      styles.gravidadeBtnText,
+                      gravidade === GravidadeOcorrencia.MEDIA && styles.textWhite,
+                    ]}>
+                    MÉDIA (72h)
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[
-                  styles.gravidadeBtn,
-                  gravidade === GravidadeOcorrencia.BAIXA && styles.btnBaixaActive,
-                ]}
-                onPress={() => setGravidade(GravidadeOcorrencia.BAIXA)}>
-                <Text
+                <TouchableOpacity
                   style={[
-                    styles.gravidadeBtnText,
-                    gravidade === GravidadeOcorrencia.BAIXA && styles.textWhite,
-                  ]}>
-                  BAIXA (7d)
-                </Text>
-              </TouchableOpacity>
+                    styles.gravidadeBtn,
+                    gravidade === GravidadeOcorrencia.BAIXA && styles.btnBaixaActive,
+                  ]}
+                  onPress={() => setGravidade(GravidadeOcorrencia.BAIXA)}>
+                  <Text
+                    style={[
+                      styles.gravidadeBtnText,
+                      gravidade === GravidadeOcorrencia.BAIXA && styles.textWhite,
+                    ]}>
+                    BAIXA (7d)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.inputLabel}>
+                Fotos de evidência{gravidade === GravidadeOcorrencia.ALTA ? ' (obrigatória para ALTA)' : ' (opcional)'}:
+              </Text>
+              <View style={styles.modalPhotoActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.cameraBtn,
+                    styles.modalPhotoBtn,
+                    fotosModal.length > 0 ? styles.cameraBtnOk : styles.cameraBtnPending,
+                  ]}
+                  onPress={() => handleAdicionarFotoModal('camera')}>
+                  <Text style={styles.cameraBtnText}>📷 Tirar Foto</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.cameraBtn, styles.modalPhotoBtn, styles.cameraBtnPending]}
+                  onPress={() => handleAdicionarFotoModal('galeria')}>
+                  <Text style={styles.cameraBtnText}>🖼️ Galeria</Text>
+                </TouchableOpacity>
+              </View>
+
+              {fotosModal.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.modalThumbsRow}>
+                  {fotosModal.map((uri, idx) => (
+                    <View key={`${uri}-${idx}`} style={styles.modalThumbWrapper}>
+                      <Image source={{ uri }} style={styles.modalThumb} />
+                      <TouchableOpacity
+                        style={styles.modalThumbRemove}
+                        onPress={() =>
+                          setFotosModal((prev) => prev.filter((_, i) => i !== idx))
+                        }>
+                        <Text style={styles.modalThumbRemoveText}>✕</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.modalBtnCancel}
+                  onPress={() => {
+                    setModalVisible(false);
+                    setFotosModal([]);
+                  }}>
+                  <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalBtnSave}
+                  onPress={handleSalvarOcorrencia}>
+                  <Text style={styles.modalBtnSaveText}>Salvar Ocorrência</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-
-            {/* Foto anexada via AnexarFotoUseCase (hash + sandbox + outbox) */}
-            <Text style={styles.inputLabel}>
-              Fotos: anexe após salvar a ocorrência, pelo botão Anexar foto no cartão.
-            </Text>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalBtnCancel}
-                onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.modalBtnSave}
-                onPress={handleSalvarOcorrencia}>
-                <Text style={styles.modalBtnSaveText}>Salvar Ocorrência</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -502,9 +601,51 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  modalScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+  },
+  modalPhotoActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  modalPhotoBtn: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  modalThumbsRow: {
+    marginBottom: 14,
+  },
+  modalThumbWrapper: {
+    position: 'relative',
+    marginRight: 8,
+  },
+  modalThumb: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#30363D',
+  },
+  modalThumbRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalThumbRemoveText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   modalCard: {
     width: '100%',

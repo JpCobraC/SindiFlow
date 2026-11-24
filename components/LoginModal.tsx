@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  KeyboardAvoidingView,
   Modal,
   View,
   Text,
@@ -12,6 +13,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useVistoria } from '@/src/context/VistoriaContext';
 import { RoleUsuario } from '@/src/domain/entities/usuario.entity';
+import { humanizarErro } from '@/src/utils/error-messages';
 
 interface LoginModalProps {
   visible: boolean;
@@ -38,13 +40,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
       setErro(null);
       onClose();
     } catch (e: any) {
-      setErro(e?.message || 'Erro na autenticação');
+      setErro(humanizarErro(e, 'Não foi possível entrar. Verifique seus dados.'));
     }
   };
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.overlay}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.overlay}
+      >
         <View style={styles.sheetContainer}>
           <View style={styles.dragHandle} />
 
@@ -60,7 +65,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={styles.body}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {erro && (
               <View style={styles.errorBox}>
                 <Text style={styles.errorText}>{erro}</Text>
@@ -130,7 +139,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ visible, onClose }) => {
             <View style={{ height: 40 }} />
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
