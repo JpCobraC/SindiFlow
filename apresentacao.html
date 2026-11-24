@@ -3,641 +3,904 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SindiFlow — Apresentação Técnica & Executiva</title>
+  <title>SindiFlow — Apresentação Executiva & Técnica</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #060911;
-      --card-bg: #0D1117;
+      --bg-dark: #070B14;
+      --bg-card: rgba(16, 24, 40, 0.75);
+      --border: rgba(56, 189, 248, 0.15);
+      --border-light: rgba(255, 255, 255, 0.08);
       --accent: #38BDF8;
-      --accent-hover: #0284C7;
-      --border: #30363D;
-      --text: #F0F6FC;
-      --text-muted: #8B949E;
-      --success: #3FB950;
-      --warning: #D29922;
-      --danger: #F85149;
+      --accent-glow: rgba(56, 189, 248, 0.25);
+      --accent-secondary: #818CF8;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --text-subtle: #64748B;
+      --success: #34D399;
+      --warning: #FBBF24;
+      --danger: #F87171;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
 
     body {
-      background-color: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(129, 140, 248, 0.08) 0%, transparent 40%),
+        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text-main);
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justifyContent: center;
-      overflow-x: hidden;
-      padding: 20px;
-    }
-
-    .slide-deck {
-      position: relative;
-      width: 100%;
-      max-width: 1000px;
-      min-height: 620px;
-      background: var(--card-bg);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-      display: flex;
-      flex-direction: column;
+      padding: 0;
+      margin: 0;
       overflow: hidden;
     }
 
-    .slide-header {
-      padding: 20px 32px;
-      border-bottom: 1px solid var(--border);
+    /* Presentation Container (Ocupa 100% da tela) */
+    .deck-frame {
+      width: 100vw;
+      height: 100vh;
+      max-width: 100vw;
+      background: var(--bg-card);
+      backdrop-filter: blur(20px);
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top Brand Navigation Bar */
+    .deck-topbar {
+      padding: 16px 48px;
+      border-bottom: 1px solid var(--border-light);
       display: flex;
       justifyContent: space-between;
       align-items: center;
-      background: rgba(22, 27, 34, 0.6);
+      background: rgba(10, 16, 29, 0.85);
+      z-index: 10;
+      flex-shrink: 0;
     }
 
-    .logo-tag {
-      font-weight: 800;
-      font-size: 1.2rem;
-      color: var(--accent);
-      letter-spacing: -0.5px;
+    .brand-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 14px;
     }
 
-    .slide-badge {
-      font-size: 0.8rem;
-      background: #21262D;
-      color: var(--text-muted);
-      padding: 4px 10px;
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #38BDF8, #6366F1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .brand-title {
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.5px;
+      background: linear-gradient(to right, #FFFFFF, #93C5FD);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .meta-tags {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .tag-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 5px 12px;
       border-radius: 20px;
-      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+    }
+
+    .counter-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 4px 12px;
+      border-radius: 8px;
       font-weight: 600;
     }
 
-    .slide-body {
+    /* Slides Viewport */
+    .slides-container {
       flex: 1;
-      padding: 40px;
-      display: none;
-      animation: fadeIn 0.3s ease-in-out forwards;
-      overflow-y: auto;
+      position: relative;
+      overflow: hidden;
     }
 
-    .slide-body.active {
+    .slide-page {
+      position: absolute;
+      inset: 0;
+      padding: 36px 64px;
       display: flex;
       flex-direction: column;
       justifyContent: center;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(40px) scale(0.98);
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    .slide-page.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0) scale(1);
     }
 
-    h1 {
-      font-size: 2.2rem;
+    .slide-page.prev {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(-40px) scale(0.98);
+    }
+
+    /* Typography & Hierarchy */
+    .slide-category {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .slide-category::before {
+      content: "";
+      width: 24px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 3px;
+    }
+
+    h1.hero-title {
+      font-size: 4rem;
       font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -1.5px;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #FFFFFF 30%, #93C5FD 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    h2.slide-title {
+      font-size: 2.6rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.8px;
       color: #FFFFFF;
       margin-bottom: 16px;
-      line-height: 1.2;
     }
 
-    h2 {
-      font-size: 1.8rem;
+    p.lead-desc {
+      font-size: 1.35rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 1200px;
+      margin-bottom: 32px;
+    }
+
+    /* Visual Grid & Cards */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      max-width: 1400px;
+    }
+
+    .grid-3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 26px;
+      max-width: 1400px;
+    }
+
+    .glass-card {
+      background: rgba(22, 30, 48, 0.65);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      padding: 30px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .glass-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.5), transparent);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .glass-card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+    }
+
+    .glass-card:hover::before {
+      opacity: 1;
+    }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      margin-bottom: 18px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .card-title {
+      font-size: 1.35rem;
       font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 20px;
+      color: #FFFFFF;
+      margin-bottom: 12px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
-    p.lead {
-      font-size: 1.15rem;
-      color: #C9D1D9;
-      line-height: 1.6;
-      margin-bottom: 24px;
-    }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      margin-top: 10px;
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 10px;
-    }
-
-    .card {
-      background: #161B22;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .card:hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-    }
-
-    .card h3 {
-      font-size: 1.1rem;
-      color: #FFFFFF;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .card p, .card li {
-      font-size: 0.95rem;
+    .card-body {
+      font-size: 1.05rem;
       color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* List Items Styling */
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      font-size: 1.1rem;
+      color: #E2E8F0;
       line-height: 1.5;
     }
 
-    ul {
-      list-style-type: none;
+    .feature-list li .bullet-icon {
+      flex-shrink: 0;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-top: 2px;
     }
 
-    ul.check-list li {
-      position: relative;
-      padding-left: 26px;
-      margin-bottom: 10px;
-      color: #C9D1D9;
-    }
-
-    ul.check-list li::before {
-      content: "✓";
-      position: absolute;
-      left: 0;
+    .bullet-ok {
+      background: rgba(52, 211, 153, 0.15);
       color: var(--success);
-      font-weight: bold;
+      border: 1px solid rgba(52, 211, 153, 0.3);
     }
 
-    .highlight-pill {
-      display: inline-block;
-      padding: 3px 8px;
+    .bullet-bad {
+      background: rgba(248, 113, 113, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+
+    .pill-stat {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 3px 10px;
       border-radius: 6px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-right: 6px;
+      color: #7DD3FC;
     }
 
-    .pill-blue { background: rgba(56, 189, 248, 0.15); color: #38BDF8; }
-    .pill-green { background: rgba(63, 185, 80, 0.15); color: #3FB950; }
-    .pill-gold { background: rgba(227, 179, 65, 0.15); color: #E3B341; }
-    .pill-red { background: rgba(248, 81, 73, 0.15); color: #F85149; }
+    /* Comparison Split Banner */
+    .comparison-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      max-width: 1400px;
+    }
 
-    .slide-footer {
-      padding: 16px 32px;
-      border-top: 1px solid var(--border);
+    .comp-col-bad {
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.06) 0%, rgba(22, 30, 48, 0.6) 100%);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .comp-col-good {
+      background: linear-gradient(180deg, rgba(52, 211, 153, 0.06) 0%, rgba(22, 30, 48, 0.6) 100%);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    /* Roles Cards */
+    .role-badge-pill {
+      align-self: flex-start;
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 5px 12px;
+      border-radius: 8px;
+      letter-spacing: 0.6px;
+      margin-bottom: 14px;
+    }
+
+    .role-inspetor { background: rgba(56, 189, 248, 0.15); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .role-sindico { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.3); }
+    .role-condomino { background: rgba(52, 211, 153, 0.15); color: #34D399; border: 1px solid rgba(52, 211, 153, 0.3); }
+
+    /* Bottom Control Bar */
+    .deck-bottombar {
+      padding: 16px 48px;
+      border-top: 1px solid var(--border-light);
       display: flex;
       justifyContent: space-between;
       align-items: center;
-      background: rgba(22, 27, 34, 0.6);
+      background: rgba(10, 16, 29, 0.85);
+      z-index: 10;
+      flex-shrink: 0;
     }
 
-    .nav-buttons {
+    .key-hints {
+      font-size: 0.8rem;
+      color: var(--text-subtle);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    kbd {
+      font-family: 'JetBrains Mono', monospace;
+      background: #1E293B;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid var(--border-light);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .nav-actions {
       display: flex;
       gap: 12px;
+      align-items: center;
     }
 
-    button {
-      background: #21262D;
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 0.9rem;
+    .btn-slide {
+      background: #1E293B;
+      color: #FFFFFF;
+      border: 1px solid var(--border-light);
+      padding: 9px 20px;
+      border-radius: 10px;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
+      gap: 8px;
+      transition: all 0.2s ease;
     }
 
-    button:hover:not(:disabled) {
+    .btn-slide:hover:not(:disabled) {
       background: var(--accent);
-      color: #000;
+      color: #030712;
       border-color: var(--accent);
+      box-shadow: 0 4px 16px var(--accent-glow);
     }
 
-    button:disabled {
-      opacity: 0.35;
+    .btn-slide:disabled {
+      opacity: 0.3;
       cursor: not-allowed;
     }
 
-    .dots-container {
-      display: flex;
-      gap: 6px;
-    }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--border);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .dot.active {
-      background: var(--accent);
-      width: 22px;
-      border-radius: 4px;
-    }
-
-    .code-tag {
-      font-family: "Courier New", monospace;
-      background: #090D13;
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: #79C0FF;
-      font-size: 0.9em;
-      border: 1px solid #21262D;
+    .progress-track {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #38BDF8, #818CF8);
+      transition: width 0.3s ease;
+      z-index: 20;
     }
   </style>
 </head>
 <body>
 
-  <div class="slide-deck">
-    <!-- Header -->
-    <div class="slide-header">
-      <div class="logo-tag">
-        🏢 SindiFlow
+  <div class="deck-frame">
+    <!-- Top Bar -->
+    <header class="deck-topbar">
+      <div class="brand-group">
+        <div class="brand-icon">🏢</div>
+        <div class="brand-title">SindiFlow</div>
       </div>
-      <div class="slide-badge" id="slideIndicator">Slide 1 / 12</div>
-    </div>
-
-    <!-- Slide 1: Apresentação do Aplicativo -->
-    <div class="slide-body active" data-slide="1">
-      <span class="highlight-pill pill-blue">Visão Geral</span>
-      <h1 style="margin-top: 10px;">SindiFlow</h1>
-      <p class="lead">
-        Plataforma nativa e inteligente para <strong>gestão de vistorias prediais preventivas</strong>, emissão de laudos periciais e governança condominial em conformidade com as normas <strong>ABNT NBR 5674</strong> e <strong>NBR 16747</strong>.
-      </p>
-      <div class="grid-3">
-        <div class="card">
-          <h3>📱 100% Mobile & Nativo</h3>
-          <p>Desenvolvido sob Expo SDK 58 e React Native, oferecendo alta performance e suporte a hardware nativo.</p>
-        </div>
-        <div class="card">
-          <h3>⚡ Offline-First Real</h3>
-          <p>Opera sem conexão de internet (em subsolos e garagens) com banco SQLite local e sincronização automática.</p>
-        </div>
-        <div class="card">
-          <h3>🏛️ Rigor Pericial</h3>
-          <p>Garantia de integridade com evidências fotográficas criptografadas e validação de geolocalização física (GPS).</p>
-        </div>
+      <div class="meta-tags">
+        <span class="tag-badge">NBR 5674 / 16747</span>
+        <span class="tag-badge">Expo SDK 58</span>
+        <button id="btnFullscreen" class="btn-slide" style="padding: 4px 10px; font-size: 0.8rem;">⛶ Tela Cheia</button>
+        <div class="counter-badge" id="slideCounter">01 / 12</div>
       </div>
-    </div>
+    </header>
 
-    <!-- Slide 2: Cliente Principal -->
-    <div class="slide-body" data-slide="2">
-      <span class="highlight-pill pill-gold">Cliente Principal</span>
-      <h2 style="margin-top: 10px;">Quem é o Cliente Principal?</h2>
-      <p class="lead">
-        O cliente principal do SindiFlow são <strong>Condomínios Residenciais e Comerciais</strong>, representados formalmente por suas <strong>Administradoras Condominiais</strong> e <strong>Síndicos (Profissionais e Orgânicos)</strong>.
-      </p>
-      <div class="grid-2">
-        <div class="card">
-          <h3>🏢 Condomínios e Associações</h3>
-          <p>Empreendimentos que necessitam resguardar a integridade física de suas edificações, preservar a garantia construtiva e valorizar o patrimônio coletivo.</p>
+    <!-- Slide Pages -->
+    <main class="slides-container">
+
+      <!-- SLIDE 1: Apresentação do Aplicativo -->
+      <section class="slide-page active" data-index="1">
+        <div class="slide-category">Visão Geral da Solução</div>
+        <h1 class="hero-title">SindiFlow</h1>
+        <p class="lead-desc">
+          Plataforma nativa e inteligente voltada para a <strong>gestão de manutenções prediais preventivas</strong>, homologação de laudos técnicos periciais e governança condominial irrefutável.
+        </p>
+        <div class="grid-3col">
+          <div class="glass-card">
+            <div class="card-icon">📱</div>
+            <div class="card-title">100% Mobile Nativo</div>
+            <div class="card-body">Desenvolvido com Expo SDK 58 e React Native, aproveitando aceleração de hardware nativo sem camadas lentas de browser.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">⚡</div>
+            <div class="card-title">Resiliência Offline-First</div>
+            <div class="card-body">Operação contínua em garagens e subsolos com banco SQLite local e sincronização automática e transacional com a nuvem.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">⚖️</div>
+            <div class="card-title">Conformidade Normativa</div>
+            <div class="card-body">Aderência estrita às normas ABNT NBR 5674 (Manutenção) e NBR 16747 (Inspeção Predial), com fé pública pericial.</div>
+          </div>
         </div>
-        <div class="card">
-          <h3>⚖️ Empresas de Gestão & Síndicos Profissionais</h3>
-          <p>Gestores com responsabilidade civil e criminal sobre a manutenção predial (Código Civil Art. 1.348), que necessitam de comprovação pericial irrefutável de sua diligência.</p>
+      </section>
+
+      <!-- SLIDE 2: Cliente Principal -->
+      <section class="slide-page" data-index="2">
+        <div class="slide-category">Mercado & Clientes</div>
+        <h2 class="slide-title">Quem é o Cliente Principal?</h2>
+        <p class="lead-desc">
+          O cliente direto do SindiFlow são <strong>Condomínios Residenciais e Comerciais</strong>, representados por <strong>Síndicos Profissionais</strong> e <strong>Administradoras de Bens</strong>.
+        </p>
+        <div class="grid-2col">
+          <div class="glass-card">
+            <div class="card-icon">🏢</div>
+            <div class="card-title">Empreendimentos Condominiais</div>
+            <div class="card-body">
+              Edificações que demandam conservação patrimonial ativa, mitigação de riscos estruturais e garantia legal junto às construtoras dentro dos prazos de garantia.
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">👔</div>
+            <div class="card-title">Síndicos e Administradoras</div>
+            <div class="card-body">
+              Gestores que respondem legalmente pela segurança coletiva (Código Civil Art. 1.348) e necessitam de comprovação técnica auditável para prestação de contas.
+            </div>
+          </div>
         </div>
+      </section>
+
+      <!-- SLIDE 3: O Problema que Resolve -->
+      <section class="slide-page" data-index="3">
+        <div class="slide-category">Proposta de Valor</div>
+        <h2 class="slide-title">Qual é o Problema que o SindiFlow Resolve?</h2>
+        <div class="comparison-wrapper">
+          <div class="glass-card comp-col-bad">
+            <div class="card-title" style="color: var(--danger);">❌ Cenário Convencional (Manual)</div>
+            <ul class="feature-list" style="margin-top: 10px;">
+              <li><span class="bullet-icon bullet-bad">✕</span> Pranchetas de papel suscetíveis a extravio e rasuras.</li>
+              <li><span class="bullet-icon bullet-bad">✕</span> Fotos desorganizadas perdidas em conversas do WhatsApp.</li>
+              <li><span class="bullet-icon bullet-bad">✕</span> Falta de sinal de celular no subsolo que trava sistemas web comuns.</li>
+              <li><span class="bullet-icon bullet-bad">✕</span> Vulnerabilidade jurídica e criminal do síndico por falta de histórico.</li>
+            </ul>
+          </div>
+          <div class="glass-card comp-col-good">
+            <div class="card-title" style="color: var(--success);">✓ Solução Integrada SindiFlow</div>
+            <ul class="feature-list" style="margin-top: 10px;">
+              <li><span class="bullet-icon bullet-ok">✓</span> Checklists periciais digitais com integridade atômica no SQLite.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Fotos e GPS georreferenciados vinculados a cada item inspecionado.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Arquitetura offline-first com fila Outbox automática e sem perdas.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Homologação formal com trilha de auditoria e laudos com fé pública.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 4: Público-Alvo -->
+      <section class="slide-page" data-index="4">
+        <div class="slide-category">Ecossistema</div>
+        <h2 class="slide-title">Quem é o Público-Alvo?</h2>
+        <p class="lead-desc">O sistema integra todos os elos da cadeia de governança predial:</p>
+        <div class="grid-3col">
+          <div class="glass-card">
+            <div class="card-icon">👷</div>
+            <div class="card-title">Inspetores Periciais</div>
+            <div class="card-body">Engenheiros civis, arquitetos e técnicos prediais credenciados (CREA/CAU) responsáveis pela averiguação física do imóvel.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">👔</div>
+            <div class="card-title">Síndicos & Conselheiros</div>
+            <div class="card-body">Lideranças executivas e conselhos fiscais que contratam, acompanham prazos de SLA e homologam relatórios.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">🏠</div>
+            <div class="card-title">Moradores & Condôminos</div>
+            <div class="card-body">Moradores que usufruem das áreas comuns, abrem solicitações de reparo e exigem transparência na segurança predial.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 5: Perfis de Usuário (RBAC) -->
+      <section class="slide-page" data-index="5">
+        <div class="slide-category">Controle de Acesso</div>
+        <h2 class="slide-title">Perfis de Usuário & Restrições de Tela</h2>
+        <p class="lead-desc">Interface adaptada dinamicamente: cada perfil só acessa as telas de sua atribuição:</p>
+        <div class="grid-3col">
+          <div class="glass-card">
+            <span class="role-badge-pill role-inspetor">PERFIL TÉCNICO</span>
+            <div class="card-title">INSPETOR</div>
+            <ul class="feature-list">
+              <li><span class="bullet-icon bullet-ok">✓</span> Checklist pericial completo</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Captura mandatória de fotos e GPS</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Painel de indicadores e outbox</li>
+              <li><span class="bullet-icon bullet-bad">✕</span> Sem acesso a homologações</li>
+            </ul>
+          </div>
+          <div class="glass-card">
+            <span class="role-badge-pill role-sindico">PERFIL GESTOR</span>
+            <div class="card-title">SÍNDICO GERAL</div>
+            <ul class="feature-list">
+              <li><span class="bullet-icon bullet-ok">✓</span> Homologação/devolução de laudos</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Emissão de pareceres técnicos</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Publicação no mural geral</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Gestão de matriz de SLAs</li>
+            </ul>
+          </div>
+          <div class="glass-card">
+            <span class="role-badge-pill role-condomino">PERFIL MORADOR</span>
+            <div class="card-title">CONDÔMINO</div>
+            <ul class="feature-list">
+              <li><span class="bullet-icon bullet-ok">✓</span> Abertura de chamados com fotos</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Consulta a laudos homologados</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Acompanhamento de comunicados</li>
+              <li><span class="bullet-icon bullet-bad">✕</span> Bloqueado de vistorias técnicas</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 6: Principais Recursos -->
+      <section class="slide-page" data-index="6">
+        <div class="slide-category">Funcionalidades-Chave</div>
+        <h2 class="slide-title">Principais Recursos do Sistema</h2>
+        <div class="grid-2col">
+          <div class="glass-card">
+            <div class="card-title">📋 Checklist Dinâmico & Regra dos 80%</div>
+            <div class="card-body">Varredura de sistemas críticos (estrutural, SPDA, incêndio, barrilete). Bloqueio no domínio que impede finalização sem pelo menos 80% do checklist respondido.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">⏱️ Matriz de SLA de Ocorrências</div>
+            <div class="card-body">Classificação com disparo de prazos contratuais vinculados: Alta Gravidade (24 horas com foto obrigatória), Média (72 horas) e Baixa (7 dias).</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">📑 Homologação em Duas Etapas</div>
+            <div class="card-body">Fluxo seguro onde laudos periciais só se tornam públicos aos moradores após chancela formal do síndico, evitando alarmismo desnecessário.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">📢 Mural Transparente de Comunicados</div>
+            <div class="card-body">Canal oficial direto entre a administração e os apartamentos para avisos imediatos de manutenções preventivas e corretivas.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 7: Câmera e Geolocalização -->
+      <section class="slide-page" data-index="7">
+        <div class="slide-category">Integração com Hardware</div>
+        <h2 class="slide-title">Câmera e Geolocalização Nativas</h2>
+        <p class="lead-desc">Uso direto das APIs nativas do dispositivo móvel com alta confiabilidade:</p>
+        <div class="grid-2col">
+          <div class="glass-card">
+            <div class="card-icon">📷</div>
+            <div class="card-title">Câmera Nativa (<span class="pill-stat">expo-image-picker</span>)</div>
+            <ul class="feature-list">
+              <li><span class="bullet-icon bullet-ok">✓</span> Captura direta em alta definição com compressão em tempo de disparo (<span class="pill-stat">quality: 0.7</span>).</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Salvamento isolado na sandbox privada do app (<span class="pill-stat">FileSystem.documentDirectory</span>).</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Obrigatória para itens críticos e ocorrências de alta gravidade.</li>
+            </ul>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">📍</div>
+            <div class="card-title">GPS Pericial (<span class="pill-stat">expo-location</span>)</div>
+            <ul class="feature-list">
+              <li><span class="bullet-icon bullet-ok">✓</span> Coleta de Latitude, Longitude e Raio de Precisão Métrico.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Requisito obrigatório para fechar o laudo pericial.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> Fé pública e comprovação jurídica de que o perito esteve fisicamente no edifício.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 8: Online vs. Offline -->
+      <section class="slide-page" data-index="8">
+        <div class="slide-category">Estratégia de Conectividade</div>
+        <h2 class="slide-title">Divisão de Operações: Online vs. Offline</h2>
+        <div class="comparison-wrapper">
+          <div class="glass-card" style="border-left: 4px solid var(--warning);">
+            <div class="card-title" style="color: var(--warning);">📱 No Dispositivo (100% Offline)</div>
+            <ul class="feature-list" style="margin-top: 8px;">
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Sessão Local:</strong> Token e dados persistidos no hardware (<span class="pill-stat">SecureStore</span>).</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Vistorias:</strong> Preenchimento de checklist e anomalias no SQLite local.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Fotos & GPS:</strong> Evidências gravadas no sistema de arquivos local.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Ocorrências:</strong> Cálculo de SLA e gravação imediata na fila Outbox.</li>
+            </ul>
+          </div>
+          <div class="glass-card" style="border-left: 4px solid var(--accent);">
+            <div class="card-title" style="color: var(--accent);">☁️ Na Nuvem (Ao Conectar)</div>
+            <ul class="feature-list" style="margin-top: 8px;">
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Autenticação:</strong> Validação de senha e refresh JWT no Supabase Auth.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Drenagem Outbox:</strong> Envio em lote dos eventos acumulados.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Storage:</strong> Upload de binários de imagens para buckets seguros.</li>
+              <li><span class="bullet-icon bullet-ok">✓</span> <strong>Consolidação:</strong> Distribuição de comunicados e laudos homologados.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 9: Metodologia de Sincronização -->
+      <section class="slide-page" data-index="9">
+        <div class="slide-category">Arquitetura de Resiliência</div>
+        <h2 class="slide-title">Metodologia de Sincronização (Outbox Pattern)</h2>
+        <p class="lead-desc">Padrão transacional corporativo que previne inconsistências mesmo com perda repentina de sinal:</p>
+        <div class="grid-3col">
+          <div class="glass-card">
+            <div class="card-icon">1️⃣</div>
+            <div class="card-title">Dupla Escrita Local</div>
+            <div class="card-body">Toda ação salva na tabela do negócio e cria um registro em <span class="pill-stat">outbox_events</span> na mesma transação atômica SQLite.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">2️⃣</div>
+            <div class="card-title">Chave Idempotente</div>
+            <div class="card-body">Cada evento tem uma <span class="pill-stat">chave_dedup</span> única. Reenvios após instabilidades de rede nunca duplicam dados no servidor.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">3️⃣</div>
+            <div class="card-title">Backoff Exponencial</div>
+            <div class="card-body">Monitoramento via <span class="pill-stat">expo-network</span> com retentativas calculadas (1s, 2s, 4s, até 5 tentativas) sem travar a interface.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 10: Uso do Supabase -->
+      <section class="slide-page" data-index="10">
+        <div class="slide-category">Backend-as-a-Service</div>
+        <h2 class="slide-title">Como o Supabase é Utilizado?</h2>
+        <div class="grid-3col">
+          <div class="glass-card">
+            <div class="card-icon">🔐</div>
+            <div class="card-title">Supabase Auth</div>
+            <div class="card-body">Gestão de credenciais, emissão e rotação de tokens JWT assinados, e armazenamento de metadados de condomínio e perfis.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">🐘</div>
+            <div class="card-title">PostgreSQL Cloud</div>
+            <div class="card-body">Banco relacional gerenciado com integridade referencial estrita, triggers automáticos e espelhamento das entidades do app.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">📦</div>
+            <div class="card-title">Supabase Storage</div>
+            <div class="card-body">Buckets dedicados e seguros para o armazenamento das fotos de vistorias técnicas e evidências dos moradores.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 11: Outros Serviços na Nuvem -->
+      <section class="slide-page" data-index="11">
+        <div class="slide-category">Infraestrutura em Nuvem</div>
+        <h2 class="slide-title">Outros Serviços em Nuvem Integrados</h2>
+        <div class="grid-2col">
+          <div class="glass-card">
+            <div class="card-icon">🚀</div>
+            <div class="card-title">Expo Application Services (EAS Build)</div>
+            <div class="card-body">
+              Ambiente de compilação em contêineres na nuvem gerenciada da Expo, compilando binários nativos de Android (APK e AAB) sem depender do ambiente local do desenvolvedor.
+            </div>
+          </div>
+          <div class="glass-card">
+            <div class="card-icon">🛰️</div>
+            <div class="card-title">Serviços de Tempo e Satélite (A-GPS / NTP)</div>
+            <div class="card-body">
+              Integração com serviços de triangulação assistida e servidores de fuso horário global para auditar com precisão atômica o momento e coordenadas de cada registro pericial.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SLIDE 12: Medidas de Segurança -->
+      <section class="slide-page" data-index="12">
+        <div class="slide-category">Segurança & Governança</div>
+        <h2 class="slide-title">Medidas de Segurança Adotadas</h2>
+        <div class="grid-2col">
+          <div class="glass-card">
+            <div class="card-title">🔒 Criptografia em Hardware (<span class="pill-stat">SecureStore</span>)</div>
+            <div class="card-body">Tokens JWT e identificadores são salvos no Android Keystore e iOS Keychain, evitando leitura por malwares comuns do AsyncStorage.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">🛡️ Row Level Security (RLS) no PostgreSQL</div>
+            <div class="card-body">Políticas ativas na nuvem garantem isolamento multi-tenant: ninguém acessa dados de outro condomínio nem altera laudos alheios.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">🔑 Segregação de Chaves & Secrets</div>
+            <div class="card-body">Chaves anon protegidas pelo RLS e chaves de serviço nunca distribuídas no código cliente do aplicativo.</div>
+          </div>
+          <div class="glass-card">
+            <div class="card-title">🌐 TLS 1.3 em Todas as Comunicações</div>
+            <div class="card-body">Toda troca de pacotes com o Supabase é criptografada de ponta a ponta com certificados digitais atualizados.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <footer class="deck-bottombar">
+      <div class="key-hints">
+        <span>Navegação: <kbd>→</kbd> <kbd>Espaço</kbd> Próximo • <kbd>←</kbd> Anterior</span>
       </div>
-    </div>
-
-    <!-- Slide 3: O Problema que Resolve -->
-    <div class="slide-body" data-slide="3">
-      <span class="highlight-pill pill-red">Problema & Solução</span>
-      <h2 style="margin-top: 10px;">Qual é o Problema que Ele Resolve?</h2>
-      <div class="grid-2">
-        <div class="card" style="border-left: 4px solid var(--danger);">
-          <h3 style="color: var(--danger);">❌ O Cenário Anterior</h3>
-          <ul class="check-list" style="margin-top: 8px;">
-            <li style="color: var(--text-muted);"><span style="color: var(--danger);">✗</span> Vistorias em pranchetas de papel ou planilhas suscetíveis a perdas.</li>
-            <li style="color: var(--text-muted);"><span style="color: var(--danger);">✗</span> Fotos desorganizadas soltas no WhatsApp sem vínculo técnico.</li>
-            <li style="color: var(--text-muted);"><span style="color: var(--danger);">✗</span> Falta de sinal de celular em garagens e barriletes bloqueando apps web.</li>
-            <li style="color: var(--text-muted);"><span style="color: var(--danger);">✗</span> Síndicos vulneráveis juridicamente por falta de histórico auditável.</li>
-          </ul>
-        </div>
-        <div class="card" style="border-left: 4px solid var(--success);">
-          <h3 style="color: var(--success);">✓ A Solução SindiFlow</h3>
-          <ul class="check-list" style="margin-top: 8px;">
-            <li>Digitalização ponta a ponta com fluxo formal de aprovação pericial.</li>
-            <li>Fotos e geolocalização anexadas atomicamente a cada item vistoriado.</li>
-            <li>Banco offline local com sincronização em segundo plano garantida.</li>
-            <li>Laudos homologados com SLA técnico e canal aberto com moradores.</li>
-          </ul>
-        </div>
+      <div class="nav-actions">
+        <button class="btn-slide" id="btnPrev">← Anterior</button>
+        <button class="btn-slide" id="btnNext">Próximo →</button>
       </div>
-    </div>
+    </footer>
 
-    <!-- Slide 4: Público-Alvo -->
-    <div class="slide-body" data-slide="4">
-      <span class="highlight-pill pill-blue">Público-Alvo</span>
-      <h2 style="margin-top: 10px;">Quem é o Público-Alvo?</h2>
-      <p class="lead">
-        O ecossistema atende tanto o meio técnico especializado quanto a comunidade de moradores.
-      </p>
-      <div class="grid-3">
-        <div class="card">
-          <h3>👷 Peritos e Inspetores</h3>
-          <p>Engenheiros civis, arquitetos e técnicos de manutenção predial credenciados pelo CREA/CAU.</p>
-        </div>
-        <div class="card">
-          <h3>👔 Síndicos e Conselheiros</h3>
-          <p>Gestores responsáveis pela contratação, validação e governança dos reparos e investimentos.</p>
-        </div>
-        <div class="card">
-          <h3>🏠 Condôminos e Moradores</h3>
-          <p>Moradores e proprietários que buscam transparência sobre as condições e segurança do seu edifício.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 5: Perfis de Usuário (RBAC) -->
-    <div class="slide-body" data-slide="5">
-      <span class="highlight-pill pill-gold">Governança & Acesso</span>
-      <h2 style="margin-top: 10px;">Perfis de Usuário no Aplicativo</h2>
-      <p class="lead">Controle de acesso rigoroso por papel (RBAC), exibindo apenas as abas e ações pertinentes:</p>
-      <div class="grid-3">
-        <div class="card">
-          <h3 style="color: #58A6FF;">🔍 INSPETOR</h3>
-          <ul class="check-list">
-            <li>Acesso ao checklist pericial</li>
-            <li>Captura de fotos e GPS obrigatório</li>
-            <li>Finalização da vistoria técnica</li>
-            <li>Acesso a indicadores e outbox</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3 style="color: #E3B341;">👔 SÍNDICO</h3>
-          <ul class="check-list">
-            <li>Homologação ou devolução de laudos</li>
-            <li>Emissão de pareceres técnicos</li>
-            <li>Publicação de comunicados gerais</li>
-            <li>Acompanhamento de matriz de SLA</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3 style="color: #3FB950;">🏠 CONDÔMINO</h3>
-          <ul class="check-list">
-            <li>Consulta de laudos aprovados</li>
-            <li>Abertura de chamados de área comum</li>
-            <li>Acompanhamento de ocorrências</li>
-            <li>Visualização de mural e avisos</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 6: Principais Recursos -->
-    <div class="slide-body" data-slide="6">
-      <span class="highlight-pill pill-blue">Funcionalidades</span>
-      <h2 style="margin-top: 10px;">Principais Recursos do Sistema</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h3>📋 Checklist Dinâmico & Regra dos 80%</h3>
-          <p>Cobertura técnica abrangendo estrutura, instalações hidráulicas, elétricas, SPDA e elevadores. Bloqueio automático para finalização com menos de 80% dos itens respondidos.</p>
-        </div>
-        <div class="card">
-          <h3>⚠️ Matriz de SLA de Ocorrências</h3>
-          <p>Classificação de anomalias com prazos contratuais vinculados: Alta Gravidade (24h com foto mandatória), Média (72h) e Baixa (7 dias).</p>
-        </div>
-        <div class="card">
-          <h3>📑 Homologação Formal de Laudos</h3>
-          <p>O morador só tem acesso ao laudo após assinatura e chancela oficial do síndico, prevenindo alarmismo com vistorias ainda em revisão pericial.</p>
-        </div>
-        <div class="card">
-          <h3>📢 Mural de Avisos em Tempo Real</h3>
-          <p>Comunicação direta da administração para manter a coletividade ciente de intervenções estruturais.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 7: Câmera e Geolocalização -->
-    <div class="slide-body" data-slide="7">
-      <span class="highlight-pill pill-green">Hardware Nativo</span>
-      <h2 style="margin-top: 10px;">Uso da Câmera e Geolocalização</h2>
-      <p class="lead">Acesso direto a hardware via Expo Native APIs, sem pontes frágeis de navegador:</p>
-      <div class="grid-2">
-        <div class="card">
-          <h3>📷 Câmera Nativa (<span class="code-tag">expo-image-picker</span>)</h3>
-          <ul class="check-list">
-            <li>Captura em tempo de vistoria com compressão automática (<span class="code-tag">quality: 0.7</span>).</li>
-            <li>Salvamento em diretório privado seguro do app (<span class="code-tag">FileSystem.documentDirectory</span>).</li>
-            <li>Obrigatória para itens críticos e anomalias de alta gravidade.</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>📍 GPS Pericial (<span class="code-tag">expo-location</span>)</h3>
-          <ul class="check-list">
-            <li>Captura precisa de Latitude, Longitude e Raio de Precisão.</li>
-            <li>Mandatória para a conclusão do checklist pericial.</li>
-            <li>Garante auditoria jurídica de que o perito esteve fisicamente no edifício.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 8: O que é Online vs. O que é Offline -->
-    <div class="slide-body" data-slide="8">
-      <span class="highlight-pill pill-gold">Arquitetura de Dados</span>
-      <h2 style="margin-top: 10px;">Online vs. Offline</h2>
-      <p class="lead">O aplicativo é 100% operacional sem internet, sincronizando quando a conexão retorna:</p>
-      <div class="grid-2">
-        <div class="card" style="border-left: 4px solid var(--warning);">
-          <h3 style="color: var(--warning);">📱 Modo Offline (No Celular)</h3>
-          <ul class="check-list">
-            <li><strong>Login Offline:</strong> Sessão segura persistida em hardware via SecureStore.</li>
-            <li><strong>Execução de Vistorias:</strong> Resposta de checklists e justificativas no SQLite.</li>
-            <li><strong>Captura de Fotos & GPS:</strong> Arquivamento local atômico.</li>
-            <li><strong>Abertura de Ocorrências:</strong> Registro e cálculo de SLA local.</li>
-          </ul>
-        </div>
-        <div class="card" style="border-left: 4px solid var(--accent);">
-          <h3 style="color: var(--accent);">☁️ Modo Online (Nuvem)</h3>
-          <ul class="check-list">
-            <li><strong>Primeira Autenticação:</strong> Validação de senha no Supabase Auth.</li>
-            <li><strong>Drenagem da Fila:</strong> Envio em lote dos eventos acumulados.</li>
-            <li><strong>Upload de Imagens:</strong> Envio dos binários para o Supabase Storage.</li>
-            <li><strong>Sincronização Bidirecional:</strong> Baixa de novos chamados e laudos homologados.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 9: Metodologia de Sincronização -->
-    <div class="slide-body" data-slide="9">
-      <span class="highlight-pill pill-blue">Resiliência</span>
-      <h2 style="margin-top: 10px;">Metodologia de Sincronização (Outbox Pattern)</h2>
-      <p class="lead">Garantia transacional de que nenhum dado é perdido mesmo em caso de queda brusca de energia ou sinal:</p>
-      <div class="grid-3">
-        <div class="card">
-          <h3>1️⃣ Escrita Dupla Local</h3>
-          <p>Toda ação salva na tabela do negócio e grava um registro na tabela <span class="code-tag">outbox_events</span> dentro da mesma transação SQLite.</p>
-        </div>
-        <div class="card">
-          <h3>2️⃣ Chave de Deduplicação</h3>
-          <p>Cada evento carrega um hash idempotente <span class="code-tag">chave_dedup</span>, garantindo que o servidor nunca duplique itens em caso de reenvio.</p>
-        </div>
-        <div class="card">
-          <h3>3️⃣ Backoff Exponencial</h3>
-          <p>Detecção inteligente de rede via <span class="code-tag">expo-network</span> com retentativas automáticas espaçadas (1s, 2s, 4s, até 5 tentativas).</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 10: Uso do Supabase -->
-    <div class="slide-body" data-slide="10">
-      <span class="highlight-pill pill-green">Backend-as-a-Service</span>
-      <h2 style="margin-top: 10px;">Como o Supabase é Utilizado?</h2>
-      <p class="lead">O Supabase provê o ecossistema de nuvem escalável e centralizado:</p>
-      <div class="grid-3">
-        <div class="card">
-          <h3>🔐 Supabase Auth</h3>
-          <p>Gerenciamento de identidades, tokens JWT com rotação periódica e metadados de papel (<span class="code-tag">role</span>) e condomínio.</p>
-        </div>
-        <div class="card">
-          <h3>🗄️ PostgreSQL Gerenciado</h3>
-          <p>Armazenamento relacional com integridade referencial, triggers de auditoria e espelhamento das entidades do app.</p>
-        </div>
-        <div class="card">
-          <h3>📦 Supabase Storage</h3>
-          <p>Buckets de armazenamento para as fotos de vistorias e evidências fotográficas dos moradores.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 11: Outros Serviços na Nuvem -->
-    <div class="slide-body" data-slide="11">
-      <span class="highlight-pill pill-blue">Infraestrutura</span>
-      <h2 style="margin-top: 10px;">Outros Serviços na Nuvem Utilizados</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h3>🚀 Expo Application Services (EAS Build)</h3>
-          <p>Compilação e build nativo em nuvem (EAS Build Cloud) para geração de binários APK para distribuição interna ou produção, sem depender do ambiente da máquina local.</p>
-        </div>
-        <div class="card">
-          <h3>🌐 Provedores de Tempo & Satélite (GPS / NTP)</h3>
-          <p>Consumo de rede para validação de fuso horário confiável (NTP) e triangulação assistida (A-GPS) garantindo precisão pericial máxima nos relatórios.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Slide 12: Medidas de Segurança -->
-    <div class="slide-body" data-slide="12">
-      <span class="highlight-pill pill-green">Segurança & LGPD</span>
-      <h2 style="margin-top: 10px;">Medidas de Segurança Adotadas</h2>
-      <div class="grid-2">
-        <div class="card">
-          <h3>🔒 Armazenamento Criptografado</h3>
-          <p>Tokens de autenticação e segredos de sessão são mantidos no <span class="code-tag">expo-secure-store</span> (Keychain no iOS e Android Keystore criptografado), nunca em AsyncStorage vulnerável.</p>
-        </div>
-        <div class="card">
-          <h3>🛡️ Row Level Security (RLS) no Banco</h3>
-          <p>Políticas estritas a nível de linha no PostgreSQL impedem que moradores ou síndicos de um condomínio acessem dados de outro condomínio (Isolamento Multi-tenant).</p>
-        </div>
-        <div class="card">
-          <h3>🔑 Chaves Públicas e Variáveis de Ambiente</h3>
-          <p>Separação total de chaves: a chave <span class="code-tag">anon</span> é restrita pelas políticas de RLS e as credenciais sensíveis não são commitadas no código-fonte.</p>
-        </div>
-        <div class="card">
-          <h3>🛡️ Criptografia em Trânsito (TLS 1.3)</h3>
-          <p>100% da comunicação entre os dispositivos móveis e o Supabase é realizada sob protocolo HTTPS criptografado com certificados modernos.</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Footer Controls -->
-    <div class="slide-footer">
-      <button id="btnPrev" onclick="prevSlide()">← Anterior</button>
-      <div class="dots-container" id="dotsContainer"></div>
-      <button id="btnNext" onclick="nextSlide()">Próximo →</button>
-    </div>
+    <!-- Animated Progress Bar -->
+    <div class="progress-track" id="progressTrack"></div>
   </div>
 
   <script>
-    let currentSlide = 1;
-    const totalSlides = 12;
+    let activeIndex = 1;
+    const totalCount = 12;
 
-    const slides = document.querySelectorAll('.slide-body');
-    const indicator = document.getElementById('slideIndicator');
+    const slides = document.querySelectorAll('.slide-page');
+    const counter = document.getElementById('slideCounter');
     const btnPrev = document.getElementById('btnPrev');
     const btnNext = document.getElementById('btnNext');
-    const dotsContainer = document.getElementById('dotsContainer');
+    const progressTrack = document.getElementById('progressTrack');
 
-    // Create dots
-    for (let i = 1; i <= totalSlides; i++) {
-      const dot = document.createElement('div');
-      dot.classList.add('dot');
-      if (i === 1) dot.classList.add('active');
-      dot.onclick = () => goToSlide(i);
-      dotsContainer.appendChild(dot);
-    }
-
-    const dots = document.querySelectorAll('.dot');
-
-    function updateSlide() {
-      slides.forEach((slide, idx) => {
-        slide.classList.toggle('active', idx + 1 === currentSlide);
+    function renderSlide() {
+      slides.forEach((slide) => {
+        const idx = parseInt(slide.dataset.index, 10);
+        slide.classList.remove('active', 'prev');
+        if (idx === activeIndex) {
+          slide.classList.add('active');
+        } else if (idx < activeIndex) {
+          slide.classList.add('prev');
+        }
       });
 
-      dots.forEach((dot, idx) => {
-        dot.classList.toggle('active', idx + 1 === currentSlide);
-      });
+      const formattedCurrent = activeIndex.toString().padStart(2, '0');
+      const formattedTotal = totalCount.toString().padStart(2, '0');
+      counter.textContent = `${formattedCurrent} / ${formattedTotal}`;
 
-      indicator.textContent = `Slide ${currentSlide} / ${totalSlides}`;
-      btnPrev.disabled = currentSlide === 1;
-      btnNext.disabled = currentSlide === totalSlides;
+      btnPrev.disabled = (activeIndex === 1);
+      btnNext.disabled = (activeIndex === totalCount);
+
+      const progressPercent = (activeIndex / totalCount) * 100;
+      progressTrack.style.width = `${progressPercent}%`;
     }
 
-    function nextSlide() {
-      if (currentSlide < totalSlides) {
-        currentSlide++;
-        updateSlide();
+    function moveNext() {
+      if (activeIndex < totalCount) {
+        activeIndex++;
+        // Fullscreen toggle
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          btnFullscreen.textContent = '✕ Sair';
+        } else {
+          document.exitFullscreen().catch(() => {});
+          btnFullscreen.textContent = '⛶ Tela Cheia';
+        }
+      });
+    }
+
+    renderSlide();
       }
     }
 
-    function prevSlide() {
-      if (currentSlide > 1) {
-        currentSlide--;
-        updateSlide();
+    function movePrev() {
+      if (activeIndex > 1) {
+        activeIndex--;
+        // Fullscreen toggle
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          btnFullscreen.textContent = '✕ Sair';
+        } else {
+          document.exitFullscreen().catch(() => {});
+          btnFullscreen.textContent = '⛶ Tela Cheia';
+        }
+      });
+    }
+
+    renderSlide();
       }
     }
 
-    function goToSlide(slideNum) {
-      currentSlide = slideNum;
-      updateSlide();
-    }
+    btnNext.addEventListener('click', moveNext);
+    btnPrev.addEventListener('click', movePrev);
 
-    // Keyboard navigation
     document.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
-        nextSlide();
+        e.preventDefault();
+        moveNext();
       } else if (e.key === 'ArrowLeft') {
-        prevSlide();
+        e.preventDefault();
+        movePrev();
       }
     });
 
-    updateSlide();
+    // Fullscreen toggle
+    const btnFullscreen = document.getElementById('btnFullscreen');
+    if (btnFullscreen) {
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+          btnFullscreen.textContent = '✕ Sair';
+        } else {
+          document.exitFullscreen().catch(() => {});
+          btnFullscreen.textContent = '⛶ Tela Cheia';
+        }
+      });
+    }
+
+    renderSlide();
   </script>
 </body>
 </html>
