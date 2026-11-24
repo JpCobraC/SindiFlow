@@ -44,10 +44,10 @@ export class ClassificarItemChecklistUseCase {
       idRegistro: item.id,
       payload: {
         id: item.id,
-        vistoriaId: input.vistoriaId,
+        vistoria_id: input.vistoriaId,
         status: item.status,
         observacao: item.observacao || null,
-        percentualVistoria: vistoria.percentualRespondido(),
+        percentual_vistoria: vistoria.percentualRespondido(),
       },
       usuarioId: input.usuarioId,
       deviceId: input.deviceId,

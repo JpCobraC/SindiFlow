@@ -50,7 +50,7 @@ export async function criarAplicacaoNativa(): Promise<AplicacaoComposta> {
       config.googleIosClientId
     ),
     networkService: new NetworkServiceReal(),
-    syncGateway: new SyncGatewaySupabase(supabase),
+    syncGateway: new SyncGatewaySupabase(supabase, new AuthGatewaySupabase(supabase)),
     fileSystemGateway: new FileSystemGateway(),
     cameraGateway: new CameraGatewayExpo(),
     locationGateway: new LocationGatewayExpo(),

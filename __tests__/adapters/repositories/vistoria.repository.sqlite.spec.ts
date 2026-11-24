@@ -6,8 +6,7 @@
  */
 import { VistoriaRepositorySQLite } from '../../../src/adapters/repositories/vistoria.repository.sqlite';
 import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
-import { Vistoria } from '../../../src/domain/entities/vistoria.entity';
-import { StatusVistoria } from '../../../src/domain/entities/vistoria.entity';
+import { Vistoria , StatusVistoria } from '../../../src/domain/entities/vistoria.entity';
 import { ItemChecklist, StatusItemChecklist } from '../../../src/domain/entities/item-checklist.entity';
 
 function criarVistoriaDeTeste(props?: Partial<{
@@ -15,7 +14,7 @@ function criarVistoriaDeTeste(props?: Partial<{
   condominioId: string;
   inspetorId: string;
   status: StatusVistoria;
-  itens: Array<{ id: string; titulo: string; categoria: string }>;
+  itens: { id: string; titulo: string; categoria: string }[];
 }>): Vistoria {
   const itens = (props?.itens ?? []).map((i) =>
     ItemChecklist.criar({

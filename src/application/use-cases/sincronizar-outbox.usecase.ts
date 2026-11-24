@@ -50,6 +50,9 @@ export class SincronizarOutboxUseCase {
     // 2. Só entram na fila os eventos PENDENTE cujo prazo de retry já venceu.
     //    Filtrar por status e prazo é o que impede retentativa imediata e inanição
     //    de head-of-line — o `slice(0, limite)` anterior ignorava ambos.
+    // 1.5. Recuperar eventos presos em PROCESSANDO (app fechou no meio do sync).
+    await this.outboxRepo.resetarProcessandoAntigos(agora, 5 * 60 * 1000);
+
     const pendentes = await this.outboxRepo.obterPendentes(agora);
 
     const detalhes: DetalheSincronizacao[] = [];

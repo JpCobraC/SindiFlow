@@ -61,7 +61,7 @@ describe('SyncGatewaySupabase', () => {
 
     expect(mockFrom).toHaveBeenCalledWith('vistorias');
     expect(mockUpsert).toHaveBeenCalledWith(evento.payload, {
-      onConflict: evento.chaveDedup,
+      onConflict: 'id',
     });
   });
 

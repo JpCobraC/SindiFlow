@@ -32,8 +32,8 @@ export class DevolverVistoriaUseCase {
       deviceId: input.deviceId,
       payload: {
         tipo: 'VISTORIA_DEVOLVIDA',
-        vistoriaId: vistoria.id,
-        solicitanteId: input.solicitanteId,
+        vistoria_id: vistoria.id,
+        solicitante_id: input.solicitanteId,
         motivo: input.motivo,
       },
     });

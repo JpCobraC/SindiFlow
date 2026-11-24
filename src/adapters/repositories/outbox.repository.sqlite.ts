@@ -107,9 +107,10 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
   }
 
   async iniciarProcessamento(id: string): Promise<OutboxEvent> {
+    const agora = new Date().toISOString();
     await this.executor.executar(
-      "UPDATE outbox_events SET status = 'PROCESSANDO' WHERE id = ?",
-      [id]
+      "UPDATE outbox_events SET status = 'PROCESSANDO', data_ultima_tentativa = ? WHERE id = ?",
+      [agora, id]
     );
 
     const linha = await this.executor.consultarUm<LinhaOutbox>(
@@ -200,6 +201,21 @@ export class OutboxRepositorySQLite implements IOutboxRepository {
       WHERE id = ?`,
       [linha.tentativas + 1, erro, agora.toISOString(), id]
     );
+  }
+
+  async resetarProcessandoAntigos(agora: Date, timeoutMs: number): Promise<number> {
+    const limite = new Date(agora.getTime() - timeoutMs).toISOString();
+    const resultado = await this.executor.executar(
+      `UPDATE outbox_events SET
+         status = 'PENDENTE',
+         tentativas = tentativas,
+         proximo_retry_ms = 1000,
+         data_ultima_tentativa = NULL
+       WHERE status = 'PROCESSANDO'
+         AND (data_ultima_tentativa IS NULL OR data_ultima_tentativa < ?)`,
+      [limite]
+    );
+    return resultado.alteracoes;
   }
 
   async resetar(id: string): Promise<void> {

@@ -38,7 +38,7 @@ interface NitroModuloCarregado {
  */
 function carregarModuloNitro(): NitroModuloCarregado {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const nitro = require('react-native-nitro-google-signin');
     if (!nitro || !nitro.GoogleOneTapSignIn) {
       throw new Error('GoogleOneTapSignIn não exportado.');
@@ -51,7 +51,7 @@ function carregarModuloNitro(): NitroModuloCarregado {
         nitro.isSuccessResponse ??
         ((r: any) => r?.type === 'success' && r?.data != null),
     };
-  } catch (err: any) {
+  } catch {
     throw new Error(
       'Google Sign-In nativo (NitroModules) requer Development Build (npx expo run:android). ' +
       'No Expo Go, utilize o login por e-mail e senha.'

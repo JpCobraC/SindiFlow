@@ -15,10 +15,10 @@
  *
  * Conformidade com §1.1: 100% nativo, sem web/PWA/browser.
  */
-
 import { SupabaseClient } from '@supabase/supabase-js';
 import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
 import { ErroSincronizacao } from '../../domain/errors/domain-errors';
+import { AuthGateway } from '../../domain/interfaces/auth.gateway.interface';
 import { IRemoteSyncGateway } from '../../domain/interfaces/remote-sync.gateway.interface';
 
 export class SyncGatewaySupabase implements IRemoteSyncGateway {
@@ -27,36 +27,51 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
    * cliente separado aqui perdia a sessão e fazia o RLS do Supabase rejeitar
    * todo envio como anônimo.
    */
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly authGateway?: AuthGateway
+  ) {}
 
   /**
    * Envia um evento do outbox para o Supabase via upsert na tabela
    * correspondente.
-   *
-   * O `chaveDedup` do evento (RF-SYNC-007) garante que reenvio nunca duplica
-   * registro: o upsert usa a chave dedup como critério de conflito.
-   *
-   * Lança `ErroSincronizacao` em caso de falha:
-   * - 4xx (payload inválido, usuário revogado): transitorio=false → dead-letter
-   * - 5xx, timeout, erro de rede: transitorio=true → backoff exponencial
-   * - Erro não tipado: transitorio=true (falha de rede não vem rotulada)
    */
   async sincronizarItem(evento: OutboxEvent): Promise<void> {
-    try {
+    const enviar = async (): Promise<void> => {
       const { error } = await this.client
         .from(evento.tabela)
         .upsert(evento.payload, {
-          onConflict: evento.chaveDedup,
+          // A chave de dedup do outbox não é coluna do Supabase. O upsert
+          // conflita pela chave primária `id` do registro (RF-SYNC-007).
+          onConflict: 'id',
         });
 
       if (error) {
         this.tratarErroSupabase(error);
       }
+    };
+
+    try {
+      await enviar();
     } catch (erro: any) {
       // Erro já traduzido por `tratarErroSupabase`: preservar transitoriedade e
       // status. Sem isto, um 4xx permanente vira 5xx transitório e entra em
       // retry infinito, violando C-05.
       if (erro instanceof ErroSincronizacao) {
+        // 401: tentar renovar a sessão e reenviar uma vez antes de desistir.
+        if (erro.statusCode === 401 && this.authGateway) {
+          try {
+            const bruta = await this.authGateway.obterSessaoSalvaBruta();
+            if (bruta?.refreshToken) {
+              await this.authGateway.renovarSessao(bruta.refreshToken);
+              await enviar();
+              return;
+            }
+          } catch {
+            // Renovação falhou: cai no throw abaixo como transitório.
+          }
+          throw new ErroSincronizacao(erro.message, true, 401);
+        }
         throw erro;
       }
 
@@ -72,9 +87,6 @@ export class SyncGatewaySupabase implements IRemoteSyncGateway {
   /**
    * Traduz um erro do Supabase para `ErroSincronizacao` com o sinalizador
    * `transitorio` correto (resolve C-05).
-   *
-   * - status >= 400 e < 500 → transitorio=false (dead-letter imediato)
-   * - status >= 500 → transitorio=true (backoff exponencial)
    */
   private tratarErroSupabase(error: any): void {
     const statusCode = error?.status;

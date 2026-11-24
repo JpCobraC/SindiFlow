@@ -1,3 +1,5 @@
+import { CameraGatewayExpo } from '../../src/adapters/gateways/camera.gateway.expo';
+
 const mockGetCameraPermissionsAsync = jest.fn();
 const mockRequestCameraPermissionsAsync = jest.fn();
 const mockLaunchCameraAsync = jest.fn();
@@ -70,8 +72,6 @@ jest.mock('expo-file-system', () => {
     Paths: { document: documentDir },
   };
 });
-
-import { CameraGatewayExpo } from '../../src/adapters/gateways/camera.gateway.expo';
 
 describe('CameraGatewayExpo (Adapter Nativo Expo)', () => {
   let gateway: CameraGatewayExpo;

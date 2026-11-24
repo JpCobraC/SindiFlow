@@ -71,6 +71,13 @@ export interface IOutboxRepository {
   /** Devolve um evento em `FALHA_MAXIMA` à fila ativa. Lacuna C-01. */
   resetar(id: string): Promise<void>;
 
+  /**
+   * Recupera eventos presos em `PROCESSANDO` por mais de `timeoutMs`.
+   * Devolve-os a `PENDENTE` para que o próximo sync os tente novamente.
+   * Retorna a quantidade de eventos recuperados.
+   */
+  resetarProcessandoAntigos(agora: Date, timeoutMs: number): Promise<number>;
+
   /** Apaga o que já foi sincronizado antes de `anteriorA`. Política de retenção. */
   descartarSincronizados(anteriorA: Date): Promise<number>;
 }

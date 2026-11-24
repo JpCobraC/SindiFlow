@@ -3,8 +3,7 @@
  */
 import { OcorrenciaRepositorySQLite } from '../../../src/adapters/repositories/ocorrencia.repository.sqlite';
 import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
-import { Ocorrencia } from '../../../src/domain/entities/ocorrencia.entity';
-import { GravidadeOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';
+import { Ocorrencia , GravidadeOcorrencia } from '../../../src/domain/entities/ocorrencia.entity';
 
 function criarOcorrenciaDeTeste(props?: Partial<{
   id: string;

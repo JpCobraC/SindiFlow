@@ -3,12 +3,12 @@
  * Garante persistência de sessão via storage injetado (SecureStore) e que
  * nenhuma detecção de callback web é habilitada (§1.1).
  */
+import { createClient } from '@supabase/supabase-js';
+import { criarClienteSupabase } from '../../src/infra/supabase-client';
+
 jest.mock('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => ({ auth: {} })),
 }));
-
-import { createClient } from '@supabase/supabase-js';
-import { criarClienteSupabase } from '../../src/infra/supabase-client';
 
 const mockCreateClient = createClient as jest.Mock;
 

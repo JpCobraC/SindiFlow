@@ -1,4 +1,4 @@
-import { OutboxEvent } from '../../domain/entities/outbox-event.entity';
+import { OutboxEvent, StatusOutbox } from '../../domain/entities/outbox-event.entity';
 import { OutboxNaoProcessavelError } from '../../domain/errors/domain-errors';
 import { DadosOutbox, IOutboxRepository } from '../../domain/interfaces/outbox.repository.interface';
 
@@ -13,6 +13,7 @@ import { DadosOutbox, IOutboxRepository } from '../../domain/interfaces/outbox.r
 export class OutboxRepositoryInMemory implements IOutboxRepository {
   private eventos = new Map<string, OutboxEvent>();
   private sequencia = 0;
+  private processandoDesde = new Map<string, Date>();
 
   /**
    * Ponto de extensão para os testes, que sobrescrevem via `jest.spyOn` para
@@ -45,6 +46,7 @@ export class OutboxRepositoryInMemory implements IOutboxRepository {
     const evento = this.eventos.get(id);
     if (!evento) throw new OutboxNaoProcessavelError(`evento ${id} não existe na fila.`);
     evento.iniciarProcessamento();
+    this.processandoDesde.set(id, new Date());
     return evento;
   }
 
@@ -72,6 +74,24 @@ export class OutboxRepositoryInMemory implements IOutboxRepository {
 
   async resetar(id: string): Promise<void> {
     this.eventos.get(id)?.resetar();
+    this.processandoDesde.delete(id);
+  }
+
+  async resetarProcessandoAntigos(agora: Date, timeoutMs: number): Promise<number> {
+    let recuperados = 0;
+    for (const [id, inicio] of [...this.processandoDesde.entries()]) {
+      const evento = this.eventos.get(id);
+      if (!evento || evento.status !== StatusOutbox.PROCESSANDO) {
+        this.processandoDesde.delete(id);
+        continue;
+      }
+      if (agora.getTime() - inicio.getTime() >= timeoutMs) {
+        evento.liberarProcessamento();
+        this.processandoDesde.delete(id);
+        recuperados += 1;
+      }
+    }
+    return recuperados;
   }
 
   async descartarSincronizados(anteriorA: Date): Promise<number> {

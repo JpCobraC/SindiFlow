@@ -7,4 +7,24 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*'],
   },
+  {
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
+        process: 'readonly',
+        console: 'readonly',
+      },
+    },
+  },
+  {
+    files: ['__tests__/**/*.ts'],
+    rules: {
+      'import/first': 'off',
+    },
+  },
 ]);

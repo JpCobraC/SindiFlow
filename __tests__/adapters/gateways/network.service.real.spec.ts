@@ -4,6 +4,10 @@
  * Testa a lógica de tri-estado da rede: ONLINE / OFFLINE / INDETERMINADO.
  * Como `expo-network` não roda sob Jest (sem ambiente nativo), mockamos o módulo.
  */
+import * as Network from 'expo-network';
+import { EstadoRede, INetworkService } from '../../../src/domain/interfaces/network.service.interface';
+import { NetworkServiceReal } from '../../../src/adapters/gateways/network.service.real';
+
 jest.mock('expo-network', () => {
   let isInternetReachable: boolean | null = null;
   return {
@@ -20,10 +24,6 @@ jest.mock('expo-network', () => {
     },
   };
 });
-
-import * as Network from 'expo-network';
-import { EstadoRede, INetworkService } from '../../../src/domain/interfaces/network.service.interface';
-import { NetworkServiceReal } from '../../../src/adapters/gateways/network.service.real';
 
 const mockGetNetworkStateAsync = Network.getNetworkStateAsync as jest.Mock;
 

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS vistorias (
   id TEXT PRIMARY KEY NOT NULL,
   condominio_id TEXT NOT NULL,
   inspetor_id TEXT NOT NULL,
-  status TEXT NOT NULL CHECK(status IN ('RASCUNHO', 'EM_ANDAMENTO', 'FINALIZADA', 'CANCELADA')),
+  status TEXT NOT NULL CHECK(status IN ('RASCUNHO', 'EM_ANDAMENTO', 'FINALIZADA', 'CANCELADA', 'APROVADA', 'DEVOLVIDA')),
   latitude REAL,
   longitude REAL,
   -- NULL quando o dispositivo não soube medir. Nunca preenchido com um valor
@@ -24,6 +24,12 @@ CREATE TABLE IF NOT EXISTS vistorias (
   precisao REAL,
   data_criacao TEXT NOT NULL,
   data_finalizacao TEXT,
+  -- Metadados de aprovação/devolução (Bloco 1)
+  parecer_tecnico TEXT,
+  motivo_devolucao TEXT,
+  devolvido_por TEXT,
+  aprovado_por TEXT,
+  data_aprovacao TEXT,
   updated_at TEXT NOT NULL
 );
 

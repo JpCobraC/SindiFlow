@@ -4,6 +4,11 @@
  * Como `expo-sqlite` não roda sob Jest (C-15), mockamos o módulo e
  * testamos a lógica de abertura do banco e execução do DDL.
  */
+import { openDatabaseSync } from 'expo-sqlite';
+import { openSindiFlowDatabase, createSindiFlowExecutor } from '../../../src/infra/db/sqlite-connection';
+import { SQLITE_SCHEMA_DDL } from '../../../src/infra/db/sqlite-schema';
+import { ExpoSQLiteExecutor } from '../../../src/infra/db/expo-sqlite.executor';
+
 jest.mock('expo-sqlite', () => {
   const execSync = jest.fn();
   const getFirstSync = jest.fn();
@@ -16,11 +21,6 @@ jest.mock('expo-sqlite', () => {
     __getFirstSync: getFirstSync,
   };
 });
-
-import { openDatabaseSync } from 'expo-sqlite';
-import { openSindiFlowDatabase, createSindiFlowExecutor } from '../../../src/infra/db/sqlite-connection';
-import { SQLITE_SCHEMA_DDL } from '../../../src/infra/db/sqlite-schema';
-import { ExpoSQLiteExecutor } from '../../../src/infra/db/expo-sqlite.executor';
 
 beforeEach(() => {
   jest.clearAllMocks();

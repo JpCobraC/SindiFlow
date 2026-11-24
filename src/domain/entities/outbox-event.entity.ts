@@ -200,6 +200,16 @@ export class OutboxEvent {
   }
 
   /**
+   * Devolve um evento em PROCESSANDO à fila ativa sem contar tentativa.
+   * Usado na recuperação de eventos presos (app fechou no meio do sync).
+   */
+  public liberarProcessamento(): void {
+    if (this._status === StatusOutbox.PROCESSANDO) {
+      this._status = StatusOutbox.PENDENTE;
+    }
+  }
+
+  /**
    * Registra uma falha e recalcula o próximo prazo.
    *
    * Em `FALHA_MAXIMA` a chamada é **no-op**: o estado é terminal e as tentativas

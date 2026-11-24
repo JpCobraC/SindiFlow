@@ -1,3 +1,5 @@
+import { LocationGatewayExpo } from '../../src/adapters/gateways/location.gateway.expo';
+
 const mockGetForegroundPermissionsAsync = jest.fn();
 const mockRequestForegroundPermissionsAsync = jest.fn();
 const mockGetCurrentPositionAsync = jest.fn();
@@ -15,8 +17,6 @@ jest.mock('expo-location', () => ({
     UNDETERMINED: 'undetermined',
   },
 }));
-
-import { LocationGatewayExpo } from '../../src/adapters/gateways/location.gateway.expo';
 
 describe('LocationGatewayExpo (Adapter Nativo Expo)', () => {
   let gateway: LocationGatewayExpo;

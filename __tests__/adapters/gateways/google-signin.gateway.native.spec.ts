@@ -5,6 +5,8 @@
  * testado é o da porta `GoogleSignInGateway`: devolver o `idToken` ou `null`
  * em cancelamento — nunca trocar token por sessão (isso é do Supabase).
  */
+import { GoogleSignInGatewayNative } from '../../../src/adapters/gateways/google-signin.gateway.native';
+
 const mockGoogleOneTapSignIn = {
   configure: jest.fn(),
   checkPlayServices: jest.fn(async () => undefined),
@@ -17,8 +19,6 @@ jest.mock('react-native-nitro-google-signin', () => ({
     resposta?.type === 'success' && resposta?.data != null,
   isCancelledResponse: (resposta: any) => resposta?.type === 'cancelled',
 }));
-
-import { GoogleSignInGatewayNative } from '../../../src/adapters/gateways/google-signin.gateway.native';
 
 const respostaSucesso = {
   type: 'success',

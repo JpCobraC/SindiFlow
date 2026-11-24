@@ -88,7 +88,7 @@ export class SQLiteExecutorFake implements ISQLiteExecutor {
     const nome = match[1];
     const atribuicoes = dividirPorVirgula(match[2]);
     const where = match[3];
-    const alteracoes: Array<[string, unknown]> = [];
+    const alteracoes: [string, unknown][] = [];
 
     let indiceParam = 0;
     for (const atribuicao of atribuicoes) {
@@ -133,7 +133,7 @@ export class SQLiteExecutorFake implements ISQLiteExecutor {
     const linhas = Array.from(this.tabela(nome).values());
     if (!where) return linhas;
 
-    const condicoes: Array<{ coluna: string; operador: string; valor: unknown }> = [];
+    const condicoes: { coluna: string; operador: string; valor: unknown }[] = [];
     const regex =
       /(\w+)\s*(?:(IS\s+NOT\s+NULL|IS\s+NULL)|(<=|>=|=|<|>)\s*(NULL|\?|'[^']*'|-?\d+(?:\.\d+)?))/gi;
     let match: RegExpExecArray | null;

@@ -4,6 +4,9 @@
  * Testa a leitura e escrita de PRAGMA user_version, que é a
  * estratégia de versionamento do schema do SQLite.
  */
+import { openDatabaseSync } from 'expo-sqlite';
+import { runMigrations, SCHEMA_VERSION } from '../../../src/infra/db/migrations';
+
 jest.mock('expo-sqlite', () => {
   let userVersion = 0;
   return {
@@ -18,16 +21,13 @@ jest.mock('expo-sqlite', () => {
   };
 });
 
-import { openDatabaseSync } from 'expo-sqlite';
-import { runMigrations, SCHEMA_VERSION } from '../../../src/infra/db/migrations';
-
 describe('runMigrations', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('deve definir SCHEMA_VERSION como 2', () => {
-    expect(SCHEMA_VERSION).toBe(2);
+  it('deve definir SCHEMA_VERSION como 3', () => {
+    expect(SCHEMA_VERSION).toBe(3);
   });
 
   it('deve aplicar migration quando o banco está na versão 0', () => {
@@ -38,13 +38,24 @@ describe('runMigrations', () => {
   });
 
   it('não deve reapply migration quando já está na versão atual', () => {
-    // Simular banco já na versão 2
+    // Simular banco já na versão 3
     const db = openDatabaseSync('test.db');
-    (db as any).getFirstSync = jest.fn(() => ({ user_version: 2 }));
+    (db as any).getFirstSync = jest.fn(() => ({ user_version: 3 }));
     runMigrations(db);
     const execSync = (db as any).execSync;
     expect(execSync).not.toHaveBeenCalledWith(
       expect.stringContaining('PRAGMA user_version')
     );
+  });
+
+  it('deve aplicar migration 2 → 3 quando o banco está na versão 2', () => {
+    const db = openDatabaseSync('test.db');
+    (db as any).getFirstSync = jest.fn(() => ({ user_version: 2 }));
+    runMigrations(db);
+    const execSync = (db as any).execSync;
+    expect(execSync).toHaveBeenCalledWith(
+      expect.stringContaining('vistorias_new')
+    );
+    expect(execSync).toHaveBeenCalledWith(`PRAGMA user_version = 3`);
   });
 });

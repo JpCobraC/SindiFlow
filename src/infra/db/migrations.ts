@@ -14,7 +14,7 @@ import { SQLiteDatabase } from 'expo-sqlite';
 /**
  * Versão atual do schema. Incrementar a cada mudança estrutural no DDL.
  */
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /**
  * Executa migrations pendentes no banco.
@@ -89,6 +89,47 @@ function applyMigrations(db: SQLiteDatabase, fromVersion: number): void {
       );
       CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
       CREATE INDEX IF NOT EXISTS idx_users_condominio ON users(condominio_id);
+    `);
+  }
+
+  // Migration 2 → 3: status APROVADA/DEVOLVIDA no CHECK de vistorias + colunas
+  // de metadados de aprovação/devolução (parecer, motivo, responsáveis, data).
+  if (fromVersion < 3) {
+    db.execSync(`
+      DROP TABLE IF EXISTS vistorias_new;
+
+      CREATE TABLE vistorias_new (
+        id TEXT PRIMARY KEY NOT NULL,
+        condominio_id TEXT NOT NULL,
+        inspetor_id TEXT NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('RASCUNHO', 'EM_ANDAMENTO', 'FINALIZADA', 'CANCELADA', 'APROVADA', 'DEVOLVIDA')),
+        latitude REAL,
+        longitude REAL,
+        precisao REAL,
+        data_criacao TEXT NOT NULL,
+        data_finalizacao TEXT,
+        parecer_tecnico TEXT,
+        motivo_devolucao TEXT,
+        devolvido_por TEXT,
+        aprovado_por TEXT,
+        data_aprovacao TEXT,
+        updated_at TEXT NOT NULL
+      );
+
+      INSERT INTO vistorias_new (
+        id, condominio_id, inspetor_id, status, latitude, longitude, precisao,
+        data_criacao, data_finalizacao, updated_at
+      )
+      SELECT id, condominio_id, inspetor_id, status, latitude, longitude, precisao,
+             data_criacao, data_finalizacao, updated_at
+      FROM vistorias;
+
+      DROP TABLE vistorias;
+      ALTER TABLE vistorias_new RENAME TO vistorias;
+
+      CREATE INDEX IF NOT EXISTS idx_vistorias_condominio ON vistorias(condominio_id);
+      CREATE INDEX IF NOT EXISTS idx_vistorias_status ON vistorias(status);
+      CREATE INDEX IF NOT EXISTS idx_vistorias_updated_at ON vistorias(updated_at);
     `);
   }
 }

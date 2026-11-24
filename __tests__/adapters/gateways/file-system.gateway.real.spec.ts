@@ -5,6 +5,10 @@
  * As classes são substituídas por implementações em memória porque o módulo
  * nativo não roda no Jest.
  */
+import * as FileSystem from 'expo-file-system';
+import { IFileSystemGateway } from '../../../src/domain/interfaces/file-system.gateway.interface';
+import { FileSystemGateway } from '../../../src/adapters/gateways/file-system.gateway.real';
+
 jest.mock('expo-file-system', () => {
   const arquivos = new Map<string, string>();
   const diretorios = new Set<string>();
@@ -81,10 +85,6 @@ jest.mock('expo-file-system', () => {
     },
   };
 });
-
-import * as FileSystem from 'expo-file-system';
-import { IFileSystemGateway } from '../../../src/domain/interfaces/file-system.gateway.interface';
-import { FileSystemGateway } from '../../../src/adapters/gateways/file-system.gateway.real';
 
 const mockFileSystem = FileSystem as unknown as {
   __arquivos: Map<string, string>;

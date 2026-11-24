@@ -7,8 +7,7 @@
 import { OutboxRepositorySQLite } from '../../../src/adapters/repositories/outbox.repository.sqlite';
 import { SQLiteExecutorFake } from '../../fakes/sqlite-executor-in-memory.fake';
 import { DadosOutbox } from '../../../src/domain/interfaces/outbox.repository.interface';
-import { OperacaoOutbox } from '../../../src/domain/entities/outbox-event.entity';
-import { StatusOutbox } from '../../../src/domain/entities/outbox-event.entity';
+import { OperacaoOutbox , StatusOutbox } from '../../../src/domain/entities/outbox-event.entity';
 
 function criarDadosOutbox(props?: Partial<{
   tabela: string;
@@ -194,5 +193,31 @@ describe('OutboxRepositorySQLite', () => {
   it('deve ser no-op ao registrar falha permanente em evento inexistente', async () => {
     const agora = new Date('2026-11-10T10:00:00Z');
     await expect(repo.registrarFalhaPermanente('inexistente', 'erro', agora)).resolves.toBeUndefined();
+  });
+
+  it('deve recuperar eventos PROCESSANDO presos por mais de timeoutMs', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-travado' }));
+    await repo.iniciarProcessamento(evento.id);
+
+    // Simular passagem de tempo: agora é 10 min depois do início do processamento.
+    const agora = new Date(Date.now() + 10 * 60 * 1000);
+    const recuperados = await repo.resetarProcessandoAntigos(agora, 5 * 60 * 1000);
+
+    expect(recuperados).toBe(1);
+    const todos = await repo.listarTodos();
+    const recuperado = todos.find((e) => e.id === evento.id);
+    expect(recuperado?.status).toBe(StatusOutbox.PENDENTE);
+  });
+
+  it('não deve recuperar eventos PROCESSANDO recentes', async () => {
+    const evento = await repo.enfileirar(criarDadosOutbox({ idRegistro: 'reg-recente' }));
+    const agora = new Date('2026-11-10T10:00:00Z');
+    await repo.iniciarProcessamento(evento.id);
+
+    const recuperados = await repo.resetarProcessandoAntigos(agora, 5 * 60 * 1000);
+    expect(recuperados).toBe(0);
+    const todos = await repo.listarTodos();
+    const ainda = todos.find((e) => e.id === evento.id);
+    expect(ainda?.status).toBe(StatusOutbox.PROCESSANDO);
   });
 });

@@ -40,7 +40,7 @@ export class SQLiteExecutorFake implements ISQLiteExecutor {
   readonly confirmadas: ExecucaoRegistrada[] = [];
 
   /** Linhas que `consultar` devolve, por casamento de substring do SQL. */
-  private readonly respostas: Array<{ quando: string; linhas: unknown[] }> = [];
+  private readonly respostas: { quando: string; linhas: unknown[] }[] = [];
 
   /** Contagens de alterações programadas, por casamento de substring do SQL. */
   private readonly contagens: AlteracoesProgramada[] = [];
@@ -75,7 +75,7 @@ export class SQLiteExecutorFake implements ISQLiteExecutor {
    * `definirAlteracoes` usam a mesma regra — ter dois Criteria diferentes no mesmo
    * duplo seria uma fonte de confusão sem motivo.
    */
-  private ultimar<T>(lista: Array<{ quando: string } & T>, sql: string): T | undefined {
+  private ultimar<T>(lista: ({ quando: string } & T)[], sql: string): T | undefined {
     for (let i = lista.length - 1; i >= 0; i--) {
       if (sql.includes(lista[i].quando)) {
         return lista[i];

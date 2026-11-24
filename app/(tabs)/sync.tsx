@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import { useVistoria } from '@/src/context/VistoriaContext';
+import { ConexaoIndisponivelError, ErroSincronizacao } from '@/src/domain/errors/domain-errors';
 
 export default function SyncScreen() {
   const {
@@ -26,10 +27,26 @@ export default function SyncScreen() {
         `Total de itens processados: ${res.total}\nSucessos (200 OK): ${res.sincronizados}\nFalhas: ${res.falhas} (${res.permanentes} permanentes)`
       );
     } catch (err: any) {
-      Alert.alert(
-        'Bloqueio Arquitetural (§1.3)',
-        err?.message || 'Falha na detecção de conectividade.'
-      );
+      let titulo = 'Falha na sincronização';
+      let mensagem = 'Não foi possível sincronizar agora. Seus dados estão salvos no celular.';
+
+      if (err instanceof ConexaoIndisponivelError) {
+        titulo = 'Sem conexão';
+        mensagem = 'Sem internet no momento. Seus dados estão salvos no celular e serão enviados quando a conexão voltar.';
+      } else if (err instanceof ErroSincronizacao) {
+        if (err.statusCode === 401) {
+          titulo = 'Sessão expirada';
+          mensagem = 'Sua sessão expirou. Faça login novamente para sincronizar.';
+        } else if (err.statusCode && err.statusCode >= 400 && err.statusCode < 500) {
+          titulo = 'Acesso negado';
+          mensagem = 'Seu acesso foi revogado ou o dado foi rejeitado. Contate o administrador.';
+        } else {
+          titulo = 'Falha no servidor';
+          mensagem = 'O servidor não respondeu. Tentaremos novamente em instantes.';
+        }
+      }
+
+      Alert.alert(titulo, mensagem);
     }
   };
 

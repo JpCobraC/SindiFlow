@@ -32,10 +32,10 @@ export class AprovarVistoriaUseCase {
       deviceId: input.deviceId,
       payload: {
         tipo: 'VISTORIA_APROVADA',
-        vistoriaId: vistoria.id,
-        aprovadorId: input.aprovadorId,
-        parecerTecnico: input.parecerTecnico,
-        dataAprovacao: vistoria.dataAprovacao?.toISOString(),
+        vistoria_id: vistoria.id,
+        aprovador_id: input.aprovadorId,
+        parecer_tecnico: input.parecerTecnico,
+        data_aprovacao: vistoria.dataAprovacao?.toISOString(),
       },
     });
     return vistoria;
